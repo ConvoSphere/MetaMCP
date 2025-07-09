@@ -1,0 +1,182 @@
+version: '3.8'
+
+services:
+  # MCP Meta-Server
+  metamcp-server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://metamcp:metamcp@postgres:5432/metamcp
+      - WEAVIATE_URL=http://weaviate:8080
+      - REDIS_URL=redis://redis:6379
+      - OPA_URL=http://opa:8181
+      - LOG_LEVEL=INFO
+      - AUDIT_LOG_ENABLED=true
+    depends_on:
+      - postgres
+      - weaviate
+      - redis
+      - opa
+    volumes:
+      - ./logs:/app/logs
+      - ./policies:/app/policies
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: metamcp
+      POSTGRES_USER: metamcp
+      POSTGRES_PASSWORD: metamcp
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+  # Weaviate Vector Database
+  weaviate:
+    image: semitechnologies/weaviate:1.22.4
+    ports:
+      - "8088:8080"
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
+      DEFAULT_VECTORIZER_MODULE: 'none'
+      ENABLE_MODULES: 'text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai'
+      CLUSTER_HOSTNAME: 'node1'
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+  # Redis for Caching
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+  # Open Policy Agent (OPA)
+  opa:
+    image: openpolicyagent/opa:latest-envoy
+    ports:
+      - "8181:8181"
+    command:
+      - "run"
+      - "--server"
+      - "--addr=0.0.0.0:8181"
+      - "--log-level=info"
+      - "/policies"
+    volumes:
+      - ./policies:/policies
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+  # Admin UI (Streamlit)
+  admin-ui:
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    ports:
+      - "8080:8080"
+    environment:
+      - METAMCP_API_URL=http://metamcp-server:8000
+    depends_on:
+      - metamcp-server
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+  # Monitoring - Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--storage.tsdb.retention.time=200h'
+      - '--web.enable-lifecycle'
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+  # Monitoring - Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
+      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
+    depends_on:
+      - prometheus
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+  # Example Tool - Database Query Tool
+  example-db-tool:
+    build:
+      context: ./examples/tools/database-tool
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"
+    environment:
+      - TOOL_NAME=database-query
+      - TOOL_DESCRIPTION=Execute SQL queries on various databases
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+  # Example Tool - File System Tool
+  example-fs-tool:
+    build:
+      context: ./examples/tools/filesystem-tool
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"
+    environment:
+      - TOOL_NAME=filesystem
+      - TOOL_DESCRIPTION=File system operations like read, write, search
+    volumes:
+      - ./data:/app/data:ro
+    networks:
+      - metamcp-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  weaviate_data:
+  redis_data:
+  prometheus_data:
+  grafana_data:
+
+networks:
+  metamcp-network:
+    driver: bridge
