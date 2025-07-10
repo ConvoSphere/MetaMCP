@@ -5,15 +5,14 @@ This module provides authentication and authorization endpoints for the
 MCP Meta-Server API.
 """
 
+
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel
-from typing import Optional
 
 from ..config import get_settings
-from ..exceptions import AuthenticationError, AuthorizationError
+from ..exceptions import AuthenticationError
 from ..utils.logging import get_logger
-
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -72,10 +71,10 @@ async def get_current_user(
     try:
         # TODO: Implement actual JWT token validation
         token = credentials.credentials
-        
+
         # For now, return a dummy user ID
         return "system_user"
-        
+
     except Exception as e:
         logger.error(f"Authentication failed: {e}")
         raise HTTPException(
@@ -113,19 +112,19 @@ async def login(login_request: LoginRequest):
     try:
         # TODO: Implement actual user authentication
         # For now, accept any credentials for demo purposes
-        
+
         if not login_request.username or not login_request.password:
             raise AuthenticationError("Username and password are required")
-        
+
         # Generate dummy JWT token
         access_token = "dummy_jwt_token_for_development"
-        
+
         return TokenResponse(
             access_token=access_token,
             token_type="bearer",
             expires_in=settings.jwt_expiration_hours * 3600
         )
-        
+
     except AuthenticationError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -161,9 +160,9 @@ async def logout(current_user: str = Depends(get_current_user)):
     try:
         # TODO: Implement token invalidation
         logger.info(f"User {current_user} logged out")
-        
+
         return {"message": "Successfully logged out"}
-        
+
     except Exception as e:
         logger.error(f"Logout failed: {e}")
         raise HTTPException(
@@ -195,7 +194,7 @@ async def get_current_user_info(current_user: str = Depends(get_current_user)):
             roles=["user"],
             permissions=["tools:read", "tools:execute"]
         )
-        
+
     except Exception as e:
         logger.error(f"Failed to get user info: {e}")
         raise HTTPException(
@@ -228,7 +227,7 @@ async def get_user_permissions(current_user: str = Depends(get_current_user)):
                 "admin": []
             }
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get user permissions: {e}")
         raise HTTPException(
@@ -255,13 +254,13 @@ async def refresh_token(current_user: str = Depends(get_current_user)):
     try:
         # TODO: Implement actual token refresh
         new_token = "refreshed_dummy_jwt_token_for_development"
-        
+
         return TokenResponse(
             access_token=new_token,
             token_type="bearer",
             expires_in=settings.jwt_expiration_hours * 3600
         )
-        
+
     except Exception as e:
         logger.error(f"Token refresh failed: {e}")
         raise HTTPException(

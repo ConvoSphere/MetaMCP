@@ -5,14 +5,14 @@ This module provides REST API endpoints for tool management including
 registration, search, execution, and CRUD operations.
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from typing import Any
+
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from pydantic import BaseModel, Field
-from typing import List, Dict, Any, Optional
 
 from ..config import get_settings
 from ..exceptions import MetaMCPError, ToolNotFoundError, ValidationError
 from ..utils.logging import get_logger
-
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -30,41 +30,41 @@ class ToolRegistrationRequest(BaseModel):
     name: str = Field(..., description="Tool name (unique identifier)")
     description: str = Field(..., description="Tool description")
     endpoint: str = Field(..., description="Tool endpoint URL")
-    category: Optional[str] = Field(None, description="Tool category")
-    capabilities: Optional[List[str]] = Field(default=[], description="Tool capabilities")
-    security_level: Optional[int] = Field(default=0, description="Security level (0-10)")
-    schema: Optional[Dict[str, Any]] = Field(None, description="Tool input/output schema")
-    metadata: Optional[Dict[str, Any]] = Field(default={}, description="Additional metadata")
-    version: Optional[str] = Field(default="1.0.0", description="Tool version")
-    author: Optional[str] = Field(None, description="Tool author")
-    tags: Optional[List[str]] = Field(default=[], description="Tool tags")
+    category: str | None = Field(None, description="Tool category")
+    capabilities: list[str] | None = Field(default=[], description="Tool capabilities")
+    security_level: int | None = Field(default=0, description="Security level (0-10)")
+    schema: dict[str, Any] | None = Field(None, description="Tool input/output schema")
+    metadata: dict[str, Any] | None = Field(default={}, description="Additional metadata")
+    version: str | None = Field(default="1.0.0", description="Tool version")
+    author: str | None = Field(None, description="Tool author")
+    tags: list[str] | None = Field(default=[], description="Tool tags")
 
 
 class ToolUpdateRequest(BaseModel):
     """Request model for tool updates."""
-    description: Optional[str] = Field(None, description="Tool description")
-    endpoint: Optional[str] = Field(None, description="Tool endpoint URL")
-    category: Optional[str] = Field(None, description="Tool category")
-    capabilities: Optional[List[str]] = Field(None, description="Tool capabilities")
-    security_level: Optional[int] = Field(None, description="Security level (0-10)")
-    schema: Optional[Dict[str, Any]] = Field(None, description="Tool input/output schema")
-    metadata: Optional[Dict[str, Any]] = Field(None, description="Additional metadata")
-    version: Optional[str] = Field(None, description="Tool version")
-    tags: Optional[List[str]] = Field(None, description="Tool tags")
+    description: str | None = Field(None, description="Tool description")
+    endpoint: str | None = Field(None, description="Tool endpoint URL")
+    category: str | None = Field(None, description="Tool category")
+    capabilities: list[str] | None = Field(None, description="Tool capabilities")
+    security_level: int | None = Field(None, description="Security level (0-10)")
+    schema: dict[str, Any] | None = Field(None, description="Tool input/output schema")
+    metadata: dict[str, Any] | None = Field(None, description="Additional metadata")
+    version: str | None = Field(None, description="Tool version")
+    tags: list[str] | None = Field(None, description="Tool tags")
 
 
 class ToolSearchRequest(BaseModel):
     """Request model for tool search."""
     query: str = Field(..., description="Natural language search query")
-    max_results: Optional[int] = Field(default=10, description="Maximum number of results")
-    similarity_threshold: Optional[float] = Field(default=0.7, description="Similarity threshold")
-    category: Optional[str] = Field(None, description="Filter by category")
+    max_results: int | None = Field(default=10, description="Maximum number of results")
+    similarity_threshold: float | None = Field(default=0.7, description="Similarity threshold")
+    category: str | None = Field(None, description="Filter by category")
 
 
 class ToolExecutionRequest(BaseModel):
     """Request model for tool execution."""
-    input_data: Dict[str, Any] = Field(..., description="Tool input data")
-    async_execution: Optional[bool] = Field(default=False, description="Execute asynchronously")
+    input_data: dict[str, Any] = Field(..., description="Tool input data")
+    async_execution: bool | None = Field(default=False, description="Execute asynchronously")
 
 
 class ToolResponse(BaseModel):
@@ -73,14 +73,14 @@ class ToolResponse(BaseModel):
     name: str
     description: str
     endpoint: str
-    category: Optional[str]
-    capabilities: List[str]
+    category: str | None
+    capabilities: list[str]
     security_level: int
-    schema: Optional[Dict[str, Any]]
-    metadata: Dict[str, Any]
+    schema: dict[str, Any] | None
+    metadata: dict[str, Any]
     version: str
-    author: Optional[str]
-    tags: List[str]
+    author: str | None
+    tags: list[str]
     created_at: str
     updated_at: str
     is_active: bool
@@ -88,7 +88,7 @@ class ToolResponse(BaseModel):
 
 class ToolListResponse(BaseModel):
     """Response model for tool list."""
-    tools: List[ToolResponse]
+    tools: list[ToolResponse]
     total: int
     offset: int
     limit: int
@@ -96,7 +96,7 @@ class ToolListResponse(BaseModel):
 
 class ToolSearchResponse(BaseModel):
     """Response model for tool search."""
-    tools: List[Dict[str, Any]]
+    tools: list[dict[str, Any]]
     query: str
     total: int
     search_time: float
@@ -124,7 +124,7 @@ async def get_mcp_server():
 
 @tools_router.post(
     "",
-    response_model=Dict[str, str],
+    response_model=dict[str, str],
     status_code=status.HTTP_201_CREATED,
     summary="Register a new tool"
 )
@@ -149,9 +149,9 @@ async def register_tool(
             tool_data=tool_data.dict(),
             user_id=user_id
         )
-        
+
         return {"tool_id": tool_id, "message": "Tool registered successfully"}
-        
+
     except ValidationError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -182,7 +182,7 @@ async def register_tool(
     summary="List all tools"
 )
 async def list_tools(
-    category: Optional[str] = Query(None, description="Filter by category"),
+    category: str | None = Query(None, description="Filter by category"),
     limit: int = Query(100, ge=1, le=1000, description="Maximum number of tools to return"),
     offset: int = Query(0, ge=0, description="Offset for pagination"),
     user_id: str = Depends(get_current_user_id),
@@ -209,7 +209,7 @@ async def list_tools(
             offset=offset,
             limit=limit
         )
-        
+
     except MetaMCPError as e:
         raise HTTPException(
             status_code=e.status_code,
@@ -247,7 +247,7 @@ async def get_tool(
     try:
         # TODO: Implement actual tool retrieval
         raise ToolNotFoundError(tool_name)
-        
+
     except ToolNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -298,7 +298,7 @@ async def update_tool(
     try:
         # TODO: Implement actual tool update
         raise ToolNotFoundError(tool_name)
-        
+
     except ToolNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -344,7 +344,7 @@ async def delete_tool(
     try:
         # TODO: Implement actual tool deletion
         raise ToolNotFoundError(tool_name)
-        
+
     except ToolNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -393,23 +393,23 @@ async def search_tools(
     try:
         import time
         start_time = time.time()
-        
+
         results = await mcp_server.search_tools(
             query=search_request.query,
             user_id=user_id,
             max_results=search_request.max_results,
             similarity_threshold=search_request.similarity_threshold
         )
-        
+
         search_time = time.time() - start_time
-        
+
         return ToolSearchResponse(
             tools=results,
             query=search_request.query,
             total=len(results),
             search_time=search_time
         )
-        
+
     except MetaMCPError as e:
         raise HTTPException(
             status_code=e.status_code,
@@ -451,13 +451,13 @@ async def execute_tool(
             input_data=execution_request.input_data,
             user_id=user_id
         )
-        
+
         return {
             "tool_name": tool_name,
             "result": result,
             "success": True
         }
-        
+
     except ToolNotFoundError as e:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

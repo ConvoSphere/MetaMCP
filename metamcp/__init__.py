@@ -21,34 +21,34 @@ __license__ = "MIT"
 __description__ = "A dynamic MCP Meta-Server for AI agents with semantic tool discovery"
 
 # Core exports
-from .server import MetaMCPServer
 from .client import MetaMCPClient
 from .config import Settings, get_settings
 
 # Exception classes
 from .exceptions import (
-    MetaMCPError,
-    ToolNotFoundError,
-    PolicyViolationError,
-    VectorSearchError,
     MCPProtocolError,
+    MetaMCPError,
+    PolicyViolationError,
+    ToolNotFoundError,
+    VectorSearchError,
 )
-
-# Tool-related exports
-from .tools.registry import ToolRegistry
-from .tools.models import Tool, ToolCategory, ToolCapability
-
-# Vector search exports
-from .vector.client import VectorSearchClient
-from .vector.models import SearchResult, EmbeddingModel
 
 # Security exports
 from .security.auth import AuthManager
 from .security.policies import PolicyEngine
+from .server import MetaMCPServer
+from .tools.models import Tool, ToolCapability, ToolCategory
+
+# Tool-related exports
+from .tools.registry import ToolRegistry
+from .utils.helpers import create_tool_embedding, validate_tool_schema
 
 # Utilities
 from .utils.logging import get_logger
-from .utils.helpers import create_tool_embedding, validate_tool_schema
+
+# Vector search exports
+from .vector.client import VectorSearchClient
+from .vector.models import EmbeddingModel, SearchResult
 
 __all__ = [
     # Core
@@ -56,34 +56,34 @@ __all__ = [
     "MetaMCPClient",
     "Settings",
     "get_settings",
-    
+
     # Exceptions
     "MetaMCPError",
     "ToolNotFoundError",
     "PolicyViolationError",
     "VectorSearchError",
     "MCPProtocolError",
-    
+
     # Tools
     "ToolRegistry",
     "Tool",
     "ToolCategory",
     "ToolCapability",
-    
+
     # Vector Search
     "VectorSearchClient",
     "SearchResult",
     "EmbeddingModel",
-    
+
     # Security
     "AuthManager",
     "PolicyEngine",
-    
+
     # Utilities
     "get_logger",
     "create_tool_embedding",
     "validate_tool_schema",
-    
+
     # Metadata
     "__version__",
     "__author__",
@@ -94,6 +94,7 @@ __all__ = [
 
 # Module-level logger
 import logging
+
 _logger = logging.getLogger(__name__)
 
 def get_version() -> str:

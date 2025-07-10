@@ -5,12 +5,18 @@ This module provides centralized configuration management for the MetaMCP applic
 using Pydantic Settings for type-safe configuration with environment variable support.
 """
 
-import os
-from typing import Optional, List, Dict, Any
+from enum import Enum
 from pathlib import Path
+from typing import Any
 
-from pydantic_settings import BaseSettings
 from pydantic import Field, validator
+from pydantic_settings import BaseSettings
+
+
+class LLMProvider(str, Enum):
+    """LLM Provider enumeration."""
+    OPENAI = "openai"
+    FALLBACK = "fallback"
 
 
 class Settings(BaseSettings):
@@ -20,18 +26,18 @@ class Settings(BaseSettings):
     Centralized configuration management using Pydantic Settings
     with environment variable support and validation.
     """
-    
+
     # Application Settings
     app_name: str = Field(default="MetaMCP", description="Application name")
     app_version: str = Field(default="1.0.0", description="Application version")
     debug: bool = Field(default=False, description="Debug mode")
     environment: str = Field(default="development", description="Environment")
-    
+
     # Server Settings
     host: str = Field(default="0.0.0.0", description="Server host")
     port: int = Field(default=8000, description="Server port")
     workers: int = Field(default=1, description="Number of workers")
-    
+
     # Database Settings
     database_url: str = Field(
         default="postgresql://user:password@localhost/metamcp",
@@ -39,26 +45,22 @@ class Settings(BaseSettings):
     )
     database_pool_size: int = Field(default=10, description="Database pool size")
     database_max_overflow: int = Field(default=20, description="Database max overflow")
-    
+
     # Vector Database Settings
     weaviate_url: str = Field(
         default="http://localhost:8080",
         description="Weaviate vector database URL"
     )
-    weaviate_api_key: Optional[str] = Field(default=None, description="Weaviate API key")
+    weaviate_api_key: str | None = Field(default=None, description="Weaviate API key")
     vector_dimension: int = Field(default=1536, description="Vector dimension")
-    
+
     # LLM Settings
-    openai_api_key: Optional[str] = Field(default=None, description="OpenAI API key")
+    llm_provider: LLMProvider = Field(default=LLMProvider.OPENAI, description="LLM provider")
+    openai_api_key: str | None = Field(default=None, description="OpenAI API key")
     openai_model: str = Field(default="gpt-4", description="OpenAI model")
-    openai_base_url: Optional[str] = Field(default=None, description="OpenAI base URL")
-    
-    ollama_base_url: str = Field(
-        default="http://localhost:11434",
-        description="Ollama base URL"
-    )
-    ollama_model: str = Field(default="llama2", description="Ollama model")
-    
+    openai_base_url: str | None = Field(default=None, description="OpenAI base URL")
+    openai_embedding_model: str = Field(default="text-embedding-ada-002", description="OpenAI embedding model")
+
     # Authentication Settings
     secret_key: str = Field(
         default="your-secret-key-change-in-production",
@@ -66,29 +68,29 @@ class Settings(BaseSettings):
     )
     algorithm: str = Field(default="HS256", description="JWT algorithm")
     access_token_expire_minutes: int = Field(default=30, description="Access token expiry")
-    
+
     # Security Settings
     opa_url: str = Field(
         default="http://localhost:8181",
         description="Open Policy Agent URL"
     )
     opa_timeout: int = Field(default=5, description="OPA request timeout")
-    
+
     # Logging Settings
     log_level: str = Field(default="INFO", description="Logging level")
     log_format: str = Field(
         default="json",
         description="Log format (json, text)"
     )
-    
+
     # Monitoring Settings
     prometheus_metrics_port: int = Field(
         default=9090,
         description="Prometheus metrics port"
     )
-    
+
     # OpenTelemetry Settings
-    otlp_endpoint: Optional[str] = Field(
+    otlp_endpoint: str | None = Field(
         default=None,
         description="OTLP endpoint for telemetry"
     )
@@ -100,23 +102,23 @@ class Settings(BaseSettings):
         default=True,
         description="Enable OpenTelemetry telemetry"
     )
-    
+
     # CORS Settings
-    cors_origins: List[str] = Field(
+    cors_origins: list[str] = Field(
         default=["*"],
         description="CORS allowed origins"
     )
     cors_allow_credentials: bool = Field(default=True, description="Allow CORS credentials")
-    
+
     # Rate Limiting
     rate_limit_requests: int = Field(default=100, description="Rate limit requests per minute")
     rate_limit_window: int = Field(default=60, description="Rate limit window in seconds")
-    
+
     # Tool Registry Settings
     tool_registry_enabled: bool = Field(default=True, description="Enable tool registry")
     tool_registry_auto_discovery: bool = Field(default=True, description="Auto-discover tools")
     tool_registry_cache_ttl: int = Field(default=300, description="Tool registry cache TTL")
-    
+
     # Vector Search Settings
     vector_search_enabled: bool = Field(default=True, description="Enable vector search")
     vector_search_similarity_threshold: float = Field(
@@ -124,19 +126,19 @@ class Settings(BaseSettings):
         description="Vector search similarity threshold"
     )
     vector_search_max_results: int = Field(default=10, description="Max vector search results")
-    
+
     # Policy Settings
     policy_enforcement_enabled: bool = Field(default=True, description="Enable policy enforcement")
     policy_default_allow: bool = Field(default=False, description="Default policy allow")
-    
+
     # Admin Settings
     admin_enabled: bool = Field(default=True, description="Enable admin interface")
     admin_port: int = Field(default=8501, description="Admin interface port")
-    
+
     # Development Settings
     reload: bool = Field(default=False, description="Auto-reload on changes")
     docs_enabled: bool = Field(default=True, description="Enable API documentation")
-    
+
     @validator("environment")
     def validate_environment(cls, v):
         """Validate environment setting."""
@@ -144,7 +146,7 @@ class Settings(BaseSettings):
         if v not in allowed:
             raise ValueError(f"Environment must be one of {allowed}")
         return v
-    
+
     @validator("log_level")
     def validate_log_level(cls, v):
         """Validate log level setting."""
@@ -152,7 +154,7 @@ class Settings(BaseSettings):
         if v.upper() not in allowed:
             raise ValueError(f"Log level must be one of {allowed}")
         return v.upper()
-    
+
     @validator("log_format")
     def validate_log_format(cls, v):
         """Validate log format setting."""
@@ -160,7 +162,7 @@ class Settings(BaseSettings):
         if v not in allowed:
             raise ValueError(f"Log format must be one of {allowed}")
         return v
-    
+
     class Config:
         """Pydantic configuration."""
         env_file = ".env"
@@ -169,7 +171,7 @@ class Settings(BaseSettings):
 
 
 # Global settings instance
-_settings: Optional[Settings] = None
+_settings: Settings | None = None
 
 
 def get_settings() -> Settings:
@@ -183,10 +185,10 @@ def get_settings() -> Settings:
         Uses singleton pattern to ensure consistent settings across the application.
     """
     global _settings
-    
+
     if _settings is None:
         _settings = Settings()
-    
+
     return _settings
 
 
@@ -206,7 +208,7 @@ def reload_settings() -> Settings:
 
 
 # Environment-specific settings
-def get_environment_settings() -> Dict[str, Any]:
+def get_environment_settings() -> dict[str, Any]:
     """
     Get environment-specific settings.
     
@@ -214,7 +216,7 @@ def get_environment_settings() -> Dict[str, Any]:
         Dict[str, Any]: Environment-specific configuration
     """
     settings = get_settings()
-    
+
     if settings.environment == "development":
         return {
             "debug": True,
@@ -239,7 +241,7 @@ def get_environment_settings() -> Dict[str, Any]:
             "log_level": "WARNING",
             "telemetry_enabled": True,
         }
-    
+
     return {}
 
 
@@ -256,25 +258,25 @@ def validate_configuration() -> bool:
     """
     try:
         settings = get_settings()
-        
+
         # Validate required settings for production
         if settings.environment == "production":
             if not settings.secret_key or settings.secret_key == "your-secret-key-change-in-production":
                 raise ValueError("Secret key must be set in production")
-            
-            if not settings.openai_api_key and not settings.ollama_base_url:
-                raise ValueError("Either OpenAI API key or Ollama URL must be configured")
-        
+
+            if not settings.openai_api_key:
+                raise ValueError("OpenAI API key must be configured")
+
         # Validate database URL
         if not settings.database_url:
             raise ValueError("Database URL must be configured")
-        
+
         # Validate vector database settings
         if settings.vector_search_enabled and not settings.weaviate_url:
             raise ValueError("Weaviate URL must be configured for vector search")
-        
+
         return True
-        
+
     except Exception as e:
         raise ValueError(f"Configuration validation failed: {e}")
 
@@ -299,13 +301,13 @@ def create_env_template() -> str:
     """
     settings = Settings()
     template = []
-    
+
     for field_name, field in settings.__fields__.items():
         if field.field_info.description:
             template.append(f"# {field.field_info.description}")
         template.append(f"{field_name.upper()}={field.default}")
         template.append("")
-    
+
     return "\n".join(template)
 
 

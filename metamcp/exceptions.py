@@ -5,7 +5,7 @@ This module defines all custom exceptions used throughout the MCP Meta-Server.
 Each exception includes appropriate error codes, status codes, and detailed messages.
 """
 
-from typing import Optional, Dict, Any
+from typing import Any
 
 
 class MetaMCPError(Exception):
@@ -15,13 +15,13 @@ class MetaMCPError(Exception):
     This is the parent class for all custom exceptions in the system.
     It provides a consistent interface for error handling.
     """
-    
+
     def __init__(
         self,
         message: str,
         error_code: str = "unknown_error",
         status_code: int = 500,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         """
         Initialize MetaMCP error.
@@ -41,98 +41,98 @@ class MetaMCPError(Exception):
 
 class ToolNotFoundError(MetaMCPError):
     """Raised when a requested tool is not found."""
-    
+
     def __init__(self, message: str, error_code: str = "tool_not_found"):
         super().__init__(message, error_code, 404)
 
 
 class ToolRegistrationError(MetaMCPError):
     """Raised when tool registration fails."""
-    
+
     def __init__(self, message: str, error_code: str = "tool_registration_failed"):
         super().__init__(message, error_code, 400)
 
 
 class ToolExecutionError(MetaMCPError):
     """Raised when tool execution fails."""
-    
+
     def __init__(self, message: str, error_code: str = "tool_execution_failed"):
         super().__init__(message, error_code, 500)
 
 
 class PolicyViolationError(MetaMCPError):
     """Raised when a policy violation occurs."""
-    
+
     def __init__(self, message: str, error_code: str = "policy_violation"):
         super().__init__(message, error_code, 403)
 
 
 class AuthenticationError(MetaMCPError):
     """Raised when authentication fails."""
-    
+
     def __init__(self, message: str, error_code: str = "authentication_failed"):
         super().__init__(message, error_code, 401)
 
 
 class AuthorizationError(MetaMCPError):
     """Raised when authorization fails."""
-    
+
     def __init__(self, message: str, error_code: str = "authorization_failed"):
         super().__init__(message, error_code, 403)
 
 
 class VectorSearchError(MetaMCPError):
     """Raised when vector search operations fail."""
-    
+
     def __init__(self, message: str, error_code: str = "vector_search_failed"):
         super().__init__(message, error_code, 500)
 
 
 class EmbeddingError(MetaMCPError):
     """Raised when embedding generation fails."""
-    
+
     def __init__(self, message: str, error_code: str = "embedding_failed"):
         super().__init__(message, error_code, 500)
 
 
 class MCPProtocolError(MetaMCPError):
     """Raised when MCP protocol errors occur."""
-    
+
     def __init__(self, message: str, error_code: str = "mcp_protocol_error"):
         super().__init__(message, error_code, 400)
 
 
 class DatabaseError(MetaMCPError):
     """Raised when database operations fail."""
-    
+
     def __init__(self, message: str, error_code: str = "database_error"):
         super().__init__(message, error_code, 500)
 
 
 class ConfigurationError(MetaMCPError):
     """Raised when configuration errors occur."""
-    
+
     def __init__(self, message: str, error_code: str = "configuration_error"):
         super().__init__(message, error_code, 500)
 
 
 class RateLimitError(MetaMCPError):
     """Raised when rate limits are exceeded."""
-    
+
     def __init__(self, message: str, error_code: str = "rate_limit_exceeded"):
         super().__init__(message, error_code, 429)
 
 
 class ValidationError(MetaMCPError):
     """Raised when validation fails."""
-    
+
     def __init__(self, message: str, error_code: str = "validation_error"):
         super().__init__(message, error_code, 400)
 
 
 class ServiceUnavailableError(MetaMCPError):
     """Raised when a required service is unavailable."""
-    
+
     def __init__(self, service: str, reason: str, error_code: str = "service_unavailable"):
         message = f"Service '{service}' is unavailable: {reason}"
         super().__init__(message, error_code, 503)
@@ -140,7 +140,7 @@ class ServiceUnavailableError(MetaMCPError):
 
 class HealthCheckError(MetaMCPError):
     """Raised when health checks fail."""
-    
+
     def __init__(self, component: str, reason: str, error_code: str = "health_check_failed"):
         message = f"Health check failed for '{component}': {reason}"
         super().__init__(message, error_code, 503)

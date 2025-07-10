@@ -7,4 +7,4 @@ for the MetaMCP application using OpenTelemetry.
 
 from .telemetry import TelemetryManager
 
-__all__ = ["TelemetryManager"] 
+__all__ = ["TelemetryManager"]

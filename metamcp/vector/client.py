@@ -5,16 +5,14 @@ This module provides vector search functionality using Weaviate.
 It handles embeddings storage, search, and similarity calculations.
 """
 
-import asyncio
-from typing import Dict, List, Optional, Any
+from typing import Any
+
 import weaviate
 from weaviate import WeaviateClient
-from weaviate.classes import Filter
 
 from ..config import get_settings
 from ..exceptions import VectorSearchError
 from ..utils.logging import get_logger
-
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -27,11 +25,11 @@ class VectorSearchClient:
     This class provides vector search functionality for semantic
     tool discovery and similarity matching.
     """
-    
+
     def __init__(
         self,
         url: str,
-        api_key: Optional[str] = None,
+        api_key: str | None = None,
         timeout: int = 30
     ):
         """
@@ -45,47 +43,47 @@ class VectorSearchClient:
         self.url = url
         self.api_key = api_key
         self.timeout = timeout
-        
+
         # Weaviate client
-        self.client: Optional[WeaviateClient] = None
-        
+        self.client: WeaviateClient | None = None
+
         self._initialized = False
-    
+
     async def initialize(self) -> None:
         """Initialize the vector search client."""
         if self._initialized:
             return
-            
+
         try:
             logger.info("Initializing Vector Search Client...")
-            
+
             # Create Weaviate client
             auth_config = None
             if self.api_key:
                 auth_config = weaviate.auth.Auth.api_key(self.api_key)
-            
+
             self.client = weaviate.connect_to_wcs(
                 cluster_url=self.url,
                 auth_credentials=auth_config,
                 timeout_config=(self.timeout, self.timeout)
             )
-            
+
             # Test connection
             await self._test_connection()
-            
+
             # Initialize collections
             await self._initialize_collections()
-            
+
             self._initialized = True
             logger.info("Vector Search Client initialized successfully")
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize Vector Search Client: {e}")
             raise VectorSearchError(
                 message=f"Failed to initialize vector search client: {str(e)}",
                 error_code="vector_init_failed"
-            )
-    
+            ) from e
+
     async def _test_connection(self) -> None:
         """Test connection to Weaviate."""
         try:
@@ -102,8 +100,8 @@ class VectorSearchClient:
             raise VectorSearchError(
                 message=f"Weaviate connection failed: {str(e)}",
                 error_code="connection_failed"
-            )
-    
+            ) from e
+
     async def _initialize_collections(self) -> None:
         """Initialize required collections."""
         try:
@@ -125,20 +123,20 @@ class VectorSearchClient:
                 logger.info("Created tools collection")
             else:
                 logger.info("Tools collection already exists")
-                
+
         except Exception as e:
             logger.error(f"Failed to initialize collections: {e}")
             raise VectorSearchError(
                 message=f"Failed to initialize collections: {str(e)}",
                 error_code="collection_init_failed"
-            )
-    
+            ) from e
+
     async def store_embedding(
         self,
         collection: str,
         id: str,
-        embedding: List[float],
-        metadata: Dict[str, Any]
+        embedding: list[float],
+        metadata: dict[str, Any]
     ) -> None:
         """
         Store an embedding with metadata.
@@ -155,7 +153,7 @@ class VectorSearchClient:
                     message="Vector client not initialized",
                     error_code="client_not_initialized"
                 )
-            
+
             # Prepare data object
             data_object = {
                 "name": metadata.get("name", ""),
@@ -166,30 +164,30 @@ class VectorSearchClient:
                 "registered_at": metadata.get("registered_at", ""),
                 "status": metadata.get("status", "active")
             }
-            
+
             # Store in Weaviate
             self.client.collections.get(collection).data.insert(
                 data_object=data_object,
                 uuid=id,
                 vector=embedding
             )
-            
+
             logger.info(f"Stored embedding for {id} in collection {collection}")
-            
+
         except Exception as e:
             logger.error(f"Failed to store embedding: {e}")
             raise VectorSearchError(
                 message=f"Failed to store embedding: {str(e)}",
                 error_code="store_failed"
-            )
-    
+            ) from e
+
     async def search(
         self,
         collection: str,
-        query_embedding: List[float],
+        query_embedding: list[float],
         limit: int = 10,
         similarity_threshold: float = 0.7
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search for similar embeddings.
         
@@ -208,14 +206,14 @@ class VectorSearchClient:
                     message="Vector client not initialized",
                     error_code="client_not_initialized"
                 )
-            
+
             # Perform vector search
             response = self.client.collections.get(collection).query.near_vector(
                 near_vector=query_embedding,
                 limit=limit,
                 return_properties=["name", "description", "categories", "endpoint", "security_level", "status"]
             )
-            
+
             # Process results
             results = []
             for obj in response.objects:
@@ -232,17 +230,17 @@ class VectorSearchClient:
                             "status": obj.properties.get("status", "active")
                         }
                     })
-            
+
             logger.info(f"Found {len(results)} results for vector search")
             return results
-            
+
         except Exception as e:
             logger.error(f"Vector search failed: {e}")
             raise VectorSearchError(
                 message=f"Vector search failed: {str(e)}",
                 error_code="search_failed"
-            )
-    
+            ) from e
+
     async def delete_embedding(self, collection: str, id: str) -> None:
         """
         Delete an embedding by ID.
@@ -257,34 +255,34 @@ class VectorSearchClient:
                     message="Vector client not initialized",
                     error_code="client_not_initialized"
                 )
-            
+
             self.client.collections.get(collection).data.delete_by_id(id)
             logger.info(f"Deleted embedding {id} from collection {collection}")
-            
+
         except Exception as e:
             logger.error(f"Failed to delete embedding: {e}")
             raise VectorSearchError(
                 message=f"Failed to delete embedding: {str(e)}",
                 error_code="delete_failed"
-            )
-    
+            ) from e
+
     async def shutdown(self) -> None:
         """Shutdown the vector search client."""
         if not self._initialized:
             return
-            
+
         logger.info("Shutting down Vector Search Client...")
-        
+
         if self.client:
             try:
                 self.client.close()
             except Exception as e:
                 logger.error(f"Error closing Weaviate client: {e}")
-        
+
         self._initialized = False
         logger.info("Vector Search Client shutdown complete")
-    
+
     @property
     def is_initialized(self) -> bool:
         """Check if client is initialized."""
-        return self._initialized 
+        return self._initialized

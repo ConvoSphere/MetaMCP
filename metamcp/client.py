@@ -6,22 +6,21 @@ It supports tool registration, semantic search, and tool execution through
 both REST API and MCP protocol.
 """
 
-import asyncio
 import json
-from typing import Dict, List, Optional, Any, Union
+from typing import Any
 from urllib.parse import urljoin
+
 import httpx
 import websockets
 from websockets.exceptions import ConnectionClosed
 
 from .exceptions import (
-    MetaMCPError, 
-    ToolNotFoundError, 
     AuthenticationError,
-    MCPProtocolError
+    MCPProtocolError,
+    MetaMCPError,
+    ToolNotFoundError,
 )
 from .utils.logging import get_logger
-
 
 logger = get_logger(__name__)
 
@@ -36,12 +35,12 @@ class MetaMCPClient:
     - Tool execution
     - Authentication and session management
     """
-    
+
     def __init__(
         self,
         base_url: str = "http://localhost:8000",
-        websocket_url: Optional[str] = None,
-        api_key: Optional[str] = None,
+        websocket_url: str | None = None,
+        api_key: str | None = None,
         timeout: int = 30
     ):
         """
@@ -57,37 +56,37 @@ class MetaMCPClient:
         self.websocket_url = websocket_url or self._generate_ws_url()
         self.api_key = api_key
         self.timeout = timeout
-        
+
         # HTTP client
         self.http_client = httpx.AsyncClient(
             timeout=timeout,
             headers=self._get_headers()
         )
-        
+
         # WebSocket connection
-        self.websocket: Optional[websockets.WebSocketServerProtocol] = None
-        self.mcp_session_id: Optional[str] = None
-        
+        self.websocket: websockets.WebSocketServerProtocol | None = None
+        self.mcp_session_id: str | None = None
+
         # State
         self._connected = False
-        
+
     def _generate_ws_url(self) -> str:
         """Generate WebSocket URL from base URL."""
         ws_base = self.base_url.replace("http://", "ws://").replace("https://", "wss://")
         return f"{ws_base}/mcp/ws"
-    
-    def _get_headers(self) -> Dict[str, str]:
+
+    def _get_headers(self) -> dict[str, str]:
         """Get HTTP headers for requests."""
         headers = {
             "Content-Type": "application/json",
             "User-Agent": "MetaMCP-Client/1.0.0"
         }
-        
+
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        
+
         return headers
-    
+
     async def connect(self) -> None:
         """
         Connect to MCP Meta-Server via WebSocket.
@@ -97,35 +96,35 @@ class MetaMCPClient:
         """
         try:
             logger.info(f"Connecting to MCP server at {self.websocket_url}")
-            
+
             self.websocket = await websockets.connect(
                 self.websocket_url,
                 timeout=self.timeout
             )
-            
+
             # Initialize MCP session
             await self._initialize_mcp_session()
-            
+
             self._connected = True
             logger.info("Connected to MCP server successfully")
-            
+
         except Exception as e:
             logger.error(f"Failed to connect to MCP server: {e}")
             raise MCPProtocolError(
                 operation="connect",
                 reason=str(e)
             )
-    
+
     async def disconnect(self) -> None:
         """Disconnect from MCP Meta-Server."""
         if self.websocket:
             await self.websocket.close()
             self.websocket = None
-        
+
         await self.http_client.aclose()
         self._connected = False
         logger.info("Disconnected from MCP server")
-    
+
     async def _initialize_mcp_session(self) -> None:
         """Initialize MCP protocol session."""
         init_message = {
@@ -140,26 +139,26 @@ class MetaMCPClient:
                 }
             }
         }
-        
+
         await self._send_mcp_message(init_message)
         response = await self._receive_mcp_message()
-        
+
         if "error" in response:
             raise MCPProtocolError(
                 operation="initialize",
                 reason=response["error"]["message"]
             )
-        
+
         self.mcp_session_id = response.get("result", {}).get("sessionId")
-    
-    async def _send_mcp_message(self, message: Dict[str, Any]) -> None:
+
+    async def _send_mcp_message(self, message: dict[str, Any]) -> None:
         """Send MCP message via WebSocket."""
         if not self.websocket:
             raise MCPProtocolError(
                 operation="send_message",
                 reason="Not connected to MCP server"
             )
-        
+
         try:
             await self.websocket.send(json.dumps(message))
         except ConnectionClosed:
@@ -168,15 +167,15 @@ class MetaMCPClient:
                 operation="send_message",
                 reason="Connection to MCP server lost"
             )
-    
-    async def _receive_mcp_message(self) -> Dict[str, Any]:
+
+    async def _receive_mcp_message(self) -> dict[str, Any]:
         """Receive MCP message via WebSocket."""
         if not self.websocket:
             raise MCPProtocolError(
                 operation="receive_message",
                 reason="Not connected to MCP server"
             )
-        
+
         try:
             message = await self.websocket.recv()
             return json.loads(message)
@@ -186,17 +185,17 @@ class MetaMCPClient:
                 operation="receive_message",
                 reason="Connection to MCP server lost"
             )
-    
+
     # =============================================================================
     # REST API Methods
     # =============================================================================
-    
+
     async def search_tools(
         self,
         query: str,
         max_results: int = 10,
         similarity_threshold: float = 0.7
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search for tools using semantic search.
         
@@ -213,19 +212,19 @@ class MetaMCPClient:
         """
         try:
             url = urljoin(self.base_url, "/api/v1/tools/search")
-            
+
             payload = {
                 "query": query,
                 "max_results": max_results,
                 "similarity_threshold": similarity_threshold
             }
-            
+
             response = await self.http_client.post(url, json=payload)
             response.raise_for_status()
-            
+
             data = response.json()
             return data.get("tools", [])
-            
+
         except httpx.HTTPStatusError as e:
             await self._handle_http_error(e)
         except Exception as e:
@@ -234,8 +233,8 @@ class MetaMCPClient:
                 message=f"Tool search failed: {str(e)}",
                 error_code="search_failed"
             )
-    
-    async def get_tool(self, tool_name: str) -> Dict[str, Any]:
+
+    async def get_tool(self, tool_name: str) -> dict[str, Any]:
         """
         Get tool details by name.
         
@@ -250,15 +249,15 @@ class MetaMCPClient:
         """
         try:
             url = urljoin(self.base_url, f"/api/v1/tools/{tool_name}")
-            
+
             response = await self.http_client.get(url)
-            
+
             if response.status_code == 404:
                 raise ToolNotFoundError(tool_name)
-            
+
             response.raise_for_status()
             return response.json()
-            
+
         except httpx.HTTPStatusError as e:
             await self._handle_http_error(e)
         except ToolNotFoundError:
@@ -269,13 +268,13 @@ class MetaMCPClient:
                 message=f"Failed to get tool: {str(e)}",
                 error_code="get_tool_failed"
             )
-    
+
     async def list_tools(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         List available tools.
         
@@ -289,20 +288,20 @@ class MetaMCPClient:
         """
         try:
             url = urljoin(self.base_url, "/api/v1/tools")
-            
+
             params = {
                 "limit": limit,
                 "offset": offset
             }
-            
+
             if category:
                 params["category"] = category
-            
+
             response = await self.http_client.get(url, params=params)
             response.raise_for_status()
-            
+
             return response.json()
-            
+
         except httpx.HTTPStatusError as e:
             await self._handle_http_error(e)
         except Exception as e:
@@ -311,8 +310,8 @@ class MetaMCPClient:
                 message=f"Failed to list tools: {str(e)}",
                 error_code="list_tools_failed"
             )
-    
-    async def register_tool(self, tool_data: Dict[str, Any]) -> str:
+
+    async def register_tool(self, tool_data: dict[str, Any]) -> str:
         """
         Register a new tool.
         
@@ -327,13 +326,13 @@ class MetaMCPClient:
         """
         try:
             url = urljoin(self.base_url, "/api/v1/tools")
-            
+
             response = await self.http_client.post(url, json=tool_data)
             response.raise_for_status()
-            
+
             data = response.json()
             return data.get("tool_id")
-            
+
         except httpx.HTTPStatusError as e:
             await self._handle_http_error(e)
         except Exception as e:
@@ -342,12 +341,12 @@ class MetaMCPClient:
                 message=f"Tool registration failed: {str(e)}",
                 error_code="registration_failed"
             )
-    
+
     async def update_tool(
-        self, 
-        tool_name: str, 
-        tool_data: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self,
+        tool_name: str,
+        tool_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Update an existing tool.
         
@@ -360,12 +359,12 @@ class MetaMCPClient:
         """
         try:
             url = urljoin(self.base_url, f"/api/v1/tools/{tool_name}")
-            
+
             response = await self.http_client.put(url, json=tool_data)
             response.raise_for_status()
-            
+
             return response.json()
-            
+
         except httpx.HTTPStatusError as e:
             await self._handle_http_error(e)
         except Exception as e:
@@ -374,7 +373,7 @@ class MetaMCPClient:
                 message=f"Tool update failed: {str(e)}",
                 error_code="update_failed"
             )
-    
+
     async def delete_tool(self, tool_name: str) -> bool:
         """
         Delete a tool.
@@ -387,12 +386,12 @@ class MetaMCPClient:
         """
         try:
             url = urljoin(self.base_url, f"/api/v1/tools/{tool_name}")
-            
+
             response = await self.http_client.delete(url)
             response.raise_for_status()
-            
+
             return True
-            
+
         except httpx.HTTPStatusError as e:
             await self._handle_http_error(e)
         except Exception as e:
@@ -401,12 +400,12 @@ class MetaMCPClient:
                 message=f"Tool deletion failed: {str(e)}",
                 error_code="deletion_failed"
             )
-    
+
     # =============================================================================
     # MCP Protocol Methods
     # =============================================================================
-    
-    async def mcp_list_tools(self) -> List[Dict[str, Any]]:
+
+    async def mcp_list_tools(self) -> list[dict[str, Any]]:
         """
         List tools using MCP protocol.
         
@@ -415,30 +414,30 @@ class MetaMCPClient:
         """
         if not self._connected:
             await self.connect()
-        
+
         message = {
             "jsonrpc": "2.0",
             "id": 2,
             "method": "tools/list",
             "params": {}
         }
-        
+
         await self._send_mcp_message(message)
         response = await self._receive_mcp_message()
-        
+
         if "error" in response:
             raise MCPProtocolError(
                 operation="list_tools",
                 reason=response["error"]["message"]
             )
-        
+
         return response.get("result", {}).get("tools", [])
-    
+
     async def mcp_call_tool(
         self,
         tool_name: str,
-        arguments: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        arguments: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Call a tool using MCP protocol.
         
@@ -451,7 +450,7 @@ class MetaMCPClient:
         """
         if not self._connected:
             await self.connect()
-        
+
         message = {
             "jsonrpc": "2.0",
             "id": 3,
@@ -461,23 +460,23 @@ class MetaMCPClient:
                 "arguments": arguments
             }
         }
-        
+
         await self._send_mcp_message(message)
         response = await self._receive_mcp_message()
-        
+
         if "error" in response:
             raise MCPProtocolError(
                 operation="call_tool",
                 reason=response["error"]["message"]
             )
-        
+
         return response.get("result", {})
-    
+
     # =============================================================================
     # Health and Status
     # =============================================================================
-    
-    async def get_health(self) -> Dict[str, Any]:
+
+    async def get_health(self) -> dict[str, Any]:
         """
         Get server health status.
         
@@ -486,20 +485,20 @@ class MetaMCPClient:
         """
         try:
             url = urljoin(self.base_url, "/health")
-            
+
             response = await self.http_client.get(url)
             response.raise_for_status()
-            
+
             return response.json()
-            
+
         except Exception as e:
             logger.error(f"Health check failed: {e}")
             raise MetaMCPError(
                 message=f"Health check failed: {str(e)}",
                 error_code="health_check_failed"
             )
-    
-    async def get_server_info(self) -> Dict[str, Any]:
+
+    async def get_server_info(self) -> dict[str, Any]:
         """
         Get server information.
         
@@ -508,32 +507,32 @@ class MetaMCPClient:
         """
         try:
             url = urljoin(self.base_url, "/api/v1/info")
-            
+
             response = await self.http_client.get(url)
             response.raise_for_status()
-            
+
             return response.json()
-            
+
         except Exception as e:
             logger.error(f"Failed to get server info: {e}")
             raise MetaMCPError(
                 message=f"Failed to get server info: {str(e)}",
                 error_code="server_info_failed"
             )
-    
+
     # =============================================================================
     # Utility Methods
     # =============================================================================
-    
+
     async def _handle_http_error(self, error: httpx.HTTPStatusError) -> None:
         """Handle HTTP errors and convert to appropriate exceptions."""
         try:
             error_data = error.response.json()
             error_info = error_data.get("error", {})
-            
+
             error_code = error_info.get("code", "unknown_error")
             message = error_info.get("message", str(error))
-            
+
             if error.response.status_code == 401:
                 raise AuthenticationError(message)
             elif error.response.status_code == 404:
@@ -544,24 +543,24 @@ class MetaMCPClient:
                     error_code=error_code,
                     status_code=error.response.status_code
                 )
-                
+
         except json.JSONDecodeError:
             raise MetaMCPError(
                 message=f"HTTP {error.response.status_code}: {error.response.text}",
                 error_code="http_error",
                 status_code=error.response.status_code
             )
-    
+
     @property
     def is_connected(self) -> bool:
         """Check if connected to MCP server."""
         return self._connected
-    
+
     async def __aenter__(self):
         """Async context manager entry."""
         await self.connect()
         return self
-    
+
     async def __aexit__(self, exc_type, exc_val, exc_tb):
         """Async context manager exit."""
         await self.disconnect()

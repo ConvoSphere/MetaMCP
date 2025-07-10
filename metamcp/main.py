@@ -9,8 +9,8 @@ It sets up the FastAPI application, initializes all components, and starts the s
 import asyncio
 import signal
 import sys
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
 
 import uvicorn
 from fastapi import FastAPI, Request
@@ -18,14 +18,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
+from .api import create_api_router
 from .config import get_settings
 from .exceptions import MetaMCPError
-from .utils.logging import setup_logging, get_logger
-from .server import MetaMCPServer
-from .api import create_api_router
-from .monitoring.metrics import setup_metrics
 from .monitoring.health import setup_health_checks
-
+from .monitoring.metrics import setup_metrics
+from .server import MetaMCPServer
+from .utils.logging import get_logger, setup_logging
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -39,36 +38,36 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     Handles startup and shutdown of the MCP Meta-Server components.
     """
     logger.info("Starting MCP Meta-Server...")
-    
+
     try:
         # Initialize the MCP server
         mcp_server = MetaMCPServer()
         await mcp_server.initialize()
-        
+
         # Store server instance in app state
         app.state.mcp_server = mcp_server
-        
+
         # Setup monitoring
         if settings.metrics_enabled:
             setup_metrics(app)
-        
+
         # Setup health checks
         setup_health_checks(app, mcp_server)
-        
+
         logger.info("MCP Meta-Server started successfully")
-        
+
         yield
-        
+
     except Exception as e:
         logger.error(f"Failed to start MCP Meta-Server: {e}")
         raise
     finally:
         # Cleanup
         logger.info("Shutting down MCP Meta-Server...")
-        
+
         if hasattr(app.state, "mcp_server"):
             await app.state.mcp_server.shutdown()
-        
+
         logger.info("MCP Meta-Server shutdown complete")
 
 
@@ -89,17 +88,17 @@ def create_app() -> FastAPI:
         redoc_url="/redoc" if settings.api_docs_enabled else None,
         openapi_url="/openapi.json" if settings.api_docs_enabled else None,
     )
-    
+
     # Add middleware
     setup_middleware(app)
-    
+
     # Add exception handlers
     setup_exception_handlers(app)
-    
+
     # Include API routers
     api_router = create_api_router()
     app.include_router(api_router, prefix="/api/v1")
-    
+
     return app
 
 
@@ -119,7 +118,7 @@ def setup_middleware(app: FastAPI) -> None:
             allow_methods=["*"],
             allow_headers=["*"],
         )
-    
+
     # Trusted host middleware
     if not settings.debug:
         app.add_middleware(
@@ -149,7 +148,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
                 }
             }
         )
-    
+
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception):
         """Handle general exceptions."""
@@ -171,7 +170,7 @@ def setup_signal_handlers() -> None:
     def signal_handler(signum, frame):
         logger.info(f"Received signal {signum}, shutting down...")
         sys.exit(0)
-    
+
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
 
@@ -184,13 +183,13 @@ async def run_server() -> None:
     """
     # Setup logging
     setup_logging()
-    
+
     # Setup signal handlers
     setup_signal_handlers()
-    
+
     # Create app
     app = create_app()
-    
+
     # Configure uvicorn
     config = uvicorn.Config(
         app,
@@ -201,10 +200,10 @@ async def run_server() -> None:
         reload=settings.auto_reload and settings.debug,
         workers=1,  # Single worker for now to maintain state
     )
-    
+
     # Start server
     server = uvicorn.Server(config)
-    
+
     try:
         await server.serve()
     except Exception as e:
@@ -222,10 +221,10 @@ def main() -> None:
         if sys.platform == "win32":
             # Windows-specific event loop policy
             asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-        
+
         # Run the server
         asyncio.run(run_server())
-    
+
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:

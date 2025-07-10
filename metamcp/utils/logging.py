@@ -8,15 +8,15 @@ with support for JSON formatting, log rotation, and various output formats.
 import logging
 import logging.handlers
 import sys
-import os
 from pathlib import Path
-from typing import Any, Dict, Optional
+from typing import Any
+
 import structlog
 
 
 def setup_logging(
     log_level: str = "INFO",
-    log_file: Optional[str] = None,
+    log_file: str | None = None,
     structured: bool = True,
     json_format: bool = True
 ) -> None:
@@ -35,7 +35,7 @@ def setup_logging(
         level=getattr(logging, log_level.upper()),
         stream=sys.stdout,
     )
-    
+
     # Create processors chain
     processors = [
         structlog.contextvars.merge_contextvars,
@@ -44,12 +44,12 @@ def setup_logging(
         structlog.processors.TimeStamper(fmt="iso"),
         structlog.processors.StackInfoRenderer(),
     ]
-    
+
     if json_format:
         processors.append(structlog.processors.JSONRenderer())
     else:
         processors.append(structlog.dev.ConsoleRenderer())
-    
+
     # Configure structlog
     structlog.configure(
         processors=processors,
@@ -59,7 +59,7 @@ def setup_logging(
         logger_factory=structlog.WriteLoggerFactory(),
         cache_logger_on_first_use=True,
     )
-    
+
     # Setup file logging if specified
     if log_file:
         setup_file_logging(log_file, log_level)
@@ -76,7 +76,7 @@ def setup_file_logging(log_file: str, log_level: str = "INFO") -> None:
     # Ensure log directory exists
     log_path = Path(log_file)
     log_path.parent.mkdir(parents=True, exist_ok=True)
-    
+
     # Create rotating file handler
     file_handler = logging.handlers.RotatingFileHandler(
         log_file,
@@ -84,14 +84,14 @@ def setup_file_logging(log_file: str, log_level: str = "INFO") -> None:
         backupCount=5,
         encoding="utf-8"
     )
-    
+
     # Set formatter
     formatter = logging.Formatter(
         '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
     file_handler.setFormatter(formatter)
     file_handler.setLevel(getattr(logging, log_level.upper()))
-    
+
     # Add to root logger
     root_logger = logging.getLogger()
     root_logger.addHandler(file_handler)
@@ -116,7 +116,7 @@ class AuditLogger:
     
     Provides structured logging for security and compliance auditing.
     """
-    
+
     def __init__(self, name: str = "audit"):
         """
         Initialize audit logger.
@@ -125,14 +125,14 @@ class AuditLogger:
             name: Logger name
         """
         self.logger = get_logger(name)
-    
+
     def log_authentication(
         self,
         user_id: str,
         success: bool,
         method: str,
         ip_address: str,
-        user_agent: Optional[str] = None,
+        user_agent: str | None = None,
         **kwargs
     ) -> None:
         """
@@ -155,14 +155,14 @@ class AuditLogger:
             user_agent=user_agent,
             **kwargs
         )
-    
+
     def log_authorization(
         self,
         user_id: str,
         resource: str,
         action: str,
         success: bool,
-        policy: Optional[str] = None,
+        policy: str | None = None,
         **kwargs
     ) -> None:
         """
@@ -185,15 +185,15 @@ class AuditLogger:
             policy=policy,
             **kwargs
         )
-    
+
     def log_tool_execution(
         self,
         user_id: str,
         tool_name: str,
         success: bool,
         execution_time: float,
-        input_data: Optional[Dict[str, Any]] = None,
-        error: Optional[str] = None,
+        input_data: dict[str, Any] | None = None,
+        error: str | None = None,
         **kwargs
     ) -> None:
         """
@@ -218,7 +218,7 @@ class AuditLogger:
             error=error,
             **kwargs
         )
-    
+
     def log_policy_evaluation(
         self,
         user_id: str,
@@ -257,7 +257,7 @@ class PerformanceLogger:
     """
     Logger for performance metrics and timing information.
     """
-    
+
     def __init__(self, name: str = "performance"):
         """
         Initialize performance logger.
@@ -266,7 +266,7 @@ class PerformanceLogger:
             name: Logger name
         """
         self.logger = get_logger(name)
-    
+
     def log_request_timing(
         self,
         endpoint: str,
@@ -293,13 +293,13 @@ class PerformanceLogger:
             response_time=response_time,
             **kwargs
         )
-    
+
     def log_database_timing(
         self,
         operation: str,
         table: str,
         query_time: float,
-        rows_affected: Optional[int] = None,
+        rows_affected: int | None = None,
         **kwargs
     ) -> None:
         """
@@ -320,7 +320,7 @@ class PerformanceLogger:
             rows_affected=rows_affected,
             **kwargs
         )
-    
+
     def log_vector_search_timing(
         self,
         query: str,
