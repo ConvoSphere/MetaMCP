@@ -9,11 +9,11 @@ import os
 from typing import Optional, List, Dict, Any
 from pathlib import Path
 
-from pydantic import BaseSettings, Field, validator
-from pydantic_settings import BaseSettings as PydanticBaseSettings
+from pydantic_settings import BaseSettings
+from pydantic import Field, validator
 
 
-class Settings(PydanticBaseSettings):
+class Settings(BaseSettings):
     """
     Application Settings
     

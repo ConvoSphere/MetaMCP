@@ -10,7 +10,7 @@ from typing import Dict, List, Optional, Any
 from contextlib import asynccontextmanager
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
-from fastmcp import FastMCP, ServerSession
+from fastmcp import FastMCP
 from fastmcp.models import (
     Tool,
     TextContent,
@@ -140,12 +140,8 @@ class MCPServer:
             await websocket.accept()
             
             try:
-                # Create server session
-                session = ServerSession(self.fastmcp)
-                
-                # Handle WebSocket communication
-                async with session.connect(websocket):
-                    await session.run()
+                # Handle WebSocket communication directly
+                await self.fastmcp.handle_websocket(websocket)
                     
             except WebSocketDisconnect:
                 logger.info("WebSocket disconnected")
