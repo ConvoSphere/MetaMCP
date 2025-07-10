@@ -18,11 +18,14 @@ MetaMCP is an open-source MCP (Model Context Protocol) Meta-Server that provides
 git clone https://github.com/lichtbaer/MetaMCP.git
 cd MetaMCP
 
-# Start with Docker Compose
-docker-compose up -d
+# Install dependencies
+uv pip install -r requirements.txt
+
+# Start the development server
+python -m metamcp.main
 
 # Access the admin UI
-open http://localhost:8080
+open http://localhost:8000
 ```
 
 ## Architecture
@@ -37,7 +40,9 @@ graph TB
     C --> G[Registered Tools]
     D --> H[Weaviate]
     E --> I[OPA]
-    F --> J[OpenAI/Ollama]
+    F --> J[OpenAI]
+    B --> K[OAuth Auth]
+    K --> L[Google/GitHub/MS]
 ```
 
 ## Key Features
@@ -54,10 +59,17 @@ graph TB
 - **Admin UI**: Web interface for tool management
 - **OpenAPI Integration**: Automatic tool import from Swagger specs
 
+### 🔐 Security Features
+- **OAuth Integration**: Multi-provider authentication (Google, GitHub, Microsoft)
+- **JWT Tokens**: Secure session management
+- **Role-based Access**: Fine-grained permissions
+- **Audit Trail**: Complete activity logging
+
 ### 🚀 Advanced Features
-- **Multi-LLM Support**: OpenAI, Ollama, and Hugging Face integration
+- **OpenAI Integration**: Embeddings and text generation
 - **Vector Database**: Weaviate integration for semantic search
 - **Monitoring**: Prometheus metrics and Grafana dashboards
+- **OpenTelemetry**: Distributed tracing and observability
 - **Docker Support**: Complete containerization with Docker Compose
 
 ## Getting Started
@@ -74,6 +86,7 @@ graph TB
 - **[MCP Protocol](user-guide/mcp-protocol.md)** - MCP protocol implementation
 - **[Tool Management](user-guide/tool-management.md)** - Managing tools and capabilities
 - **[Security](user-guide/security.md)** - Security features and best practices
+- **[OAuth Integration](oauth/fastmcp-integration.md)** - OAuth authentication for agents
 
 ## Developer Guide
 

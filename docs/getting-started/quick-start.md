@@ -4,11 +4,11 @@ Get MetaMCP up and running in minutes with this quick start guide.
 
 ## Prerequisites
 
-- Docker and Docker Compose
-- 4GB RAM (for Weaviate)
-- Python 3.8+ (for development)
+- Python 3.11 or higher
+- [uv](https://docs.astral.sh/uv/) package manager
+- OpenAI API key (for embeddings and text generation)
 
-## Option 1: Docker Compose (Recommended)
+## Installation
 
 ### 1. Clone the Repository
 
@@ -17,181 +17,182 @@ git clone https://github.com/lichtbaer/MetaMCP.git
 cd MetaMCP
 ```
 
-### 2. Start Services
+### 2. Install Dependencies
 
 ```bash
-docker-compose up -d
-```
-
-This will start:
-- MetaMCP Server (port 8000)
-- PostgreSQL Database (port 5432)
-- Weaviate Vector Database (port 8088)
-- Redis Cache (port 6379)
-- OPA Policy Engine (port 8181)
-- Admin UI (port 8080)
-- Prometheus (port 9090)
-- Grafana (port 3000)
-
-### 3. Verify Installation
-
-```bash
-# Check service health
-curl http://localhost:8000/api/v1/health
-
-# Access admin UI
-open http://localhost:8080
-```
-
-## Option 2: Development Setup
-
-### 1. Install Dependencies
-
-```bash
-# Install uv package manager
+# Install uv if not already installed
 curl -LsSf https://astral.sh/uv/install.sh | sh
-source $HOME/.local/bin/env
 
-# Create virtual environment
-uv venv
-source .venv/bin/activate
-
-# Install dependencies
+# Create virtual environment and install dependencies
 uv pip install -r requirements.txt
 ```
 
-### 2. Configure Environment
+### 3. Configure Environment
+
+Create a `.env` file in the project root:
 
 ```bash
 # Copy example environment file
 cp .env.example .env
-
-# Edit configuration
-nano .env
 ```
 
-### 3. Start Infrastructure
+Edit the `.env` file with your settings:
 
-```bash
-# Start required services
-docker-compose up -d postgres weaviate redis opa
+```env
+# OpenAI Configuration
+OPENAI_API_KEY=your_openai_api_key_here
+OPENAI_MODEL=gpt-4
+OPENAI_EMBEDDING_MODEL=text-embedding-ada-002
+
+# Server Configuration
+HOST=0.0.0.0
+PORT=8000
+ENVIRONMENT=development
+
+# Security
+SECRET_KEY=your-secret-key-change-in-production
+JWT_ALGORITHM=HS256
+ACCESS_TOKEN_EXPIRE_MINUTES=30
+
+# Vector Database (Optional)
+WEAVIATE_URL=http://localhost:8080
+
+# OPA Policy Engine (Optional)
+OPA_URL=http://localhost:8181
 ```
 
-### 4. Run MetaMCP
+### 4. Start the Server
 
 ```bash
-# Start the server
+# Start the development server
 python -m metamcp.main
 ```
 
-## First Steps
+The server will be available at `http://localhost:8000`
 
-### 1. Access the API
+## Verify Installation
+
+### 1. Health Check
 
 ```bash
-# Health check
-curl http://localhost:8000/api/v1/health
-
-# List available tools
-curl http://localhost:8000/api/v1/tools
+curl http://localhost:8000/health
 ```
 
-### 2. Use the Admin UI
+Expected response:
+```json
+{
+  "status": "healthy",
+  "version": "0.1.0",
+  "timestamp": "2025-07-10T19:30:00Z"
+}
+```
 
-Open http://localhost:8080 in your browser:
-- **Username**: admin
-- **Password**: admin123
+### 2. API Documentation
+
+Open your browser and navigate to:
+- **Swagger UI**: http://localhost:8000/docs
+- **ReDoc**: http://localhost:8000/redoc
+
+### 3. Admin Interface
+
+Access the admin interface at:
+- **Admin UI**: http://localhost:8000/admin
+
+## First Steps
+
+### 1. Register a Tool
+
+```bash
+curl -X POST http://localhost:8000/api/tools \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "calculator",
+    "description": "Perform mathematical calculations",
+    "endpoint": "http://localhost:8001",
+    "categories": ["math", "calculation"],
+    "input_schema": {
+      "type": "object",
+      "properties": {
+        "expression": {"type": "string"}
+      },
+      "required": ["expression"]
+    }
+  }'
+```
+
+### 2. Search for Tools
+
+```bash
+curl -X POST http://localhost:8000/api/tools/search \
+  -H "Content-Type: application/json" \
+  -d '{
+    "query": "mathematical calculations",
+    "max_results": 5
+  }'
+```
 
 ### 3. Connect an MCP Client
 
+Use any MCP-compatible client to connect to the server:
+
 ```python
-import asyncio
-from metamcp.client import MetaMCPClient
+from mcp import ClientSession, StdioServerParameters
+from mcp.client.stdio import stdio_client
 
-async def main():
-    client = MetaMCPClient("http://localhost:8000")
-    
-    # Search for tools
-    tools = await client.search_tools("database query")
-    print(f"Found {len(tools)} tools")
-    
-    # Execute a tool
-    result = await client.execute_tool("database_query", {
-        "query": "SELECT * FROM users LIMIT 10"
-    })
-    print(result)
-
-asyncio.run(main())
+async with stdio_client(StdioServerParameters(
+    command="python", 
+    args=["-m", "metamcp.mcp.server"]
+)) as (read, write):
+    async with ClientSession(read, write) as session:
+        # List available tools
+        tools = await session.list_tools()
+        print(f"Available tools: {tools}")
 ```
 
-## Configuration
+## Development Mode
 
-### Environment Variables
+For development, you can enable additional features:
 
-Key configuration options:
-
-```bash
-# Database
-DATABASE_URL=postgresql://metamcp:metamcp@localhost:5432/metamcp
-
-# Vector Database
-WEAVIATE_URL=http://localhost:8088
-
-# LLM Provider
-LLM_PROVIDER=openai
-OPENAI_API_KEY=your-api-key
-
-# Security
-SECRET_KEY=your-secret-key
-JWT_SECRET_KEY=your-jwt-secret
+```env
+# Development settings
+DEBUG=true
+RELOAD=true
+DOCS_ENABLED=true
+LOG_LEVEL=DEBUG
+TELEMETRY_ENABLED=false
 ```
-
-### Default Credentials
-
-- **Admin UI**: admin / admin123
-- **Database**: metamcp / metamcp
-- **Redis**: No password (development)
 
 ## Next Steps
 
-1. **[Installation Guide](installation.md)** - Detailed installation instructions
-2. **[Configuration Guide](configuration.md)** - Advanced configuration options
-3. **[User Guide](../user-guide/overview.md)** - Learn how to use MetaMCP
-4. **[Developer Guide](../developer-guide/development-setup.md)** - Set up development environment
+- **[Configuration Guide](configuration.md)** - Detailed configuration options
+- **[API Reference](../user-guide/api-reference.md)** - Complete API documentation
+- **[Tool Management](../user-guide/tool-management.md)** - Managing tools and capabilities
+- **[Security Setup](../user-guide/security.md)** - Security configuration
 
 ## Troubleshooting
 
 ### Common Issues
 
-**Service won't start:**
-```bash
-# Check logs
-docker-compose logs metamcp-server
+1. **Port already in use**
+   ```bash
+   # Change port in .env file
+   PORT=8001
+   ```
 
-# Check resource usage
-docker stats
-```
+2. **OpenAI API key not configured**
+   ```bash
+   # Add your OpenAI API key to .env
+   OPENAI_API_KEY=sk-your-key-here
+   ```
 
-**Database connection failed:**
-```bash
-# Restart database
-docker-compose restart postgres
-
-# Check database logs
-docker-compose logs postgres
-```
-
-**Weaviate not accessible:**
-```bash
-# Check Weaviate health
-curl http://localhost:8088/v1/.well-known/ready
-
-# Restart Weaviate
-docker-compose restart weaviate
-```
+3. **Dependencies not found**
+   ```bash
+   # Reinstall dependencies
+   uv pip install -r requirements.txt
+   ```
 
 ### Getting Help
 
-- **Documentation**: Check the [Troubleshooting Guide](../reference/troubleshooting.md)
-- **GitHub Issues**: [Report problems](https://github.com/lichtbaer/MetaMCP/issues)
-- **Discord**: [Community support](https://discord.gg/metamcp) 
+- Check the [Troubleshooting Guide](../reference/troubleshooting.md)
+- Report issues on [GitHub](https://github.com/lichtbaer/MetaMCP/issues)
+- Join our [Discord community](https://discord.gg/metamcp) 
