@@ -1,78 +1,36 @@
-# Core Framework
-fastapi
-uvicorn[standard]
-pydantic
-pydantic-settings
+# Core dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
 
-# MCP Protocol
-fastmcp
+# MCP and LLM dependencies
+fastmcp>=0.1.0
+openai>=1.3.0
+anthropic>=0.7.0
 
-# Database & ORM
-sqlalchemy
-alembic
-asyncpg
-psycopg2-binary
+# Vector database and embeddings
+chromadb>=0.4.0
+sentence-transformers>=2.2.0
 
-# Vector Database & Search
-weaviate-client
-sentence-transformers
+# Security and authentication
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
 
-# LLM Integration
-openai
-langchain
-langchain-openai
+# Monitoring and telemetry
+opentelemetry-api>=1.21.0
+opentelemetry-sdk>=1.21.0
+opentelemetry-exporter-prometheus>=1.21.0
+prometheus-client>=0.19.0
 
-# Authentication & Security
-python-jose[cryptography]
-passlib[bcrypt]
-python-multipart
-bcrypt
+# HTTP client for proxy functionality
+httpx>=0.25.0
+websockets>=12.0
 
-# Policy Engine
-opa-python-client
-casbin
-casbin-sqlalchemy-adapter
-
-# HTTP Client
-httpx
-aiohttp
-
-# Monitoring & Logging
-structlog
-prometheus-client
-sentry-sdk[fastapi]
-
-# OpenTelemetry Observability
-opentelemetry-api
-opentelemetry-sdk
-opentelemetry-instrumentation-fastapi
-opentelemetry-instrumentation-httpx
-opentelemetry-instrumentation-sqlalchemy
-opentelemetry-exporter-otlp
-opentelemetry-exporter-prometheus
+# Policy engine
+py-opa>=0.1.0
 
 # Utilities
-python-dotenv
-click
-rich
-typer
-
-# Development
-pytest
-pytest-asyncio
-pytest-cov
-black
-isort
-flake8
-mypy
-pre-commit
-
-# Optional (for local LLM)
-ollama
-transformers
-torch
-
-# Admin UI (Optional)
-streamlit
-plotly
-pandas
+python-dotenv>=1.0.0
+structlog>=23.2.0
