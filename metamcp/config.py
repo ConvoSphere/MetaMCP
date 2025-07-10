@@ -1,289 +1,321 @@
 """
-Configuration Management for MCP Meta-Server
+Configuration Management
 
-This module handles all configuration settings using Pydantic Settings,
-which automatically loads values from environment variables, .env files,
-and provides type validation and defaults.
+This module provides centralized configuration management for the MetaMCP application
+using Pydantic Settings for type-safe configuration with environment variable support.
 """
 
 import os
-from functools import lru_cache
-from typing import List, Optional, Any, Dict
-from enum import Enum
+from typing import Optional, List, Dict, Any
+from pathlib import Path
 
-from pydantic import BaseSettings, Field, validator, SecretStr
-from pydantic.types import PositiveInt
-
-
-class LogLevel(str, Enum):
-    """Log level enumeration."""
-    DEBUG = "DEBUG"
-    INFO = "INFO"
-    WARNING = "WARNING"
-    ERROR = "ERROR"
-    CRITICAL = "CRITICAL"
+from pydantic import BaseSettings, Field, validator
+from pydantic_settings import BaseSettings as PydanticBaseSettings
 
 
-class LLMProvider(str, Enum):
-    """Supported LLM providers."""
-    OPENAI = "openai"
-    OLLAMA = "ollama"
-    HUGGINGFACE = "huggingface"
-    AZURE = "azure"
-
-
-class PolicyEngine(str, Enum):
-    """Supported policy engines."""
-    OPA = "opa"
-    CASBIN = "casbin"
-    INTERNAL = "internal"
-
-
-class Settings(BaseSettings):
+class Settings(PydanticBaseSettings):
     """
-    Application settings with environment variable support.
+    Application Settings
     
-    All settings can be overridden via environment variables with the
-    prefix specified in the Config class.
+    Centralized configuration management using Pydantic Settings
+    with environment variable support and validation.
     """
     
-    # =============================================================================
-    # Server Configuration
-    # =============================================================================
-    
-    host: str = Field(default="0.0.0.0", description="Server host")
-    port: PositiveInt = Field(default=8000, description="Server port")
+    # Application Settings
+    app_name: str = Field(default="MetaMCP", description="Application name")
+    app_version: str = Field(default="1.0.0", description="Application version")
     debug: bool = Field(default=False, description="Debug mode")
-    log_level: LogLevel = Field(default=LogLevel.INFO, description="Logging level")
-    secret_key: SecretStr = Field(description="Secret key for encryption")
+    environment: str = Field(default="development", description="Environment")
     
-    # =============================================================================
-    # Database Configuration
-    # =============================================================================
+    # Server Settings
+    host: str = Field(default="0.0.0.0", description="Server host")
+    port: int = Field(default=8000, description="Server port")
+    workers: int = Field(default=1, description="Number of workers")
     
-    database_url: str = Field(description="Database connection URL")
-    database_pool_size: PositiveInt = Field(default=20, description="Database pool size")
-    database_max_overflow: PositiveInt = Field(default=30, description="Database max overflow")
+    # Database Settings
+    database_url: str = Field(
+        default="postgresql://user:password@localhost/metamcp",
+        description="Database connection URL"
+    )
+    database_pool_size: int = Field(default=10, description="Database pool size")
+    database_max_overflow: int = Field(default=20, description="Database max overflow")
     
-    # =============================================================================
-    # Vector Database (Weaviate)
-    # =============================================================================
-    
-    weaviate_url: str = Field(default="http://localhost:8088", description="Weaviate URL")
+    # Vector Database Settings
+    weaviate_url: str = Field(
+        default="http://localhost:8080",
+        description="Weaviate vector database URL"
+    )
     weaviate_api_key: Optional[str] = Field(default=None, description="Weaviate API key")
-    weaviate_scheme: Optional[str] = Field(default=None, description="Weaviate scheme")
-    weaviate_timeout: PositiveInt = Field(default=30, description="Weaviate timeout")
+    vector_dimension: int = Field(default=1536, description="Vector dimension")
     
-    # =============================================================================
-    # Redis Configuration
-    # =============================================================================
+    # LLM Settings
+    openai_api_key: Optional[str] = Field(default=None, description="OpenAI API key")
+    openai_model: str = Field(default="gpt-4", description="OpenAI model")
+    openai_base_url: Optional[str] = Field(default=None, description="OpenAI base URL")
     
-    redis_url: str = Field(default="redis://localhost:6379", description="Redis URL")
-    redis_password: Optional[str] = Field(default=None, description="Redis password")
-    redis_db: int = Field(default=0, description="Redis database number")
-    redis_pool_size: PositiveInt = Field(default=10, description="Redis pool size")
-    
-    # =============================================================================
-    # LLM Configuration
-    # =============================================================================
-    
-    llm_provider: LLMProvider = Field(default=LLMProvider.OPENAI, description="LLM provider")
-    
-    # OpenAI
-    openai_api_key: Optional[SecretStr] = Field(default=None, description="OpenAI API key")
-    openai_model: str = Field(default="gpt-3.5-turbo", description="OpenAI model")
-    openai_embedding_model: str = Field(default="text-embedding-ada-002", description="OpenAI embedding model")
-    
-    # Ollama
-    ollama_base_url: str = Field(default="http://localhost:11434", description="Ollama base URL")
+    ollama_base_url: str = Field(
+        default="http://localhost:11434",
+        description="Ollama base URL"
+    )
     ollama_model: str = Field(default="llama2", description="Ollama model")
-    ollama_embedding_model: str = Field(default="nomic-embed-text", description="Ollama embedding model")
     
-    # Azure OpenAI
-    azure_openai_endpoint: Optional[str] = Field(default=None, description="Azure OpenAI endpoint")
-    azure_openai_api_key: Optional[SecretStr] = Field(default=None, description="Azure OpenAI API key")
-    azure_openai_api_version: str = Field(default="2023-05-15", description="Azure OpenAI API version")
-    azure_openai_deployment_name: Optional[str] = Field(default=None, description="Azure OpenAI deployment name")
+    # Authentication Settings
+    secret_key: str = Field(
+        default="your-secret-key-change-in-production",
+        description="Secret key for JWT tokens"
+    )
+    algorithm: str = Field(default="HS256", description="JWT algorithm")
+    access_token_expire_minutes: int = Field(default=30, description="Access token expiry")
     
-    # =============================================================================
-    # Policy Engine Configuration
-    # =============================================================================
+    # Security Settings
+    opa_url: str = Field(
+        default="http://localhost:8181",
+        description="Open Policy Agent URL"
+    )
+    opa_timeout: int = Field(default=5, description="OPA request timeout")
     
-    opa_url: str = Field(default="http://localhost:8181", description="OPA server URL")
-    opa_policy_path: str = Field(default="/v1/data/metamcp", description="OPA policy path")
-    policy_engine: PolicyEngine = Field(default=PolicyEngine.OPA, description="Policy engine type")
+    # Logging Settings
+    log_level: str = Field(default="INFO", description="Logging level")
+    log_format: str = Field(
+        default="json",
+        description="Log format (json, text)"
+    )
     
-    # =============================================================================
-    # Security Configuration
-    # =============================================================================
+    # Monitoring Settings
+    prometheus_metrics_port: int = Field(
+        default=9090,
+        description="Prometheus metrics port"
+    )
     
-    jwt_secret_key: SecretStr = Field(description="JWT secret key")
-    jwt_algorithm: str = Field(default="HS256", description="JWT algorithm")
-    jwt_expiration_hours: PositiveInt = Field(default=24, description="JWT expiration hours")
-    password_min_length: PositiveInt = Field(default=8, description="Minimum password length")
-    cors_origins: List[str] = Field(default=[], description="CORS allowed origins")
+    # OpenTelemetry Settings
+    otlp_endpoint: Optional[str] = Field(
+        default=None,
+        description="OTLP endpoint for telemetry"
+    )
+    otlp_insecure: bool = Field(
+        default=True,
+        description="Use insecure connection for OTLP"
+    )
+    telemetry_enabled: bool = Field(
+        default=True,
+        description="Enable OpenTelemetry telemetry"
+    )
     
-    # =============================================================================
-    # Audit & Logging
-    # =============================================================================
+    # CORS Settings
+    cors_origins: List[str] = Field(
+        default=["*"],
+        description="CORS allowed origins"
+    )
+    cors_allow_credentials: bool = Field(default=True, description="Allow CORS credentials")
     
-    audit_log_enabled: bool = Field(default=True, description="Enable audit logging")
-    audit_log_level: LogLevel = Field(default=LogLevel.INFO, description="Audit log level")
-    structured_logging: bool = Field(default=True, description="Enable structured logging")
-    log_file_path: str = Field(default="./logs/metamcp.log", description="Log file path")
-    log_rotation_size: str = Field(default="100MB", description="Log rotation size")
-    log_retention_days: PositiveInt = Field(default=30, description="Log retention days")
-    
-    # =============================================================================
-    # Monitoring & Metrics
-    # =============================================================================
-    
-    metrics_enabled: bool = Field(default=True, description="Enable metrics")
-    prometheus_metrics_port: PositiveInt = Field(default=9000, description="Prometheus metrics port")
-    sentry_dsn: Optional[str] = Field(default=None, description="Sentry DSN")
-    health_check_interval: PositiveInt = Field(default=30, description="Health check interval")
-    
-    # =============================================================================
-    # MCP Protocol Configuration
-    # =============================================================================
-    
-    mcp_websocket_enabled: bool = Field(default=True, description="Enable MCP WebSocket")
-    mcp_websocket_path: str = Field(default="/mcp/ws", description="MCP WebSocket path")
-    mcp_max_connections: PositiveInt = Field(default=100, description="Max MCP connections")
-    mcp_connection_timeout: PositiveInt = Field(default=300, description="MCP connection timeout")
-    
-    # =============================================================================
-    # Tool Management
-    # =============================================================================
-    
-    tool_discovery_enabled: bool = Field(default=True, description="Enable tool discovery")
-    tool_health_check_interval: PositiveInt = Field(default=60, description="Tool health check interval")
-    tool_timeout: PositiveInt = Field(default=30, description="Tool timeout")
-    max_concurrent_tool_calls: PositiveInt = Field(default=10, description="Max concurrent tool calls")
-    
-    # =============================================================================
-    # Vector Search Configuration
-    # =============================================================================
-    
-    vector_dimension: PositiveInt = Field(default=1536, description="Vector dimension")
-    similarity_threshold: float = Field(default=0.7, description="Similarity threshold")
-    max_search_results: PositiveInt = Field(default=10, description="Max search results")
-    search_timeout: PositiveInt = Field(default=5, description="Search timeout")
-    
-    # =============================================================================
     # Rate Limiting
-    # =============================================================================
+    rate_limit_requests: int = Field(default=100, description="Rate limit requests per minute")
+    rate_limit_window: int = Field(default=60, description="Rate limit window in seconds")
     
-    rate_limit_enabled: bool = Field(default=True, description="Enable rate limiting")
-    rate_limit_requests_per_minute: PositiveInt = Field(default=60, description="Rate limit per minute")
-    rate_limit_burst: PositiveInt = Field(default=100, description="Rate limit burst")
+    # Tool Registry Settings
+    tool_registry_enabled: bool = Field(default=True, description="Enable tool registry")
+    tool_registry_auto_discovery: bool = Field(default=True, description="Auto-discover tools")
+    tool_registry_cache_ttl: int = Field(default=300, description="Tool registry cache TTL")
     
-    # =============================================================================
+    # Vector Search Settings
+    vector_search_enabled: bool = Field(default=True, description="Enable vector search")
+    vector_search_similarity_threshold: float = Field(
+        default=0.7,
+        description="Vector search similarity threshold"
+    )
+    vector_search_max_results: int = Field(default=10, description="Max vector search results")
+    
+    # Policy Settings
+    policy_enforcement_enabled: bool = Field(default=True, description="Enable policy enforcement")
+    policy_default_allow: bool = Field(default=False, description="Default policy allow")
+    
+    # Admin Settings
+    admin_enabled: bool = Field(default=True, description="Enable admin interface")
+    admin_port: int = Field(default=8501, description="Admin interface port")
+    
     # Development Settings
-    # =============================================================================
+    reload: bool = Field(default=False, description="Auto-reload on changes")
+    docs_enabled: bool = Field(default=True, description="Enable API documentation")
     
-    dev_mode: bool = Field(default=False, description="Development mode")
-    auto_reload: bool = Field(default=False, description="Auto reload")
-    api_docs_enabled: bool = Field(default=True, description="Enable API docs")
-    profiling_enabled: bool = Field(default=False, description="Enable profiling")
-    
-    # =============================================================================
-    # Admin UI Configuration
-    # =============================================================================
-    
-    admin_ui_enabled: bool = Field(default=True, description="Enable admin UI")
-    admin_ui_path: str = Field(default="/admin", description="Admin UI path")
-    admin_ui_secret_key: SecretStr = Field(description="Admin UI secret key")
-    
-    # =============================================================================
-    # Validators
-    # =============================================================================
-    
-    @validator("cors_origins", pre=True)
-    def parse_cors_origins(cls, v):
-        """Parse CORS origins from string or list."""
-        if isinstance(v, str):
-            return [origin.strip() for origin in v.split(",") if origin.strip()]
+    @validator("environment")
+    def validate_environment(cls, v):
+        """Validate environment setting."""
+        allowed = ["development", "staging", "production"]
+        if v not in allowed:
+            raise ValueError(f"Environment must be one of {allowed}")
         return v
     
-    @validator("secret_key", "jwt_secret_key", "admin_ui_secret_key")
-    def validate_secret_keys(cls, v):
-        """Validate secret keys are not empty."""
-        if isinstance(v, SecretStr):
-            secret = v.get_secret_value()
-        else:
-            secret = v
-        
-        if not secret or secret.startswith("your-"):
-            raise ValueError("Secret keys must be set and not use default values")
-        
-        return v
+    @validator("log_level")
+    def validate_log_level(cls, v):
+        """Validate log level setting."""
+        allowed = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
+        if v.upper() not in allowed:
+            raise ValueError(f"Log level must be one of {allowed}")
+        return v.upper()
     
-    @validator("openai_api_key")
-    def validate_openai_key(cls, v, values):
-        """Validate OpenAI API key when using OpenAI provider."""
-        if values.get("llm_provider") == LLMProvider.OPENAI and not v:
-            raise ValueError("OpenAI API key is required when using OpenAI provider")
+    @validator("log_format")
+    def validate_log_format(cls, v):
+        """Validate log format setting."""
+        allowed = ["json", "text"]
+        if v not in allowed:
+            raise ValueError(f"Log format must be one of {allowed}")
         return v
-    
-    # =============================================================================
-    # Configuration
-    # =============================================================================
     
     class Config:
         """Pydantic configuration."""
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
-        
-        @classmethod
-        def prepare_field(cls, field) -> None:
-            """Prepare field for environment variable parsing."""
-            if 'env_names' in field.field_info.extra:
-                return
-            field.field_info.extra['env_names'] = {
-                field.name.upper(),
-                f"METAMCP_{field.name.upper()}"
-            }
-    
-    # =============================================================================
-    # Helper Methods
-    # =============================================================================
-    
-    def get_database_url(self) -> str:
-        """Get database URL with environment substitution."""
-        return self.database_url
-    
-    def get_openai_api_key(self) -> Optional[str]:
-        """Get OpenAI API key as string."""
-        return self.openai_api_key.get_secret_value() if self.openai_api_key else None
-    
-    def get_jwt_secret(self) -> str:
-        """Get JWT secret key as string."""
-        return self.jwt_secret_key.get_secret_value()
-    
-    def is_production(self) -> bool:
-        """Check if running in production mode."""
-        return not self.debug and not self.dev_mode
-    
-    def to_dict(self) -> Dict[str, Any]:
-        """Convert settings to dictionary, excluding secrets."""
-        data = self.dict()
-        
-        # Remove secret fields
-        for field_name, field in self.__fields__.items():
-            if field.type_ == SecretStr or "secret" in field_name.lower():
-                data[field_name] = "***"
-        
-        return data
 
 
-@lru_cache()
+# Global settings instance
+_settings: Optional[Settings] = None
+
+
 def get_settings() -> Settings:
     """
-    Get cached settings instance.
+    Get application settings.
     
     Returns:
-        Settings: Application settings
+        Settings: Application settings instance
+        
+    Note:
+        Uses singleton pattern to ensure consistent settings across the application.
     """
-    return Settings()
+    global _settings
+    
+    if _settings is None:
+        _settings = Settings()
+    
+    return _settings
+
+
+def reload_settings() -> Settings:
+    """
+    Reload application settings.
+    
+    Returns:
+        Settings: Fresh settings instance
+        
+    Note:
+        Useful for testing or when settings need to be refreshed.
+    """
+    global _settings
+    _settings = Settings()
+    return _settings
+
+
+# Environment-specific settings
+def get_environment_settings() -> Dict[str, Any]:
+    """
+    Get environment-specific settings.
+    
+    Returns:
+        Dict[str, Any]: Environment-specific configuration
+    """
+    settings = get_settings()
+    
+    if settings.environment == "development":
+        return {
+            "debug": True,
+            "reload": True,
+            "docs_enabled": True,
+            "log_level": "DEBUG",
+            "telemetry_enabled": False,
+        }
+    elif settings.environment == "staging":
+        return {
+            "debug": False,
+            "reload": False,
+            "docs_enabled": True,
+            "log_level": "INFO",
+            "telemetry_enabled": True,
+        }
+    elif settings.environment == "production":
+        return {
+            "debug": False,
+            "reload": False,
+            "docs_enabled": False,
+            "log_level": "WARNING",
+            "telemetry_enabled": True,
+        }
+    
+    return {}
+
+
+# Configuration validation
+def validate_configuration() -> bool:
+    """
+    Validate application configuration.
+    
+    Returns:
+        bool: True if configuration is valid
+        
+    Raises:
+        ValueError: If configuration is invalid
+    """
+    try:
+        settings = get_settings()
+        
+        # Validate required settings for production
+        if settings.environment == "production":
+            if not settings.secret_key or settings.secret_key == "your-secret-key-change-in-production":
+                raise ValueError("Secret key must be set in production")
+            
+            if not settings.openai_api_key and not settings.ollama_base_url:
+                raise ValueError("Either OpenAI API key or Ollama URL must be configured")
+        
+        # Validate database URL
+        if not settings.database_url:
+            raise ValueError("Database URL must be configured")
+        
+        # Validate vector database settings
+        if settings.vector_search_enabled and not settings.weaviate_url:
+            raise ValueError("Weaviate URL must be configured for vector search")
+        
+        return True
+        
+    except Exception as e:
+        raise ValueError(f"Configuration validation failed: {e}")
+
+
+# Configuration utilities
+def get_config_path() -> Path:
+    """
+    Get configuration file path.
+    
+    Returns:
+        Path: Path to configuration file
+    """
+    return Path.cwd() / ".env"
+
+
+def create_env_template() -> str:
+    """
+    Create environment template.
+    
+    Returns:
+        str: Environment template content
+    """
+    settings = Settings()
+    template = []
+    
+    for field_name, field in settings.__fields__.items():
+        if field.field_info.description:
+            template.append(f"# {field.field_info.description}")
+        template.append(f"{field_name.upper()}={field.default}")
+        template.append("")
+    
+    return "\n".join(template)
+
+
+# Export settings for convenience
+__all__ = [
+    "Settings",
+    "get_settings",
+    "reload_settings",
+    "get_environment_settings",
+    "validate_configuration",
+    "get_config_path",
+    "create_env_template",
+]

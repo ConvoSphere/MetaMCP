@@ -1,469 +1,325 @@
 """
-MCP Meta-Server Core Implementation
+MetaMCP Server
 
-This module contains the main MetaMCPServer class that orchestrates all
-components of the MCP Meta-Server including tool registry, vector search,
-policy engine, and MCP protocol handling.
+Main server application that provides MCP (Model Context Protocol) services
+with dynamic tool discovery, semantic search, and enterprise features.
 """
 
 import asyncio
-from typing import Dict, List, Optional, Any
+import signal
+import sys
 from contextlib import asynccontextmanager
+from typing import Optional
 
-from .config import get_settings
-from .exceptions import MetaMCPError, ServiceUnavailableError
-from .utils.logging import get_logger, AuditLogger, PerformanceLogger
-from .tools.registry import ToolRegistry
-from .vector.client import VectorSearchClient
-from .security.auth import AuthManager
-from .security.policies import PolicyEngine
-from .mcp.server import MCPServerHandler
-from .llm.service import LLMService
+import uvicorn
+from fastapi import FastAPI, Request, Response
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
+
+from .config import get_settings, validate_configuration
+from .mcp.server import MCPServer
+from .monitoring.telemetry import TelemetryManager
+from .utils.logging import get_logger, setup_logging
+from .exceptions import MetaMCPException
 
 
 logger = get_logger(__name__)
-settings = get_settings()
+
+
+class MetricsMiddleware(BaseHTTPMiddleware):
+    """Middleware for recording request metrics."""
+    
+    def __init__(self, app, telemetry_manager: TelemetryManager):
+        super().__init__(app)
+        self.telemetry_manager = telemetry_manager
+    
+    async def dispatch(self, request: Request, call_next):
+        """Process request and record metrics."""
+        import time
+        
+        start_time = time.time()
+        
+        try:
+            response = await call_next(request)
+            
+            # Record metrics
+            duration = time.time() - start_time
+            self.telemetry_manager.record_request(
+                method=request.method,
+                path=str(request.url.path),
+                status_code=response.status_code,
+                duration=duration
+            )
+            
+            return response
+            
+        except Exception as e:
+            # Record error metrics
+            duration = time.time() - start_time
+            self.telemetry_manager.record_request(
+                method=request.method,
+                path=str(request.url.path),
+                status_code=500,
+                duration=duration
+            )
+            raise
 
 
 class MetaMCPServer:
     """
-    Main MCP Meta-Server class.
+    MetaMCP Server Application.
     
-    This class orchestrates all components of the MCP Meta-Server:
-    - Tool Registry and Management
-    - Vector Search for semantic tool discovery
-    - Security and Policy Engine
-    - MCP Protocol Server
-    - LLM Integration for tool descriptions
+    Main server class that manages the FastAPI application,
+    MCP server, and telemetry components.
     """
     
     def __init__(self):
-        """Initialize the MCP Meta-Server."""
-        self.settings = settings
-        self.logger = logger
-        self.audit_logger = AuditLogger()
-        self.performance_logger = PerformanceLogger()
+        """Initialize the MetaMCP server."""
+        self.settings = get_settings()
+        self.telemetry_manager = TelemetryManager()
+        self.mcp_server: Optional[MCPServer] = None
+        self.app: Optional[FastAPI] = None
+        self._shutdown_event = asyncio.Event()
         
-        # Component instances
-        self.tool_registry: Optional[ToolRegistry] = None
-        self.vector_client: Optional[VectorSearchClient] = None
-        self.auth_manager: Optional[AuthManager] = None
-        self.policy_engine: Optional[PolicyEngine] = None
-        self.mcp_handler: Optional[MCPServerHandler] = None
-        self.llm_service: Optional[LLMService] = None
+        # Setup logging
+        setup_logging()
         
-        # State management
-        self._initialized = False
-        self._shutting_down = False
-        
+        # Validate configuration
+        try:
+            validate_configuration()
+        except ValueError as e:
+            logger.error(f"Configuration validation failed: {e}")
+            sys.exit(1)
+    
     async def initialize(self) -> None:
-        """
-        Initialize all server components.
-        
-        Raises:
-            ServiceUnavailableError: If initialization fails
-        """
-        if self._initialized:
-            return
-        
+        """Initialize the server components."""
         try:
-            self.logger.info("Initializing MCP Meta-Server components...")
+            logger.info("Initializing MetaMCP Server...")
             
-            # Initialize core services in dependency order
-            await self._initialize_llm_service()
-            await self._initialize_vector_client()
-            await self._initialize_auth_manager()
-            await self._initialize_policy_engine()
-            await self._initialize_tool_registry()
-            await self._initialize_mcp_handler()
+            # Initialize telemetry
+            if self.settings.telemetry_enabled:
+                await self.telemetry_manager.initialize()
+                logger.info("Telemetry initialized")
             
-            # Perform health checks
-            await self._perform_initial_health_checks()
+            # Create FastAPI application
+            self.app = self._create_fastapi_app()
             
-            self._initialized = True
-            self.logger.info("MCP Meta-Server initialization completed successfully")
+            # Initialize MCP server
+            self.mcp_server = MCPServer()
+            await self.mcp_server.initialize()
+            
+            logger.info("MetaMCP Server initialized successfully")
             
         except Exception as e:
-            self.logger.error(f"Failed to initialize MCP Meta-Server: {e}")
-            await self.shutdown()
-            raise ServiceUnavailableError(
-                service="MCP Meta-Server",
-                reason=f"Initialization failed: {str(e)}"
-            )
+            logger.error(f"Failed to initialize server: {e}")
+            raise
     
-    async def _initialize_llm_service(self) -> None:
-        """Initialize LLM service for embeddings and descriptions."""
-        self.logger.info("Initializing LLM service...")
-        self.llm_service = LLMService(self.settings)
-        await self.llm_service.initialize()
+    def _create_fastapi_app(self) -> FastAPI:
+        """Create and configure FastAPI application."""
         
-    async def _initialize_vector_client(self) -> None:
-        """Initialize vector search client."""
-        self.logger.info("Initializing vector search client...")
-        self.vector_client = VectorSearchClient(
-            url=self.settings.weaviate_url,
-            api_key=self.settings.weaviate_api_key,
-            timeout=self.settings.weaviate_timeout
+        @asynccontextmanager
+        async def lifespan(app: FastAPI):
+            """Application lifespan manager."""
+            # Startup
+            logger.info("Starting MetaMCP Server...")
+            yield
+            # Shutdown
+            logger.info("Shutting down MetaMCP Server...")
+            await self._shutdown()
+        
+        app = FastAPI(
+            title=self.settings.app_name,
+            version=self.settings.app_version,
+            description="MetaMCP - MCP Meta-Server for AI Agents",
+            docs_url="/docs" if self.settings.docs_enabled else None,
+            redoc_url="/redoc" if self.settings.docs_enabled else None,
+            lifespan=lifespan
         )
-        await self.vector_client.initialize()
         
-    async def _initialize_auth_manager(self) -> None:
-        """Initialize authentication manager."""
-        self.logger.info("Initializing authentication manager...")
-        self.auth_manager = AuthManager(self.settings)
-        await self.auth_manager.initialize()
+        # Add middleware
+        self._add_middleware(app)
         
-    async def _initialize_policy_engine(self) -> None:
-        """Initialize policy engine."""
-        self.logger.info("Initializing policy engine...")
-        self.policy_engine = PolicyEngine(
-            engine_type=self.settings.policy_engine,
-            opa_url=self.settings.opa_url if self.settings.policy_engine.value == "opa" else None
-        )
-        await self.policy_engine.initialize()
+        # Add exception handlers
+        self._add_exception_handlers(app)
         
-    async def _initialize_tool_registry(self) -> None:
-        """Initialize tool registry."""
-        self.logger.info("Initializing tool registry...")
-        self.tool_registry = ToolRegistry(
-            vector_client=self.vector_client,
-            llm_service=self.llm_service,
-            policy_engine=self.policy_engine
-        )
-        await self.tool_registry.initialize()
+        # Add routes
+        self._add_routes(app)
         
-    async def _initialize_mcp_handler(self) -> None:
-        """Initialize MCP protocol handler."""
-        self.logger.info("Initializing MCP protocol handler...")
-        self.mcp_handler = MCPServerHandler(
-            tool_registry=self.tool_registry,
-            auth_manager=self.auth_manager,
-            policy_engine=self.policy_engine,
-            audit_logger=self.audit_logger
-        )
-        await self.mcp_handler.initialize()
-        
-    async def _perform_initial_health_checks(self) -> None:
-        """Perform health checks on all components."""
-        self.logger.info("Performing initial health checks...")
-        
-        health_results = await self.get_health_status()
-        
-        failed_components = [
-            component for component, status in health_results.items()
-            if not status.get("healthy", False)
-        ]
-        
-        if failed_components:
-            raise ServiceUnavailableError(
-                service="Health Check",
-                reason=f"Failed components: {', '.join(failed_components)}"
-            )
+        return app
     
-    async def shutdown(self) -> None:
-        """
-        Gracefully shutdown all server components.
-        """
-        if self._shutting_down:
-            return
+    def _add_middleware(self, app: FastAPI) -> None:
+        """Add middleware to the FastAPI application."""
         
-        self._shutting_down = True
-        self.logger.info("Shutting down MCP Meta-Server...")
+        # CORS middleware
+        app.add_middleware(
+            CORSMiddleware,
+            allow_origins=self.settings.cors_origins,
+            allow_credentials=self.settings.cors_allow_credentials,
+            allow_methods=["*"],
+            allow_headers=["*"],
+        )
         
-        # Shutdown components in reverse order
-        components = [
-            ("MCP Handler", self.mcp_handler),
-            ("Tool Registry", self.tool_registry),
-            ("Policy Engine", self.policy_engine),
-            ("Auth Manager", self.auth_manager),
-            ("Vector Client", self.vector_client),
-            ("LLM Service", self.llm_service),
-        ]
+        # Gzip middleware
+        app.add_middleware(GZipMiddleware, minimum_size=1000)
         
-        for name, component in components:
-            if component:
-                try:
-                    self.logger.info(f"Shutting down {name}...")
-                    await component.shutdown()
-                except Exception as e:
-                    self.logger.error(f"Error shutting down {name}: {e}")
+        # Metrics middleware
+        if self.settings.telemetry_enabled:
+            app.add_middleware(MetricsMiddleware, telemetry_manager=self.telemetry_manager)
         
-        self._initialized = False
-        self.logger.info("MCP Meta-Server shutdown completed")
+        # Instrument with OpenTelemetry
+        if self.settings.telemetry_enabled:
+            self.telemetry_manager.instrument_fastapi(app)
+            self.telemetry_manager.instrument_httpx()
+            self.telemetry_manager.instrument_sqlalchemy()
     
-    async def get_health_status(self) -> Dict[str, Dict[str, Any]]:
-        """
-        Get health status of all components.
+    def _add_exception_handlers(self, app: FastAPI) -> None:
+        """Add exception handlers to the FastAPI application."""
         
-        Returns:
-            Dictionary with component health status
-        """
-        health_status = {}
-        
-        components = [
-            ("llm_service", self.llm_service),
-            ("vector_client", self.vector_client),
-            ("auth_manager", self.auth_manager),
-            ("policy_engine", self.policy_engine),
-            ("tool_registry", self.tool_registry),
-            ("mcp_handler", self.mcp_handler),
-        ]
-        
-        for name, component in components:
-            if component:
-                try:
-                    status = await component.health_check()
-                    health_status[name] = status
-                except Exception as e:
-                    health_status[name] = {
-                        "healthy": False,
-                        "error": str(e),
-                        "timestamp": self._get_timestamp()
-                    }
-            else:
-                health_status[name] = {
-                    "healthy": False,
-                    "error": "Component not initialized",
-                    "timestamp": self._get_timestamp()
+        @app.exception_handler(MetaMCPException)
+        async def metamcp_exception_handler(request: Request, exc: MetaMCPException):
+            """Handle MetaMCP exceptions."""
+            logger.error(f"MetaMCP Exception: {exc.message}", extra={
+                "error_code": exc.error_code,
+                "status_code": exc.status_code,
+                "path": str(request.url.path)
+            })
+            
+            return JSONResponse(
+                status_code=exc.status_code,
+                content={
+                    "error": exc.error_code,
+                    "message": exc.message,
+                    "details": exc.details
                 }
+            )
         
-        return health_status
+        @app.exception_handler(Exception)
+        async def general_exception_handler(request: Request, exc: Exception):
+            """Handle general exceptions."""
+            logger.error(f"Unhandled Exception: {exc}", exc_info=True, extra={
+                "path": str(request.url.path)
+            })
+            
+            return JSONResponse(
+                status_code=500,
+                content={
+                    "error": "internal_server_error",
+                    "message": "An internal server error occurred",
+                    "details": str(exc) if self.settings.debug else None
+                }
+            )
     
-    async def search_tools(
-        self,
-        query: str,
-        user_id: str,
-        max_results: int = 10,
-        similarity_threshold: float = 0.7
-    ) -> List[Dict[str, Any]]:
-        """
-        Search for tools using semantic search.
+    def _add_routes(self, app: FastAPI) -> None:
+        """Add routes to the FastAPI application."""
         
-        Args:
-            query: Search query describing the desired functionality
-            user_id: User ID for authorization
-            max_results: Maximum number of results to return
-            similarity_threshold: Minimum similarity threshold
-            
-        Returns:
-            List of matching tools with metadata
-            
-        Raises:
-            MetaMCPError: If search fails
-        """
-        if not self._initialized:
-            raise ServiceUnavailableError(
-                service="Tool Search",
-                reason="Server not initialized"
-            )
-        
-        start_time = asyncio.get_event_loop().time()
-        
-        try:
-            # Perform semantic search
-            results = await self.tool_registry.search_tools(
-                query=query,
-                max_results=max_results,
-                similarity_threshold=similarity_threshold
-            )
-            
-            # Filter by user permissions
-            authorized_results = []
-            for tool in results:
-                if await self._check_tool_access(user_id, tool["name"], "read"):
-                    authorized_results.append(tool)
-            
-            # Log performance metrics
-            search_time = asyncio.get_event_loop().time() - start_time
-            self.performance_logger.log_vector_search_timing(
-                query=query,
-                results_count=len(authorized_results),
-                search_time=search_time,
-                similarity_threshold=similarity_threshold,
-                user_id=user_id
-            )
-            
-            return authorized_results
-            
-        except Exception as e:
-            self.logger.error(f"Tool search failed: {e}")
-            raise
-    
-    async def execute_tool(
-        self,
-        tool_name: str,
-        input_data: Dict[str, Any],
-        user_id: str
-    ) -> Dict[str, Any]:
-        """
-        Execute a tool with the given input data.
-        
-        Args:
-            tool_name: Name of the tool to execute
-            input_data: Input data for the tool
-            user_id: User ID for authorization
-            
-        Returns:
-            Tool execution result
-            
-        Raises:
-            MetaMCPError: If execution fails
-        """
-        if not self._initialized:
-            raise ServiceUnavailableError(
-                service="Tool Execution",
-                reason="Server not initialized"
-            )
-        
-        start_time = asyncio.get_event_loop().time()
-        
-        try:
-            # Check authorization
-            if not await self._check_tool_access(user_id, tool_name, "execute"):
-                raise AuthorizationError(
-                    resource=tool_name,
-                    action="execute"
-                )
-            
-            # Execute tool
-            result = await self.tool_registry.execute_tool(
-                tool_name=tool_name,
-                input_data=input_data
-            )
-            
-            # Log audit event
-            execution_time = asyncio.get_event_loop().time() - start_time
-            self.audit_logger.log_tool_execution(
-                user_id=user_id,
-                tool_name=tool_name,
-                success=True,
-                execution_time=execution_time,
-                input_data=self._sanitize_sensitive_data(input_data)
-            )
-            
-            return result
-            
-        except Exception as e:
-            # Log failed execution
-            execution_time = asyncio.get_event_loop().time() - start_time
-            self.audit_logger.log_tool_execution(
-                user_id=user_id,
-                tool_name=tool_name,
-                success=False,
-                execution_time=execution_time,
-                error=str(e)
-            )
-            raise
-    
-    async def register_tool(
-        self,
-        tool_data: Dict[str, Any],
-        user_id: str
-    ) -> str:
-        """
-        Register a new tool in the registry.
-        
-        Args:
-            tool_data: Tool registration data
-            user_id: User ID for authorization
-            
-        Returns:
-            Tool ID
-            
-        Raises:
-            MetaMCPError: If registration fails
-        """
-        if not self._initialized:
-            raise ServiceUnavailableError(
-                service="Tool Registration",
-                reason="Server not initialized"
-            )
-        
-        try:
-            # Check authorization
-            if not await self._check_tool_access(user_id, "registry", "create"):
-                raise AuthorizationError(
-                    resource="registry",
-                    action="create"
-                )
-            
-            # Register tool
-            tool_id = await self.tool_registry.register_tool(tool_data)
-            
-            # Log audit event
-            self.audit_logger.log_authorization(
-                user_id=user_id,
-                resource="tool_registry",
-                action="create",
-                success=True,
-                tool_name=tool_data.get("name")
-            )
-            
-            return tool_id
-            
-        except Exception as e:
-            self.logger.error(f"Tool registration failed: {e}")
-            raise
-    
-    async def _check_tool_access(
-        self,
-        user_id: str,
-        tool_name: str,
-        action: str
-    ) -> bool:
-        """
-        Check if user has access to perform action on tool.
-        
-        Args:
-            user_id: User ID
-            tool_name: Tool name
-            action: Action to perform
-            
-        Returns:
-            True if access is allowed
-        """
-        try:
-            policy_input = {
-                "user_id": user_id,
-                "resource": tool_name,
-                "action": action
+        @app.get("/")
+        async def root():
+            """Root endpoint."""
+            return {
+                "name": self.settings.app_name,
+                "version": self.settings.app_version,
+                "status": "running"
             }
+        
+        @app.get("/health")
+        async def health_check():
+            """Health check endpoint."""
+            return {
+                "status": "healthy",
+                "timestamp": asyncio.get_event_loop().time()
+            }
+        
+        @app.get("/metrics")
+        async def metrics():
+            """Metrics endpoint for Prometheus."""
+            from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
             
-            result = await self.policy_engine.evaluate(
-                policy="tool_access",
-                input_data=policy_input
+            return Response(
+                content=generate_latest(),
+                media_type=CONTENT_TYPE_LATEST
             )
+        
+        # Add MCP routes
+        if self.mcp_server:
+            app.include_router(self.mcp_server.router, prefix="/mcp")
+    
+    async def _shutdown(self) -> None:
+        """Shutdown the server components."""
+        try:
+            # Shutdown MCP server
+            if self.mcp_server:
+                await self.mcp_server.shutdown()
             
-            return result.get("allowed", False)
+            # Shutdown telemetry
+            if self.settings.telemetry_enabled:
+                await self.telemetry_manager.shutdown()
+            
+            logger.info("Server shutdown complete")
             
         except Exception as e:
-            self.logger.error(f"Policy evaluation failed: {e}")
-            return False
+            logger.error(f"Error during shutdown: {e}")
     
-    def _sanitize_sensitive_data(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Sanitize sensitive data for logging."""
-        sensitive_keys = ["password", "secret", "token", "key", "credential"]
-        sanitized = {}
+    def _setup_signal_handlers(self) -> None:
+        """Setup signal handlers for graceful shutdown."""
         
-        for key, value in data.items():
-            if any(sensitive in key.lower() for sensitive in sensitive_keys):
-                sanitized[key] = "***"
-            else:
-                sanitized[key] = value
+        def signal_handler(signum, frame):
+            """Handle shutdown signals."""
+            logger.info(f"Received signal {signum}, initiating shutdown...")
+            self._shutdown_event.set()
         
-        return sanitized
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
     
-    def _get_timestamp(self) -> str:
-        """Get current timestamp in ISO format."""
-        from datetime import datetime, timezone
-        return datetime.now(timezone.utc).isoformat()
+    async def run(self) -> None:
+        """Run the server."""
+        try:
+            # Initialize server
+            await self.initialize()
+            
+            # Setup signal handlers
+            self._setup_signal_handlers()
+            
+            # Start server
+            config = uvicorn.Config(
+                app=self.app,
+                host=self.settings.host,
+                port=self.settings.port,
+                reload=self.settings.reload,
+                log_level=self.settings.log_level.lower(),
+                access_log=True
+            )
+            
+            server = uvicorn.Server(config)
+            
+            # Run server
+            logger.info(f"Starting server on {self.settings.host}:{self.settings.port}")
+            await server.serve()
+            
+        except Exception as e:
+            logger.error(f"Server failed to start: {e}")
+            raise
+        finally:
+            await self._shutdown()
+
+
+def create_app() -> FastAPI:
+    """
+    Create FastAPI application for external use.
     
-    @property
-    def is_initialized(self) -> bool:
-        """Check if server is initialized."""
-        return self._initialized
-    
-    @property
-    def is_shutting_down(self) -> bool:
-        """Check if server is shutting down."""
-        return self._shutting_down
+    Returns:
+        FastAPI: Configured FastAPI application
+    """
+    server = MetaMCPServer()
+    return server.app
+
+
+async def main():
+    """Main entry point."""
+    server = MetaMCPServer()
+    await server.run()
+
+
+if __name__ == "__main__":
+    asyncio.run(main())

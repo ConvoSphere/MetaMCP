@@ -40,183 +40,110 @@ class MetaMCPError(Exception):
 
 
 class ToolNotFoundError(MetaMCPError):
-    """Raised when a requested tool is not found in the registry."""
+    """Raised when a requested tool is not found."""
     
-    def __init__(self, tool_name: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Tool '{tool_name}' not found in registry",
-            error_code="tool_not_found",
-            status_code=404,
-            details=details or {"tool_name": tool_name}
-        )
+    def __init__(self, message: str, error_code: str = "tool_not_found"):
+        super().__init__(message, error_code, 404)
 
 
 class ToolRegistrationError(MetaMCPError):
     """Raised when tool registration fails."""
     
-    def __init__(self, tool_name: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Failed to register tool '{tool_name}': {reason}",
-            error_code="tool_registration_failed",
-            status_code=400,
-            details=details or {"tool_name": tool_name, "reason": reason}
-        )
+    def __init__(self, message: str, error_code: str = "tool_registration_failed"):
+        super().__init__(message, error_code, 400)
 
 
 class ToolExecutionError(MetaMCPError):
     """Raised when tool execution fails."""
     
-    def __init__(self, tool_name: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Tool '{tool_name}' execution failed: {reason}",
-            error_code="tool_execution_failed",
-            status_code=500,
-            details=details or {"tool_name": tool_name, "reason": reason}
-        )
+    def __init__(self, message: str, error_code: str = "tool_execution_failed"):
+        super().__init__(message, error_code, 500)
 
 
 class PolicyViolationError(MetaMCPError):
-    """Raised when a policy rule is violated."""
+    """Raised when a policy violation occurs."""
     
-    def __init__(self, policy_name: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Policy violation in '{policy_name}': {reason}",
-            error_code="policy_violation",
-            status_code=403,
-            details=details or {"policy_name": policy_name, "reason": reason}
-        )
+    def __init__(self, message: str, error_code: str = "policy_violation"):
+        super().__init__(message, error_code, 403)
 
 
 class AuthenticationError(MetaMCPError):
     """Raised when authentication fails."""
     
-    def __init__(self, reason: str = "Invalid credentials", details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Authentication failed: {reason}",
-            error_code="authentication_failed",
-            status_code=401,
-            details=details
-        )
+    def __init__(self, message: str, error_code: str = "authentication_failed"):
+        super().__init__(message, error_code, 401)
 
 
 class AuthorizationError(MetaMCPError):
     """Raised when authorization fails."""
     
-    def __init__(self, resource: str, action: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Access denied for action '{action}' on resource '{resource}'",
-            error_code="authorization_failed",
-            status_code=403,
-            details=details or {"resource": resource, "action": action}
-        )
+    def __init__(self, message: str, error_code: str = "authorization_failed"):
+        super().__init__(message, error_code, 403)
 
 
 class VectorSearchError(MetaMCPError):
     """Raised when vector search operations fail."""
     
-    def __init__(self, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Vector search failed: {reason}",
-            error_code="vector_search_failed",
-            status_code=500,
-            details=details
-        )
+    def __init__(self, message: str, error_code: str = "vector_search_failed"):
+        super().__init__(message, error_code, 500)
 
 
 class EmbeddingError(MetaMCPError):
     """Raised when embedding generation fails."""
     
-    def __init__(self, text: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Failed to generate embedding for text: {reason}",
-            error_code="embedding_failed",
-            status_code=500,
-            details=details or {"text_preview": text[:100] + "..." if len(text) > 100 else text}
-        )
+    def __init__(self, message: str, error_code: str = "embedding_failed"):
+        super().__init__(message, error_code, 500)
 
 
 class MCPProtocolError(MetaMCPError):
     """Raised when MCP protocol errors occur."""
     
-    def __init__(self, operation: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"MCP protocol error in '{operation}': {reason}",
-            error_code="mcp_protocol_error",
-            status_code=400,
-            details=details or {"operation": operation, "reason": reason}
-        )
+    def __init__(self, message: str, error_code: str = "mcp_protocol_error"):
+        super().__init__(message, error_code, 400)
 
 
 class DatabaseError(MetaMCPError):
     """Raised when database operations fail."""
     
-    def __init__(self, operation: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Database operation '{operation}' failed: {reason}",
-            error_code="database_error",
-            status_code=500,
-            details=details or {"operation": operation, "reason": reason}
-        )
+    def __init__(self, message: str, error_code: str = "database_error"):
+        super().__init__(message, error_code, 500)
 
 
 class ConfigurationError(MetaMCPError):
-    """Raised when configuration is invalid."""
+    """Raised when configuration errors occur."""
     
-    def __init__(self, setting: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Configuration error for '{setting}': {reason}",
-            error_code="configuration_error",
-            status_code=500,
-            details=details or {"setting": setting, "reason": reason}
-        )
+    def __init__(self, message: str, error_code: str = "configuration_error"):
+        super().__init__(message, error_code, 500)
 
 
 class RateLimitError(MetaMCPError):
     """Raised when rate limits are exceeded."""
     
-    def __init__(self, limit: int, window: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Rate limit exceeded: {limit} requests per {window}",
-            error_code="rate_limit_exceeded",
-            status_code=429,
-            details=details or {"limit": limit, "window": window}
-        )
+    def __init__(self, message: str, error_code: str = "rate_limit_exceeded"):
+        super().__init__(message, error_code, 429)
 
 
 class ValidationError(MetaMCPError):
-    """Raised when input validation fails."""
+    """Raised when validation fails."""
     
-    def __init__(self, field: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Validation error for field '{field}': {reason}",
-            error_code="validation_error",
-            status_code=400,
-            details=details or {"field": field, "reason": reason}
-        )
+    def __init__(self, message: str, error_code: str = "validation_error"):
+        super().__init__(message, error_code, 400)
 
 
 class ServiceUnavailableError(MetaMCPError):
     """Raised when a required service is unavailable."""
     
-    def __init__(self, service: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Service '{service}' is unavailable: {reason}",
-            error_code="service_unavailable",
-            status_code=503,
-            details=details or {"service": service, "reason": reason}
-        )
+    def __init__(self, service: str, reason: str, error_code: str = "service_unavailable"):
+        message = f"Service '{service}' is unavailable: {reason}"
+        super().__init__(message, error_code, 503)
 
 
 class HealthCheckError(MetaMCPError):
     """Raised when health checks fail."""
     
-    def __init__(self, component: str, reason: str, details: Optional[Dict[str, Any]] = None):
-        super().__init__(
-            message=f"Health check failed for '{component}': {reason}",
-            error_code="health_check_failed",
-            status_code=500,
-            details=details or {"component": component, "reason": reason}
-        )
+    def __init__(self, component: str, reason: str, error_code: str = "health_check_failed"):
+        message = f"Health check failed for '{component}': {reason}"
+        super().__init__(message, error_code, 503)
 
 
 # Error code mapping for quick lookup
