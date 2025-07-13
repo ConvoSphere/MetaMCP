@@ -9,12 +9,89 @@ services:
     ports:
       - "8000:8000"
     environment:
+      # Application Settings
+      - APP_NAME=MetaMCP
+      - APP_VERSION=1.0.0
+      - DEBUG=true
+      - ENVIRONMENT=development
+      
+      # Server Settings
+      - HOST=0.0.0.0
+      - PORT=8000
+      - WORKERS=1
+      
+      # Database Settings
       - DATABASE_URL=postgresql://metamcp:metamcp@postgres:5432/metamcp
+      - DATABASE_POOL_SIZE=10
+      - DATABASE_MAX_OVERFLOW=20
+      
+      # Vector Database Settings
       - WEAVIATE_URL=http://weaviate:8080
-      - REDIS_URL=redis://redis:6379
+      - WEAVIATE_API_KEY=
+      - VECTOR_DIMENSION=1536
+      
+      # LLM Settings
+      - LLM_PROVIDER=openai
+      - OPENAI_API_KEY=your-openai-api-key-here
+      - OPENAI_MODEL=gpt-4
+      - OPENAI_BASE_URL=
+      - OPENAI_EMBEDDING_MODEL=text-embedding-ada-002
+      
+      # Authentication Settings
+      - SECRET_KEY=your-secret-key-change-in-production
+      - ALGORITHM=HS256
+      - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      
+      # Security Settings
       - OPA_URL=http://opa:8181
-      - LOG_LEVEL=INFO
-      - AUDIT_LOG_ENABLED=true
+      - OPA_TIMEOUT=5
+      
+      # Logging Settings
+      - LOG_LEVEL=DEBUG
+      - LOG_FORMAT=json
+      
+      # Monitoring Settings
+      - PROMETHEUS_METRICS_PORT=9090
+      
+      # OpenTelemetry Settings
+      - OTLP_ENDPOINT=
+      - OTLP_INSECURE=true
+      - TELEMETRY_ENABLED=false
+      
+      # CORS Settings
+      - CORS_ORIGINS=["*"]
+      - CORS_ALLOW_CREDENTIALS=true
+      
+      # Rate Limiting
+      - RATE_LIMIT_REQUESTS=100
+      - RATE_LIMIT_WINDOW=60
+      
+      # Tool Registry Settings
+      - TOOL_REGISTRY_ENABLED=true
+      - TOOL_REGISTRY_AUTO_DISCOVERY=true
+      - TOOL_REGISTRY_CACHE_TTL=300
+      
+      # Vector Search Settings
+      - VECTOR_SEARCH_ENABLED=false
+      - VECTOR_SEARCH_SIMILARITY_THRESHOLD=0.7
+      - VECTOR_SEARCH_MAX_RESULTS=10
+      
+      # Policy Settings
+      - POLICY_ENFORCEMENT_ENABLED=true
+      - POLICY_DEFAULT_ALLOW=false
+      
+      # Admin Settings
+      - ADMIN_ENABLED=true
+      - ADMIN_PORT=8501
+      
+      # Development Settings
+      - RELOAD=true
+      - DOCS_ENABLED=true
+      
+      # Redis Settings
+      - REDIS_URL=redis://redis:6379
+      - REDIS_PASSWORD=
+      - REDIS_DB=0
     depends_on:
       - postgres
       - weaviate
@@ -35,10 +112,9 @@ services:
       POSTGRES_USER: metamcp
       POSTGRES_PASSWORD: metamcp
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./scripts/init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - metamcp-network
     restart: unless-stopped
@@ -89,21 +165,6 @@ services:
       - metamcp-network
     restart: unless-stopped
 
-  # Admin UI (Streamlit)
-  admin-ui:
-    build:
-      context: .
-      dockerfile: Dockerfile.ui
-    ports:
-      - "8080:8080"
-    environment:
-      - METAMCP_API_URL=http://metamcp-server:8000
-    depends_on:
-      - metamcp-server
-    networks:
-      - metamcp-network
-    restart: unless-stopped
-
   # Monitoring - Prometheus
   prometheus:
     image: prom/prometheus:latest
@@ -132,40 +193,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
-      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards
-      - ./monitoring/grafana/datasources:/etc/grafana/provisioning/datasources
     depends_on:
       - prometheus
-    networks:
-      - metamcp-network
-    restart: unless-stopped
-
-  # Example Tool - Database Query Tool
-  example-db-tool:
-    build:
-      context: ./examples/tools/database-tool
-      dockerfile: Dockerfile
-    ports:
-      - "8001:8000"
-    environment:
-      - TOOL_NAME=database-query
-      - TOOL_DESCRIPTION=Execute SQL queries on various databases
-    networks:
-      - metamcp-network
-    restart: unless-stopped
-
-  # Example Tool - File System Tool
-  example-fs-tool:
-    build:
-      context: ./examples/tools/filesystem-tool
-      dockerfile: Dockerfile
-    ports:
-      - "8002:8000"
-    environment:
-      - TOOL_NAME=filesystem
-      - TOOL_DESCRIPTION=File system operations like read, write, search
-    volumes:
-      - ./data:/app/data:ro
     networks:
       - metamcp-network
     restart: unless-stopped

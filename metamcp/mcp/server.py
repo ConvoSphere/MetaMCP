@@ -77,7 +77,10 @@ class MCPServer:
 
             # Initialize vector client
             if self.settings.vector_search_enabled:
-                self.vector_client = VectorSearchClient()
+                self.vector_client = VectorSearchClient(
+                    url=self.settings.weaviate_url,
+                    api_key=self.settings.weaviate_api_key
+                )
                 await self.vector_client.initialize()
 
             # Initialize auth manager

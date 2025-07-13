@@ -9,10 +9,12 @@ pytest-xdist
 
 # Code quality
 black
-flake8
-mypy
-isort
+ruff
 pre-commit
+flake8
+isort
+mypy
+bandit
 
 # Documentation
 mkdocs

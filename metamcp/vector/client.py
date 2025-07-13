@@ -57,15 +57,15 @@ class VectorSearchClient:
         try:
             logger.info("Initializing Vector Search Client...")
 
-            # Create Weaviate client
+            # Create Weaviate client (v4 API)
             auth_config = None
             if self.api_key:
                 auth_config = weaviate.auth.Auth.api_key(self.api_key)
 
-            self.client = weaviate.connect_to_wcs(
-                cluster_url=self.url,
+            self.client = WeaviateClient.connect(
+                url=self.url,
                 auth_credentials=auth_config,
-                timeout_config=(self.timeout, self.timeout)
+                timeout=self.timeout
             )
 
             # Test connection

@@ -197,7 +197,7 @@ async def run_server() -> None:
         port=settings.port,
         log_level=settings.log_level.lower(),
         access_log=True,
-        reload=settings.auto_reload and settings.debug,
+        reload=settings.reload and settings.debug,
         workers=1,  # Single worker for now to maintain state
     )
 

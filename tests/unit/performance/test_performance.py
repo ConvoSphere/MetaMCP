@@ -1,368 +1,650 @@
 """
-Performance Tests
+Performance Tests for MetaMCP
 
-Performance tests and benchmarks for MetaMCP components.
+These tests measure performance characteristics including:
+- Response times for various operations
+- Throughput under different load conditions
+- Resource usage (memory, CPU)
+- Scalability with increasing load
+- Performance regression detection
 """
 
 import asyncio
 import time
-from unittest.mock import AsyncMock, Mock
+import psutil
+import statistics
+from typing import Dict, List, Tuple
+from unittest.mock import AsyncMock, patch
 
 import pytest
+import pytest_asyncio
 
-from metamcp.llm.service import LLMService
-from metamcp.monitoring.telemetry import TelemetryManager
-from metamcp.tools.registry import ToolRegistry
-from metamcp.vector.client import VectorSearchClient
+from metamcp.services.auth_service import AuthService
+from metamcp.services.tool_service import ToolService
+from metamcp.services.search_service import SearchService
+from metamcp.utils.cache import Cache
+from metamcp.utils.circuit_breaker import CircuitBreaker
+from metamcp.utils.rate_limiter import RateLimiter
 
 
-class TestPerformance:
-    """Performance tests for MetaMCP components."""
-
-    @pytest.fixture
-    def mock_components(self):
-        """Create mock components for performance testing."""
-        telemetry = Mock(spec=TelemetryManager)
-        telemetry.record_request = Mock()
-        telemetry.record_tool_execution = Mock()
-        telemetry.record_vector_search = Mock()
-
-        tool_registry = Mock(spec=ToolRegistry)
-        tool_registry.list_tools = AsyncMock(return_value=[])
-        tool_registry.execute_tool = AsyncMock(return_value={"result": "test"})
-        tool_registry.search_tools = AsyncMock(return_value=[])
-
-        vector_client = Mock(spec=VectorSearchClient)
-        vector_client.search = AsyncMock(return_value=[])
-        vector_client.add_documents = AsyncMock()
-
-        llm_service = Mock(spec=LLMService)
-        llm_service.generate_embedding = AsyncMock(return_value=[0.1] * 1536)
-        llm_service.generate_text = AsyncMock(return_value="test response")
-
+class TestPerformanceBenchmarks:
+    """Performance benchmark tests."""
+    
+    @pytest_asyncio.fixture
+    async def setup_performance_services(self, test_settings):
+        """Set up services for performance testing."""
+        self.auth_service = AuthService(settings=test_settings)
+        self.tool_service = ToolService(settings=test_settings)
+        self.search_service = SearchService(settings=test_settings)
+        self.cache = Cache(settings=test_settings)
+        self.circuit_breaker = CircuitBreaker(
+            failure_threshold=5,
+            recovery_timeout=60
+        )
+        self.rate_limiter = RateLimiter(settings=test_settings)
+        
+        # Create test user
+        self.test_user = await self.auth_service.create_user({
+            "username": "perf_user",
+            "email": "perf@example.com",
+            "password": "password123",
+            "full_name": "Performance User",
+            "is_active": True,
+            "is_admin": False,
+        })
+        
+        yield
+        
+        # Cleanup
+        await self._cleanup_performance_data()
+    
+    async def _cleanup_performance_data(self):
+        """Clean up performance test data."""
+        pass
+    
+    def measure_execution_time(self, func, *args, **kwargs) -> Tuple[any, float]:
+        """Measure execution time of a function."""
+        start_time = time.time()
+        result = func(*args, **kwargs)
+        end_time = time.time()
+        return result, end_time - start_time
+    
+    async def measure_async_execution_time(self, func, *args, **kwargs) -> Tuple[any, float]:
+        """Measure execution time of an async function."""
+        start_time = time.time()
+        result = await func(*args, **kwargs)
+        end_time = time.time()
+        return result, end_time - start_time
+    
+    def get_memory_usage(self) -> Dict[str, float]:
+        """Get current memory usage."""
+        process = psutil.Process()
+        memory_info = process.memory_info()
         return {
-            "telemetry": telemetry,
-            "tool_registry": tool_registry,
-            "vector_client": vector_client,
-            "llm_service": llm_service
+            "rss_mb": memory_info.rss / 1024 / 1024,
+            "vms_mb": memory_info.vms / 1024 / 1024,
+            "percent": process.memory_percent()
         }
-
+    
+    def get_cpu_usage(self) -> float:
+        """Get current CPU usage."""
+        return psutil.cpu_percent(interval=0.1)
+    
+    @pytest.mark.performance
     @pytest.mark.asyncio
-    async def test_telemetry_performance(self, mock_components):
-        """Test telemetry performance overhead."""
-        telemetry = mock_components["telemetry"]
-
-        # Benchmark telemetry operations
-        start_time = time.time()
-
-        for _ in range(1000):
-            telemetry.record_request("GET", "/api/tools", 200, 0.1)
-            telemetry.record_tool_execution("calculator", True, 0.5)
-            telemetry.record_vector_search(50, 10, 0.1)
-
-        end_time = time.time()
-        total_time = end_time - start_time
-
-        # Should complete 3000 operations in reasonable time
-        assert total_time < 1.0  # Less than 1 second for 3000 operations
-        assert telemetry.record_request.call_count == 1000
-        assert telemetry.record_tool_execution.call_count == 1000
-        assert telemetry.record_vector_search.call_count == 1000
-
+    async def test_authentication_performance(self, setup_performance_services):
+        """Test authentication performance."""
+        
+        # Test user creation performance
+        user_data = {
+            "username": "perf_auth_user",
+            "email": "perf_auth@example.com",
+            "password": "password123",
+            "full_name": "Performance Auth User",
+            "is_active": True,
+            "is_admin": False,
+        }
+        
+        start_memory = self.get_memory_usage()
+        start_cpu = self.get_cpu_usage()
+        
+        user, creation_time = await self.measure_async_execution_time(
+            self.auth_service.create_user, user_data
+        )
+        
+        end_memory = self.get_memory_usage()
+        end_cpu = self.get_cpu_usage()
+        
+        # Performance assertions
+        assert creation_time < 1.0  # Should complete within 1 second
+        assert end_memory["rss_mb"] - start_memory["rss_mb"] < 50  # Memory increase < 50MB
+        assert end_cpu - start_cpu < 20  # CPU increase < 20%
+        
+        # Test token creation performance
+        token_data = {"sub": user["username"], "permissions": user["permissions"]}
+        
+        token, token_time = await self.measure_async_execution_time(
+            self.auth_service.create_access_token, token_data
+        )
+        
+        assert token_time < 0.1  # Should complete within 100ms
+        assert token is not None
+        
+        # Test token verification performance
+        payload, verify_time = await self.measure_async_execution_time(
+            self.auth_service.verify_token, token
+        )
+        
+        assert verify_time < 0.1  # Should complete within 100ms
+        assert payload["sub"] == user["username"]
+    
+    @pytest.mark.performance
     @pytest.mark.asyncio
-    async def test_tool_registry_performance(self, mock_components):
-        """Test tool registry performance."""
-        tool_registry = mock_components["tool_registry"]
-
-        # Benchmark tool operations
+    async def test_tool_registration_performance(self, setup_performance_services):
+        """Test tool registration performance."""
+        
+        tool_data = {
+            "name": "Performance Test Tool",
+            "description": "Tool for performance testing",
+            "version": "1.0.0",
+            "author": "Test Author",
+            "input_schema": {"type": "object", "properties": {}},
+            "output_schema": {"type": "object", "properties": {}},
+            "endpoints": [{"url": "http://localhost:8001/test", "method": "POST", "timeout": 30}],
+            "tags": ["performance"],
+            "category": "test"
+        }
+        
+        start_memory = self.get_memory_usage()
+        
+        tool_id, registration_time = await self.measure_async_execution_time(
+            self.tool_service.register_tool, tool_data, self.test_user["username"]
+        )
+        
+        end_memory = self.get_memory_usage()
+        
+        assert registration_time < 2.0  # Should complete within 2 seconds
+        assert end_memory["rss_mb"] - start_memory["rss_mb"] < 100  # Memory increase < 100MB
+        assert tool_id is not None
+    
+    @pytest.mark.performance
+    @pytest.mark.asyncio
+    async def test_tool_search_performance(self, setup_performance_services):
+        """Test tool search performance."""
+        
+        # Register multiple tools for search testing
+        tools_data = []
+        for i in range(10):
+            tool_data = {
+                "name": f"Search Performance Tool {i}",
+                "description": f"Tool {i} for search performance testing",
+                "version": "1.0.0",
+                "author": "Test Author",
+                "input_schema": {"type": "object", "properties": {}},
+                "output_schema": {"type": "object", "properties": {}},
+                "endpoints": [{"url": f"http://localhost:8001/test{i}", "method": "POST", "timeout": 30}],
+                "tags": ["performance", "search"],
+                "category": "test"
+            }
+            tools_data.append(tool_data)
+        
+        # Register all tools
+        for tool_data in tools_data:
+            await self.tool_service.register_tool(tool_data, self.test_user["username"])
+        
+        # Test search performance
+        search_query = {
+            "query": "performance",
+            "filters": {"category": "test"},
+            "limit": 10,
+            "offset": 0
+        }
+        
+        start_memory = self.get_memory_usage()
+        
+        results, search_time = await self.measure_async_execution_time(
+            self.search_service.search_tools, search_query
+        )
+        
+        end_memory = self.get_memory_usage()
+        
+        assert search_time < 1.0  # Should complete within 1 second
+        assert end_memory["rss_mb"] - start_memory["rss_mb"] < 50  # Memory increase < 50MB
+        assert len(results["tools"]) >= 10  # Should find all tools
+    
+    @pytest.mark.performance
+    @pytest.mark.asyncio
+    async def test_cache_performance(self, setup_performance_services):
+        """Test cache performance."""
+        
+        # Test cache set performance
+        cache_key = "perf_test_key"
+        cache_value = {"data": "test_value", "timestamp": time.time()}
+        
         start_time = time.time()
+        await self.cache.set(cache_key, cache_value, ttl=300)
+        set_time = time.time() - start_time
+        
+        assert set_time < 0.01  # Should complete within 10ms
+        
+        # Test cache get performance
+        start_time = time.time()
+        retrieved_value = await self.cache.get(cache_key)
+        get_time = time.time() - start_time
+        
+        assert get_time < 0.01  # Should complete within 10ms
+        assert retrieved_value == cache_value
+        
+        # Test cache miss performance
+        start_time = time.time()
+        missing_value = await self.cache.get("non_existent_key")
+        miss_time = time.time() - start_time
+        
+        assert miss_time < 0.01  # Should complete within 10ms
+        assert missing_value is None
+    
+    @pytest.mark.performance
+    @pytest.mark.asyncio
+    async def test_circuit_breaker_performance(self, setup_performance_services):
+        """Test circuit breaker performance."""
+        
+        # Test successful operation performance
+        async def successful_operation():
+            return "success"
+        
+        start_time = time.time()
+        result = await self.circuit_breaker.call(successful_operation)
+        success_time = time.time() - start_time
+        
+        assert success_time < 0.1  # Should complete within 100ms
+        assert result == "success"
+        
+        # Test failed operation performance
+        async def failed_operation():
+            raise Exception("Test failure")
+        
+        start_time = time.time()
+        try:
+            await self.circuit_breaker.call(failed_operation)
+        except Exception:
+            pass
+        failure_time = time.time() - start_time
+        
+        assert failure_time < 0.1  # Should complete within 100ms
+    
+    @pytest.mark.performance
+    @pytest.mark.asyncio
+    async def test_rate_limiter_performance(self, setup_performance_services):
+        """Test rate limiter performance."""
+        
+        # Test rate limiter check performance
+        user_id = "perf_test_user"
+        
+        start_time = time.time()
+        allowed = await self.rate_limiter.is_allowed(user_id, "test_endpoint")
+        check_time = time.time() - start_time
+        
+        assert check_time < 0.01  # Should complete within 10ms
+        assert allowed is True
+        
+        # Test multiple rapid requests
+        start_time = time.time()
+        results = []
+        for _ in range(10):
+            result = await self.rate_limiter.is_allowed(user_id, "test_endpoint")
+            results.append(result)
+        batch_time = time.time() - start_time
+        
+        assert batch_time < 0.1  # Should complete within 100ms
+        assert all(results)  # All should be allowed initially
 
-        # Simulate multiple concurrent tool operations
-        tasks = []
-        for i in range(100):
-            task = asyncio.create_task(
-                tool_registry.execute_tool(f"tool_{i}", {"input": f"data_{i}"})
-            )
-            tasks.append(task)
 
+class TestLoadTesting:
+    """Load testing scenarios."""
+    
+    @pytest.mark.load
+    @pytest.mark.asyncio
+    async def test_concurrent_user_registration(self, test_settings):
+        """Test concurrent user registration performance."""
+        
+        auth_service = AuthService(settings=test_settings)
+        
+        async def register_user(user_id: int):
+            user_data = {
+                "username": f"concurrent_user_{user_id}",
+                "email": f"concurrent_{user_id}@example.com",
+                "password": "password123",
+                "full_name": f"Concurrent User {user_id}",
+                "is_active": True,
+                "is_admin": False,
+            }
+            return await auth_service.create_user(user_data)
+        
+        # Register 10 users concurrently
+        start_time = time.time()
+        tasks = [register_user(i) for i in range(10)]
         results = await asyncio.gather(*tasks)
-        end_time = time.time()
-
-        total_time = end_time - start_time
-
-        # Should complete 100 concurrent operations in reasonable time
-        assert total_time < 2.0  # Less than 2 seconds for 100 concurrent operations
-        assert len(results) == 100
-        assert tool_registry.execute_tool.call_count == 100
-
+        total_time = time.time() - start_time
+        
+        assert len(results) == 10
+        assert total_time < 5.0  # Should complete within 5 seconds
+        assert all(result is not None for result in results)
+    
+    @pytest.mark.load
     @pytest.mark.asyncio
-    async def test_vector_search_performance(self, mock_components):
-        """Test vector search performance."""
-        vector_client = mock_components["vector_client"]
-
-        # Benchmark vector search operations
+    async def test_concurrent_tool_registration(self, test_settings):
+        """Test concurrent tool registration performance."""
+        
+        tool_service = ToolService(settings=test_settings)
+        
+        async def register_tool(tool_id: int):
+            tool_data = {
+                "name": f"Concurrent Tool {tool_id}",
+                "description": f"Tool {tool_id} for concurrent testing",
+                "version": "1.0.0",
+                "author": "Test Author",
+                "input_schema": {"type": "object", "properties": {}},
+                "output_schema": {"type": "object", "properties": {}},
+                "endpoints": [{"url": f"http://localhost:8001/test{tool_id}", "method": "POST", "timeout": 30}],
+                "tags": ["concurrent"],
+                "category": "test"
+            }
+            return await tool_service.register_tool(tool_data, f"user_{tool_id}")
+        
+        # Register 20 tools concurrently
         start_time = time.time()
-
-        # Simulate multiple concurrent searches
-        tasks = []
-        for i in range(50):
-            task = asyncio.create_task(
-                vector_client.search(f"query_{i}", limit=10)
-            )
-            tasks.append(task)
-
+        tasks = [register_tool(i) for i in range(20)]
         results = await asyncio.gather(*tasks)
-        end_time = time.time()
-
-        total_time = end_time - start_time
-
-        # Should complete 50 concurrent searches in reasonable time
-        assert total_time < 1.0  # Less than 1 second for 50 concurrent searches
+        total_time = time.time() - start_time
+        
+        assert len(results) == 20
+        assert total_time < 10.0  # Should complete within 10 seconds
+        assert all(result is not None for result in results)
+    
+    @pytest.mark.load
+    @pytest.mark.asyncio
+    async def test_concurrent_search_operations(self, test_settings):
+        """Test concurrent search operations performance."""
+        
+        search_service = SearchService(settings=test_settings)
+        
+        async def perform_search(search_id: int):
+            search_query = {
+                "query": f"search test {search_id}",
+                "filters": {"category": "test"},
+                "limit": 10,
+                "offset": 0
+            }
+            return await search_service.search_tools(search_query)
+        
+        # Perform 50 searches concurrently
+        start_time = time.time()
+        tasks = [perform_search(i) for i in range(50)]
+        results = await asyncio.gather(*tasks)
+        total_time = time.time() - start_time
+        
         assert len(results) == 50
-        assert vector_client.search.call_count == 50
+        assert total_time < 5.0  # Should complete within 5 seconds
+        assert all(result is not None for result in results)
 
+
+class TestStressTesting:
+    """Stress testing scenarios."""
+    
+    @pytest.mark.stress
     @pytest.mark.asyncio
-    async def test_llm_service_performance(self, mock_components):
-        """Test LLM service performance."""
-        llm_service = mock_components["llm_service"]
-
-        # Benchmark LLM operations
-        start_time = time.time()
-
-        # Simulate multiple concurrent LLM operations
-        tasks = []
-        for i in range(20):
-            # Embedding generation
-            task1 = asyncio.create_task(
-                llm_service.generate_embedding(f"text_{i}")
-            )
-            # Text generation
-            task2 = asyncio.create_task(
-                llm_service.generate_text(f"prompt_{i}")
-            )
-            tasks.extend([task1, task2])
-
-        results = await asyncio.gather(*tasks)
-        end_time = time.time()
-
-        total_time = end_time - start_time
-
-        # Should complete 40 concurrent LLM operations in reasonable time
-        assert total_time < 3.0  # Less than 3 seconds for 40 concurrent operations
-        assert len(results) == 40
-        assert llm_service.generate_embedding.call_count == 20
-        assert llm_service.generate_text.call_count == 20
-
-
-class TestMemoryUsage:
-    """Memory usage tests."""
-
+    async def test_memory_usage_under_load(self, test_settings):
+        """Test memory usage under sustained load."""
+        
+        auth_service = AuthService(settings=test_settings)
+        tool_service = ToolService(settings=test_settings)
+        
+        initial_memory = psutil.Process().memory_info().rss / 1024 / 1024
+        
+        # Create sustained load
+        for i in range(100):
+            # Create user
+            user_data = {
+                "username": f"stress_user_{i}",
+                "email": f"stress_{i}@example.com",
+                "password": "password123",
+                "full_name": f"Stress User {i}",
+                "is_active": True,
+                "is_admin": False,
+            }
+            user = await auth_service.create_user(user_data)
+            
+            # Register tool
+            tool_data = {
+                "name": f"Stress Tool {i}",
+                "description": f"Tool {i} for stress testing",
+                "version": "1.0.0",
+                "author": "Test Author",
+                "input_schema": {"type": "object", "properties": {}},
+                "output_schema": {"type": "object", "properties": {}},
+                "endpoints": [{"url": f"http://localhost:8001/stress{i}", "method": "POST", "timeout": 30}],
+                "tags": ["stress"],
+                "category": "test"
+            }
+            await tool_service.register_tool(tool_data, user["username"])
+            
+            # Check memory every 10 operations
+            if i % 10 == 0:
+                current_memory = psutil.Process().memory_info().rss / 1024 / 1024
+                memory_increase = current_memory - initial_memory
+                assert memory_increase < 500  # Memory increase < 500MB
+        
+        final_memory = psutil.Process().memory_info().rss / 1024 / 1024
+        total_memory_increase = final_memory - initial_memory
+        
+        assert total_memory_increase < 1000  # Total memory increase < 1GB
+    
+    @pytest.mark.stress
     @pytest.mark.asyncio
-    async def test_telemetry_memory_usage(self):
-        """Test telemetry memory usage."""
-        import os
+    async def test_cpu_usage_under_load(self, test_settings):
+        """Test CPU usage under sustained load."""
+        
+        auth_service = AuthService(settings=test_settings)
+        
+        # Monitor CPU usage during sustained operations
+        cpu_samples = []
+        
+        for i in range(50):
+            start_cpu = psutil.cpu_percent(interval=0.1)
+            
+            # Perform multiple operations
+            for j in range(10):
+                user_data = {
+                    "username": f"cpu_user_{i}_{j}",
+                    "email": f"cpu_{i}_{j}@example.com",
+                    "password": "password123",
+                    "full_name": f"CPU User {i}_{j}",
+                    "is_active": True,
+                    "is_admin": False,
+                }
+                await auth_service.create_user(user_data)
+            
+            end_cpu = psutil.cpu_percent(interval=0.1)
+            cpu_samples.append(end_cpu - start_cpu)
+            
+            # Check that CPU usage doesn't spike too high
+            assert end_cpu < 90  # CPU usage < 90%
+        
+        # Check average CPU increase
+        avg_cpu_increase = statistics.mean(cpu_samples)
+        assert avg_cpu_increase < 30  # Average CPU increase < 30%
 
-        import psutil
 
-        process = psutil.Process(os.getpid())
-        initial_memory = process.memory_info().rss
-
-        # Create telemetry manager
-        telemetry = TelemetryManager()
-
-        # Simulate high-volume operations
-        for _ in range(10000):
-            telemetry.record_request("GET", "/api/tools", 200, 0.1)
-
-        final_memory = process.memory_info().rss
-        memory_increase = final_memory - initial_memory
-
-        # Memory increase should be reasonable (less than 100MB)
-        assert memory_increase < 100 * 1024 * 1024  # 100MB
-
+class TestPerformanceRegression:
+    """Performance regression detection tests."""
+    
+    @pytest.mark.benchmark
     @pytest.mark.asyncio
-    async def test_large_dataset_handling(self):
-        """Test handling of large datasets."""
-        # Simulate large dataset processing
-        large_dataset = [{"id": i, "data": f"data_{i}"} for i in range(10000)]
-
-        # Process dataset in chunks
-        chunk_size = 1000
-        chunks = [large_dataset[i:i + chunk_size] for i in range(0, len(large_dataset), chunk_size)]
-
-        processed_chunks = []
-        for chunk in chunks:
-            # Simulate processing
-            processed_chunk = [{"id": item["id"], "processed": True} for item in chunk]
-            processed_chunks.append(processed_chunk)
-
-        # Verify all data was processed
-        total_processed = sum(len(chunk) for chunk in processed_chunks)
-        assert total_processed == len(large_dataset)
-
-
-class TestConcurrency:
-    """Concurrency and load testing."""
-
-    @pytest.fixture
-    def mock_components(self):
-        """Create mock components for performance testing."""
-        telemetry = Mock(spec=TelemetryManager)
-        telemetry.record_request = Mock()
-        telemetry.record_tool_execution = Mock()
-        telemetry.record_vector_search = Mock()
-
-        tool_registry = Mock(spec=ToolRegistry)
-        tool_registry.list_tools = AsyncMock(return_value=[])
-        tool_registry.execute_tool = AsyncMock(return_value={"result": "test"})
-        tool_registry.search_tools = AsyncMock(return_value=[])
-
-        vector_client = Mock(spec=VectorSearchClient)
-        vector_client.search = AsyncMock(return_value=[])
-        vector_client.add_documents = AsyncMock()
-
-        llm_service = Mock(spec=LLMService)
-        llm_service.generate_embedding = AsyncMock(return_value=[0.1] * 1536)
-        llm_service.generate_text = AsyncMock(return_value="test response")
-
-        return {
-            "telemetry": telemetry,
-            "tool_registry": tool_registry,
-            "vector_client": vector_client,
-            "llm_service": llm_service
+    async def test_authentication_benchmark(self, test_settings):
+        """Benchmark authentication operations."""
+        
+        auth_service = AuthService(settings=test_settings)
+        
+        # Benchmark user creation
+        user_data = {
+            "username": "benchmark_user",
+            "email": "benchmark@example.com",
+            "password": "password123",
+            "full_name": "Benchmark User",
+            "is_active": True,
+            "is_admin": False,
         }
-
+        
+        user, creation_time = await self.measure_async_execution_time(
+            auth_service.create_user, user_data
+        )
+        
+        # Store benchmark results for comparison
+        benchmark_data = {
+            "operation": "user_creation",
+            "execution_time": creation_time,
+            "timestamp": time.time(),
+            "threshold": 1.0  # 1 second threshold
+        }
+        
+        assert creation_time < benchmark_data["threshold"]
+        
+        # Benchmark token creation
+        token_data = {"sub": user["username"], "permissions": user["permissions"]}
+        token, token_time = await self.measure_async_execution_time(
+            auth_service.create_access_token, token_data
+        )
+        
+        token_benchmark = {
+            "operation": "token_creation",
+            "execution_time": token_time,
+            "timestamp": time.time(),
+            "threshold": 0.1  # 100ms threshold
+        }
+        
+        assert token_time < token_benchmark["threshold"]
+    
+    @pytest.mark.benchmark
     @pytest.mark.asyncio
-    async def test_concurrent_requests(self, mock_components):
-        """Test handling of concurrent requests."""
-        telemetry = mock_components["telemetry"]
+    async def test_tool_operations_benchmark(self, test_settings):
+        """Benchmark tool operations."""
+        
+        tool_service = ToolService(settings=test_settings)
+        
+        # Benchmark tool registration
+        tool_data = {
+            "name": "Benchmark Tool",
+            "description": "Tool for benchmarking",
+            "version": "1.0.0",
+            "author": "Test Author",
+            "input_schema": {"type": "object", "properties": {}},
+            "output_schema": {"type": "object", "properties": {}},
+            "endpoints": [{"url": "http://localhost:8001/benchmark", "method": "POST", "timeout": 30}],
+            "tags": ["benchmark"],
+            "category": "test"
+        }
+        
+        tool_id, registration_time = await self.measure_async_execution_time(
+            tool_service.register_tool, tool_data, "benchmark_user"
+        )
+        
+        registration_benchmark = {
+            "operation": "tool_registration",
+            "execution_time": registration_time,
+            "timestamp": time.time(),
+            "threshold": 2.0  # 2 second threshold
+        }
+        
+        assert registration_time < registration_benchmark["threshold"]
+        
+        # Benchmark tool retrieval
+        tool, retrieval_time = await self.measure_async_execution_time(
+            tool_service.get_tool, tool_id, "benchmark_user"
+        )
+        
+        retrieval_benchmark = {
+            "operation": "tool_retrieval",
+            "execution_time": retrieval_time,
+            "timestamp": time.time(),
+            "threshold": 0.5  # 500ms threshold
+        }
+        
+        assert retrieval_time < retrieval_benchmark["threshold"]
 
-        # Simulate high concurrent load
-        async def make_request(request_id: int):
-            await asyncio.sleep(0.01)  # Simulate processing time
-            telemetry.record_request("GET", f"/api/request/{request_id}", 200, 0.1)
-            return {"request_id": request_id, "status": "success"}
 
-        # Create 1000 concurrent requests
-        tasks = [make_request(i) for i in range(1000)]
-        start_time = time.time()
-
-        results = await asyncio.gather(*tasks)
-        end_time = time.time()
-
-        total_time = end_time - start_time
-
-        # Should handle 1000 concurrent requests efficiently
-        assert total_time < 5.0  # Less than 5 seconds for 1000 concurrent requests
-        assert len(results) == 1000
-        assert telemetry.record_request.call_count == 1000
-
+class TestResourceMonitoring:
+    """Resource monitoring tests."""
+    
+    @pytest.mark.performance
     @pytest.mark.asyncio
-    async def test_resource_cleanup(self):
-        """Test proper resource cleanup under load."""
-        import gc
-
-        # Create objects under load
-        objects = []
-        for i in range(1000):
-            obj = {"id": i, "data": "x" * 1000}  # Large objects
-            objects.append(obj)
-
-        # Simulate processing
-        processed = [{"id": obj["id"], "processed": True} for obj in objects]
-
+    async def test_memory_leak_detection(self, test_settings):
+        """Test for memory leaks during operations."""
+        
+        auth_service = AuthService(settings=test_settings)
+        
+        initial_memory = psutil.Process().memory_info().rss / 1024 / 1024
+        
+        # Perform operations that should not leak memory
+        for i in range(20):
+            user_data = {
+                "username": f"leak_test_user_{i}",
+                "email": f"leak_test_{i}@example.com",
+                "password": "password123",
+                "full_name": f"Leak Test User {i}",
+                "is_active": True,
+                "is_admin": False,
+            }
+            user = await auth_service.create_user(user_data)
+            
+            # Create and verify token
+            token_data = {"sub": user["username"], "permissions": user["permissions"]}
+            token = await auth_service.create_access_token(token_data)
+            await auth_service.verify_token(token)
+        
         # Force garbage collection
+        import gc
         gc.collect()
-
-        # Verify memory is cleaned up
-        assert len(processed) == 1000
-
-
-class TestScalability:
-    """Scalability tests."""
-
+        
+        final_memory = psutil.Process().memory_info().rss / 1024 / 1024
+        memory_increase = final_memory - initial_memory
+        
+        # Memory increase should be reasonable (not a leak)
+        assert memory_increase < 200  # Memory increase < 200MB
+    
+    @pytest.mark.performance
     @pytest.mark.asyncio
-    async def test_scaling_with_data_size(self):
-        """Test performance scaling with data size."""
-        sizes = [100, 1000, 10000]
-        times = []
-
-        for size in sizes:
-            data = [{"id": i, "value": i} for i in range(size)]
-
-            start_time = time.time()
-            # Simulate processing
-            processed = [{"id": item["id"], "processed": True} for item in data]
-            end_time = time.time()
-
-            processing_time = end_time - start_time
-            times.append(processing_time)
-
-            assert len(processed) == size
-
-        # Processing time should scale reasonably
-        # Time should not increase exponentially
-        assert times[1] < times[0] * 100  # 1000 items should not take 100x longer than 100
-        assert times[2] < times[1] * 100  # 10000 items should not take 100x longer than 1000
-
-    @pytest.mark.asyncio
-    async def test_scaling_with_concurrency(self):
-        """Test performance scaling with concurrency levels."""
-        concurrency_levels = [10, 50, 100, 200]
-        times = []
-
-        for concurrency in concurrency_levels:
-            async def worker(worker_id: int):
-                await asyncio.sleep(0.01)  # Simulate work
-                return worker_id
-
-            start_time = time.time()
-            tasks = [worker(i) for i in range(concurrency)]
-            results = await asyncio.gather(*tasks)
-            end_time = time.time()
-
-            processing_time = end_time - start_time
-            times.append(processing_time)
-
-            assert len(results) == concurrency
-
-        # Higher concurrency should not cause exponential time increase
-        # (due to async nature, should scale more linearly)
-        for i in range(1, len(times)):
-            assert times[i] < times[i-1] * 5  # Should not increase more than 5x
-
-
-class TestBenchmarks:
-    """Benchmark tests for performance comparison."""
-
-    @pytest.mark.benchmark
-    def test_telemetry_benchmark(self, benchmark):
-        """Benchmark telemetry operations."""
-        telemetry = Mock(spec=TelemetryManager)
-
-        def record_metrics():
-            telemetry.record_request("GET", "/api/tools", 200, 0.1)
-            telemetry.record_tool_execution("calculator", True, 0.5)
-            telemetry.record_vector_search(50, 10, 0.1)
-
-        result = benchmark(record_metrics)
-
-        # Benchmark should complete in reasonable time
-        # In test environment, benchmark might return None
-        # Just verify the function runs without error
-        pass
-
-    @pytest.mark.benchmark
-    def test_data_processing_benchmark(self, benchmark):
-        """Benchmark data processing operations."""
-        data = [{"id": i, "value": i} for i in range(1000)]
-
-        def process_data():
-            return [{"id": item["id"], "processed": True} for item in data]
-
-        result = benchmark(process_data)
-
-        # Should process 1000 items efficiently
-        # In test environment, benchmark might return None
-        # Just verify the function runs without error
-        pass
+    async def test_cpu_efficiency(self, test_settings):
+        """Test CPU efficiency during operations."""
+        
+        auth_service = AuthService(settings=test_settings)
+        
+        # Monitor CPU usage during operations
+        cpu_samples = []
+        
+        for i in range(10):
+            start_cpu = psutil.cpu_percent(interval=0.1)
+            
+            # Perform authentication operations
+            user_data = {
+                "username": f"cpu_efficiency_user_{i}",
+                "email": f"cpu_efficiency_{i}@example.com",
+                "password": "password123",
+                "full_name": f"CPU Efficiency User {i}",
+                "is_active": True,
+                "is_admin": False,
+            }
+            user = await auth_service.create_user(user_data)
+            
+            token_data = {"sub": user["username"], "permissions": user["permissions"]}
+            token = await auth_service.create_access_token(token_data)
+            await auth_service.verify_token(token)
+            
+            end_cpu = psutil.cpu_percent(interval=0.1)
+            cpu_samples.append(end_cpu - start_cpu)
+        
+        # Check CPU efficiency
+        avg_cpu_usage = statistics.mean(cpu_samples)
+        max_cpu_usage = max(cpu_samples)
+        
+        assert avg_cpu_usage < 20  # Average CPU usage < 20%
+        assert max_cpu_usage < 50  # Peak CPU usage < 50%

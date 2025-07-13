@@ -140,7 +140,7 @@ def test_environment_validation():
             "ADMIN_PORT": "8501"
         }.get(key, default)
         
-        result = cli.validate_environment()
+        result = cli.validate_environment(return_dict=True)
         assert result["valid"] is True
 
 
@@ -286,7 +286,7 @@ def test_missing_files():
             cli = MetaMCPCLI()
             
             # Test environment validation with missing .env
-            result = cli.validate_environment()
+            result = cli.validate_environment(return_dict=True)
             
             # Should detect missing .env file
             assert result["valid"] is False

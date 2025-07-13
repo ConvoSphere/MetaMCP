@@ -8,7 +8,7 @@ for the MCP Meta-Server.
 from datetime import datetime, timedelta
 from typing import Any
 
-import jwt
+from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from ..config import get_settings
@@ -74,8 +74,7 @@ class AuthManager:
         except Exception as e:
             logger.error(f"Failed to initialize Authentication Manager: {e}")
             raise AuthenticationError(
-                message=f"Failed to initialize authentication manager: {str(e)}",
-                error_code="auth_init_failed"
+                message=f"Failed to initialize authentication manager: {str(e)}"
             )
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
@@ -196,19 +195,15 @@ class AuthManager:
                 algorithms=[self.settings.algorithm]
             )
 
-            username: str = payload.get("sub")
+            username = payload.get("sub")
             if username is None:
-                            raise AuthenticationError(
-                message="Invalid token: missing subject"
-            )
+                raise AuthenticationError(
+                    message="Invalid token: missing subject"
+                )
 
-            return username
+            return str(username)
 
-        except jwt.ExpiredSignatureError:
-            raise AuthenticationError(
-                message="Token has expired"
-            )
-        except jwt.PyJWTError as e:
+        except JWTError as e:
             raise AuthenticationError(
                 message=f"Invalid token: {str(e)}"
             )

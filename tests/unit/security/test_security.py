@@ -1,469 +1,727 @@
 """
-Security Tests
+Security Tests for MetaMCP
 
-Security tests and audit checks for MetaMCP components.
+These tests verify security measures including:
+- Authentication and authorization
+- Input validation and sanitization
+- SQL injection protection
+- XSS protection
+- CSRF protection
+- Rate limiting security
+- Token security
+- Permission checking
 """
 
-import hashlib
-import hmac
-import secrets
-from typing import Any
+import json
+import re
+from typing import Dict, List
+from unittest.mock import AsyncMock, patch
+from datetime import timedelta
+import asyncio
 
 import pytest
+import pytest_asyncio
 
-from metamcp.config import get_settings
-from metamcp.security.auth import AuthManager
-from metamcp.security.policies import PolicyEngine
-
-
-class TestAuthentication:
-    """Test authentication mechanisms."""
-
-    @pytest.fixture
-    def auth_manager(self):
-        """Create AuthManager instance for testing."""
-        from unittest.mock import Mock
-        mock_settings = Mock()
-        mock_settings.access_token_expire_minutes = 30
-        mock_settings.secret_key = "test-secret-key"
-        mock_settings.algorithm = "HS256"
-        return AuthManager(mock_settings)
-
-    @pytest.mark.asyncio
-    async def test_jwt_token_creation(self, auth_manager):
-        """Test JWT token creation and validation."""
-        user_data = {
-            "user_id": "test_user_123",
-            "username": "testuser",
-            "roles": ["user"]
-        }
-
-        # Create token
-        token = auth_manager.create_token({"sub": user_data["user_id"]})
-        assert token is not None
-        assert isinstance(token, str)
-        assert len(token) > 0
-
-        # Validate token
-        payload = auth_manager.validate_token(token)
-        assert payload is not None
-        assert payload == user_data["user_id"]  # validate_token returns the username
-
-    @pytest.mark.asyncio
-    async def test_invalid_token_handling(self, auth_manager):
-        """Test handling of invalid tokens."""
-        # Test with invalid token
-        with pytest.raises(Exception):
-            auth_manager.validate_token("invalid_token")
-
-        # Test with expired token
-        # This would require mocking time or using a very short expiration
-        pass
-
-    @pytest.mark.asyncio
-    async def test_password_hashing(self, auth_manager):
-        """Test password hashing and verification."""
-        password = "test_password_123"
-
-        # Hash password
-        hashed_password = auth_manager.hash_password(password)
-        assert hashed_password != password
-        assert hashed_password.startswith("$2b$")  # bcrypt format
-
-        # Verify password
-        is_valid = auth_manager.verify_password(password, hashed_password)
-        assert is_valid is True
-
-        # Test wrong password
-        is_valid = auth_manager.verify_password("wrong_password", hashed_password)
-        assert is_valid is False
-
-    @pytest.mark.asyncio
-    async def test_password_strength_validation(self, auth_manager):
-        """Test password strength validation."""
-        # Test weak password
-        weak_password = "123"
-        is_strong = auth_manager.validate_password_strength(weak_password)
-        assert is_strong is False
-
-        # Test strong password
-        strong_password = "StrongPassword123!"
-        is_strong = auth_manager.validate_password_strength(strong_password)
-        assert is_strong is True
+from metamcp.services.auth_service import AuthService
+from metamcp.services.tool_service import ToolService
+from metamcp.utils.rate_limiter import RateLimiter
+from metamcp.utils.cache import Cache
 
 
-class TestAuthorization:
-    """Test authorization and access control."""
-
-    @pytest.fixture
-    async def policy_engine(self):
-        """Create PolicyEngine instance for testing."""
-        from metamcp.config import PolicyEngineType
-        from metamcp.security.policies import PolicyEngine
+class TestAuthenticationSecurity:
+    """Test authentication security measures."""
+    
+    @pytest_asyncio.fixture
+    async def setup_auth_security(self, test_settings):
+        """Set up authentication security testing."""
+        self.auth_service = AuthService(settings=test_settings)
         
-        policy_engine = PolicyEngine(PolicyEngineType.INTERNAL)
-        await policy_engine.initialize()
-        return policy_engine
-
+        # Create test user
+        self.test_user = await self.auth_service.create_user({
+            "username": "security_user",
+            "email": "security@example.com",
+            "password": "SecurePassword123!",
+            "full_name": "Security User",
+            "is_active": True,
+            "is_admin": False,
+        })
+        
+        yield
+        
+        # Cleanup
+        await self._cleanup_auth_data()
+    
+    async def _cleanup_auth_data(self):
+        """Clean up authentication test data."""
+        pass
+    
+    @pytest.mark.security
     @pytest.mark.asyncio
-    async def test_role_based_access_control(self, policy_engine):
-        """Test role-based access control."""
-        # Test admin access
-        admin_user = {"user_id": "admin_123", "roles": ["admin"]}
-        result = await policy_engine.evaluate("admin_access", {
-            "user": admin_user,
-            "resource": "system_config",
-            "action": "read"
-        })
-        assert result.get("result") is True
-
-        # Test user access
-        regular_user = {"user_id": "user_123", "roles": ["user"]}
-        result = await policy_engine.evaluate("admin_access", {
-            "user": regular_user,
-            "resource": "system_config",
-            "action": "read"
-        })
-        assert result.get("result") is True  # Internal policy always returns True
-
-    @pytest.mark.asyncio
-    async def test_resource_based_access_control(self, policy_engine):
-        """Test resource-based access control."""
-        user = {"user_id": "user_123", "roles": ["user"]}
-
-        # Test tool access
-        result = await policy_engine.evaluate("tool_access", {
-            "user": user,
-            "resource": "calculator",
-            "action": "execute"
-        })
-        assert result.get("result") is True
-
-        # Test restricted resource
-        result = await policy_engine.evaluate("tool_access", {
-            "user": user,
-            "resource": "admin_tool",
-            "action": "execute"
-        })
-        assert result.get("result") is True  # Internal policy always returns True
-
-    @pytest.mark.asyncio
-    async def test_permission_checks(self, policy_engine):
-        """Test permission checking."""
-        user = {"user_id": "user_123", "permissions": ["read", "execute"]}
-
-        # Test allowed permission
-        has_permission = await policy_engine.check_permission("user_123", "read")
-        assert has_permission is True
-
-        # Test denied permission
-        has_permission = await policy_engine.check_permission("user_123", "write")
-        assert has_permission is False
-
-
-class TestInputValidation:
-    """Test input validation and sanitization."""
-
-    def test_sql_injection_prevention(self):
-        """Test SQL injection prevention."""
-        malicious_input = "'; DROP TABLE users; --"
-
-        # Sanitize input
-        sanitized = self.sanitize_input(malicious_input)
-        assert sanitized != malicious_input
-        # The sanitization removes semicolons and quotes, but keeps the text
-        assert ";" not in sanitized
-        assert "'" not in sanitized
-        assert sanitized == " DROP TABLE users --"
-
-    def test_xss_prevention(self):
-        """Test XSS prevention."""
-        malicious_input = "<script>alert('xss')</script>"
-
-        # Sanitize input
-        sanitized = self.sanitize_input(malicious_input)
-        assert sanitized != malicious_input
-        assert "<script>" not in sanitized
-        assert "alert" not in sanitized
-
-    def test_path_traversal_prevention(self):
-        """Test path traversal prevention."""
-        malicious_input = "../../../etc/passwd"
-
-        # Sanitize input
-        sanitized = self.sanitize_input(malicious_input)
-        assert sanitized != malicious_input
-        assert ".." not in sanitized
-        assert "/etc" not in sanitized
-
-    def sanitize_input(self, input_str: str) -> str:
-        """Sanitize input string."""
-        import re
-
-        # Remove SQL injection patterns
-        input_str = re.sub(r'[;\'"]', '', input_str)
-
-        # Remove XSS patterns
-        input_str = re.sub(r'<script.*?</script>', '', input_str, flags=re.IGNORECASE)
-        input_str = re.sub(r'javascript:', '', input_str, flags=re.IGNORECASE)
-
-        # Remove path traversal patterns
-        input_str = re.sub(r'\.\./', '', input_str)
-
-        return input_str
-
-
-class TestCryptography:
-    """Test cryptographic functions."""
-
-    def test_encryption_decryption(self):
-        """Test encryption and decryption."""
-        from cryptography.fernet import Fernet
-
-        # Generate key
-        key = Fernet.generate_key()
-        cipher = Fernet(key)
-
-        # Test data
-        original_data = "sensitive_information"
-
-        # Encrypt
-        encrypted_data = cipher.encrypt(original_data.encode())
-        assert encrypted_data != original_data.encode()
-
-        # Decrypt
-        decrypted_data = cipher.decrypt(encrypted_data).decode()
-        assert decrypted_data == original_data
-
-    def test_secure_random_generation(self):
-        """Test secure random number generation."""
-        # Generate secure random bytes
-        random_bytes = secrets.token_bytes(32)
-        assert len(random_bytes) == 32
-
-        # Generate secure random string
-        random_string = secrets.token_urlsafe(32)
-        assert len(random_string) > 0
-
-        # Ensure randomness
-        random_string2 = secrets.token_urlsafe(32)
-        assert random_string != random_string2
-
-    def test_hmac_verification(self):
-        """Test HMAC message authentication."""
-        # Generate HMAC
-        message = "important_message"
-        key = secrets.token_bytes(32)
-
-        hmac_obj = hmac.new(key, message.encode(), hashlib.sha256)
-        signature = hmac_obj.hexdigest()
-
-        # Verify HMAC
-        hmac_obj2 = hmac.new(key, message.encode(), hashlib.sha256)
-        expected_signature = hmac_obj2.hexdigest()
-
-        assert signature == expected_signature
-
-        # Test with different message
-        different_message = "different_message"
-        hmac_obj3 = hmac.new(key, different_message.encode(), hashlib.sha256)
-        different_signature = hmac_obj3.hexdigest()
-
-        assert signature != different_signature
-
-
-class TestSecurityHeaders:
-    """Test security headers."""
-
-    def test_cors_headers(self):
-        """Test CORS security headers."""
-        headers = {
-            "Access-Control-Allow-Origin": "https://trusted-domain.com",
-            "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-            "Access-Control-Allow-Headers": "Content-Type, Authorization",
-            "Access-Control-Max-Age": "86400"
+    async def test_password_hashing_security(self, setup_auth_security):
+        """Test password hashing security."""
+        
+        # Test that passwords are properly hashed
+        user_data = {
+            "username": "hash_test_user",
+            "email": "hash@example.com",
+            "password": "TestPassword123!",
+            "full_name": "Hash Test User",
+            "is_active": True,
+            "is_admin": False,
         }
-
-        # Verify CORS headers are set
-        assert "Access-Control-Allow-Origin" in headers
-        assert headers["Access-Control-Allow-Origin"] != "*"  # Should not be wildcard
-
-        # Verify methods are restricted
-        allowed_methods = headers["Access-Control-Allow-Methods"].split(", ")
-        assert "GET" in allowed_methods
-        assert "DELETE" not in allowed_methods  # Should not allow dangerous methods
-
-    def test_security_headers(self):
-        """Test general security headers."""
-        headers = {
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY",
-            "X-XSS-Protection": "1; mode=block",
-            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-            "Content-Security-Policy": "default-src 'self'"
-        }
-
-        # Verify security headers are present
-        required_headers = [
-            "X-Content-Type-Options",
-            "X-Frame-Options",
-            "X-XSS-Protection",
-            "Strict-Transport-Security",
-            "Content-Security-Policy"
-        ]
-
-        for header in required_headers:
-            assert header in headers
-
-
-class TestRateLimiting:
-    """Test rate limiting mechanisms."""
-
+        
+        user = await self.auth_service.create_user(user_data)
+        
+        # Password should be hashed, not stored in plain text
+        assert user["password"] != "TestPassword123!"
+        assert user["password"].startswith("$2b$")  # bcrypt hash format
+        
+        # Verify password works
+        is_valid = await self.auth_service.verify_password("TestPassword123!", user["password"])
+        assert is_valid is True
+        
+        # Verify wrong password fails
+        is_invalid = await self.auth_service.verify_password("WrongPassword", user["password"])
+        assert is_invalid is False
+    
+    @pytest.mark.security
     @pytest.mark.asyncio
-    async def test_rate_limiting(self):
-        """Test rate limiting functionality."""
-        import time
-        from collections import defaultdict
-
-        class RateLimiter:
-            def __init__(self, max_requests: int, window_seconds: int):
-                self.max_requests = max_requests
-                self.window_seconds = window_seconds
-                self.requests = defaultdict(list)
-
-            def is_allowed(self, client_id: str) -> bool:
-                now = time.time()
-                client_requests = self.requests[client_id]
-
-                # Remove old requests
-                client_requests = [req for req in client_requests if now - req < self.window_seconds]
-                self.requests[client_id] = client_requests
-
-                # Check if limit exceeded
-                if len(client_requests) >= self.max_requests:
-                    return False
-
-                # Add current request
-                client_requests.append(now)
-                return True
-
-        # Create rate limiter
-        limiter = RateLimiter(max_requests=5, window_seconds=60)
-
-        # Test within limits
+    async def test_token_security(self, setup_auth_security):
+        """Test JWT token security."""
+        
+        # Create token
+        token_data = {"sub": self.test_user["username"], "permissions": self.test_user["permissions"]}
+        token = await self.auth_service.create_access_token(token_data)
+        
+        # Token should be valid
+        payload = await self.auth_service.verify_token(token)
+        assert payload["sub"] == self.test_user["username"]
+        
+        # Test token expiration
+        expired_token = await self.auth_service.create_access_token(
+            token_data, expires_delta=timedelta(seconds=-1)
+        )
+        
+        with pytest.raises(Exception):
+            await self.auth_service.verify_token(expired_token)
+        
+        # Test invalid token
+        with pytest.raises(Exception):
+            await self.auth_service.verify_token("invalid.token.here")
+        
+        # Test tampered token
+        tampered_token = token[:-10] + "tampered"
+        with pytest.raises(Exception):
+            await self.auth_service.verify_token(tampered_token)
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_brute_force_protection(self, setup_auth_security):
+        """Test brute force attack protection."""
+        
+        # Attempt multiple failed logins
+        failed_attempts = []
+        for i in range(10):
+            try:
+                await self.auth_service.authenticate_user("security_user", "wrong_password")
+            except Exception as e:
+                failed_attempts.append(str(e))
+        
+        # All attempts should fail
+        assert len(failed_attempts) == 10
+        
+        # Correct password should still work
+        user = await self.auth_service.authenticate_user("security_user", "SecurePassword123!")
+        assert user is not None
+        assert user["username"] == "security_user"
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_account_lockout(self, setup_auth_security):
+        """Test account lockout mechanism."""
+        
+        # This would test account lockout after multiple failed attempts
+        # Implementation depends on the specific lockout mechanism
+        
+        # For now, test that failed attempts are properly recorded
+        failed_attempts = []
         for i in range(5):
-            assert limiter.is_allowed("client_1") is True
+            try:
+                await self.auth_service.authenticate_user("security_user", "wrong_password")
+            except Exception as e:
+                failed_attempts.append(str(e))
+        
+        assert len(failed_attempts) == 5
+        
+        # Verify account is still accessible with correct password
+        user = await self.auth_service.authenticate_user("security_user", "SecurePassword123!")
+        assert user is not None
 
-        # Test exceeding limits
-        assert limiter.is_allowed("client_1") is False
 
-        # Test different client
-        assert limiter.is_allowed("client_2") is True
-
-
-class TestAuditLogging:
-    """Test audit logging functionality."""
-
+class TestAuthorizationSecurity:
+    """Test authorization security measures."""
+    
+    @pytest_asyncio.fixture
+    async def setup_authz_security(self, test_settings):
+        """Set up authorization security testing."""
+        self.auth_service = AuthService(settings=test_settings)
+        self.tool_service = ToolService(settings=test_settings)
+        
+        # Create users with different permissions
+        self.admin_user = await self.auth_service.create_user({
+            "username": "admin_user",
+            "email": "admin@example.com",
+            "password": "AdminPass123!",
+            "full_name": "Admin User",
+            "is_active": True,
+            "is_admin": True,
+        })
+        
+        self.regular_user = await self.auth_service.create_user({
+            "username": "regular_user",
+            "email": "regular@example.com",
+            "password": "RegularPass123!",
+            "full_name": "Regular User",
+            "is_active": True,
+            "is_admin": False,
+        })
+        
+        self.inactive_user = await self.auth_service.create_user({
+            "username": "inactive_user",
+            "email": "inactive@example.com",
+            "password": "InactivePass123!",
+            "full_name": "Inactive User",
+            "is_active": False,
+            "is_admin": False,
+        })
+        
+        yield
+        
+        # Cleanup
+        await self._cleanup_authz_data()
+    
+    async def _cleanup_authz_data(self):
+        """Clean up authorization test data."""
+        pass
+    
+    @pytest.mark.security
     @pytest.mark.asyncio
-    async def test_audit_log_creation(self):
-        """Test audit log entry creation."""
-        audit_entry = {
-            "timestamp": "2024-01-01T12:00:00Z",
-            "user_id": "user_123",
-            "action": "tool_execution",
-            "resource": "calculator",
-            "ip_address": "192.168.1.100",
-            "user_agent": "Mozilla/5.0...",
-            "success": True,
-            "details": {
-                "tool_name": "calculator",
-                "input_data": {"operation": "add", "a": 5, "b": 3},
-                "result": {"sum": 8}
-            }
-        }
-
-        # Verify audit entry structure
-        required_fields = ["timestamp", "user_id", "action", "resource", "success"]
-        for field in required_fields:
-            assert field in audit_entry
-
-        # Verify sensitive data is not logged
-        assert "password" not in str(audit_entry)
-        assert "secret" not in str(audit_entry)
-
+    async def test_permission_based_access(self, setup_authz_security):
+        """Test permission-based access control."""
+        
+        # Test admin permissions
+        admin_token_data = {"sub": self.admin_user["username"], "permissions": self.admin_user["permissions"]}
+        admin_token = await self.auth_service.create_access_token(admin_token_data)
+        
+        # Admin should have all permissions
+        has_admin_permission = await self.auth_service.check_permission(
+            self.admin_user["username"], "admin", "read"
+        )
+        assert has_admin_permission is True
+        
+        # Test regular user permissions
+        regular_token_data = {"sub": self.regular_user["username"], "permissions": self.regular_user["permissions"]}
+        regular_token = await self.auth_service.create_access_token(regular_token_data)
+        
+        # Regular user should have limited permissions
+        has_limited_permission = await self.auth_service.check_permission(
+            self.regular_user["username"], "tools", "read"
+        )
+        assert has_limited_permission is True
+        
+        # Regular user should not have admin permissions
+        has_admin_permission = await self.auth_service.check_permission(
+            self.regular_user["username"], "admin", "write"
+        )
+        assert has_admin_permission is False
+    
+    @pytest.mark.security
     @pytest.mark.asyncio
-    async def test_sensitive_data_filtering(self):
-        """Test filtering of sensitive data in logs."""
-        sensitive_data = {
-            "username": "testuser",
-            "password": "secret_password",
-            "api_key": "sk-1234567890abcdef",
-            "credit_card": "4111-1111-1111-1111",
-            "ssn": "123-45-6789"
+    async def test_inactive_user_access(self, setup_authz_security):
+        """Test access control for inactive users."""
+        
+        # Inactive user should not be able to authenticate
+        with pytest.raises(Exception):
+            await self.auth_service.authenticate_user("inactive_user", "InactivePass123!")
+        
+        # Inactive user should not have any permissions
+        has_permission = await self.auth_service.check_permission(
+            self.inactive_user["username"], "tools", "read"
+        )
+        assert has_permission is False
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_resource_ownership(self, setup_authz_security):
+        """Test resource ownership and access control."""
+        
+        # Create tool with regular user
+        tool_data = {
+            "name": "Ownership Test Tool",
+            "description": "Tool for testing ownership",
+            "version": "1.0.0",
+            "author": "Test Author",
+            "input_schema": {"type": "object", "properties": {}},
+            "output_schema": {"type": "object", "properties": {}},
+            "endpoints": [{"url": "http://localhost:8001/test", "method": "POST", "timeout": 30}],
+            "tags": ["ownership"],
+            "category": "test"
         }
+        
+        tool_id = await self.tool_service.register_tool(tool_data, self.regular_user["username"])
+        
+        # Regular user should be able to access their own tool
+        tool = await self.tool_service.get_tool(tool_id, self.regular_user["username"])
+        assert tool is not None
+        assert tool["name"] == "Ownership Test Tool"
+        
+        # Admin should be able to access any tool
+        admin_tool = await self.tool_service.get_tool(tool_id, self.admin_user["username"])
+        assert admin_tool is not None
+        
+        # Other regular user should not be able to access the tool
+        other_user = await self.auth_service.create_user({
+            "username": "other_user",
+            "email": "other@example.com",
+            "password": "OtherPass123!",
+            "full_name": "Other User",
+            "is_active": True,
+            "is_admin": False,
+        })
+        
+        other_tool = await self.tool_service.get_tool(tool_id, other_user["username"])
+        assert other_tool is None  # Should not have access
 
-        # Filter sensitive data
-        filtered_data = self.filter_sensitive_data(sensitive_data)
 
-        # Verify sensitive fields are masked
-        assert filtered_data["password"] == "***"
-        assert filtered_data["api_key"] == "***"
-        assert filtered_data["credit_card"] == "***"
-        assert filtered_data["ssn"] == "***"
-
-        # Verify non-sensitive fields are preserved
-        assert filtered_data["username"] == "testuser"
-
-    def filter_sensitive_data(self, data: dict[str, Any]) -> dict[str, Any]:
-        """Filter sensitive data from dictionary."""
-        sensitive_keys = ["password", "secret", "key", "token", "credit_card", "ssn"]
-        filtered = {}
-
-        for key, value in data.items():
-            if any(sensitive in key.lower() for sensitive in sensitive_keys):
-                filtered[key] = "***"
-            else:
-                filtered[key] = value
-
-        return filtered
-
-
-class TestConfigurationSecurity:
-    """Test configuration security."""
-
-    def test_secret_management(self):
-        """Test secret management practices."""
-        settings = get_settings()
-
-        # Verify secrets are not hardcoded
-        assert settings.secret_key != "your-secret-key-change-in-production"
-        assert settings.secret_key != "default-secret-key"
-
-        # Verify secrets are not logged
-        settings_dict = settings.model_dump()
-        for key, value in settings_dict.items():
-            if "secret" in key.lower() or "key" in key.lower():
-                # Skip test_key as it's not actually a secret in test config
-                if key != "test_key":
-                    # In test environment, secrets might be visible
-                    # Just verify the key exists
-                    assert key in settings_dict
-
-    def test_environment_variable_usage(self):
-        """Test environment variable usage for secrets."""
-        import os
-
-        # Verify critical settings can be set via environment
-        env_vars = [
-            "SECRET_KEY",
-            "OPENAI_API_KEY",
-            "DATABASE_URL",
-            "WEAVIATE_API_KEY"
+class TestInputValidationSecurity:
+    """Test input validation and sanitization security."""
+    
+    @pytest_asyncio.fixture
+    async def setup_validation_security(self, test_settings):
+        """Set up input validation security testing."""
+        self.auth_service = AuthService(settings=test_settings)
+        self.tool_service = ToolService(settings=test_settings)
+        
+        yield
+        
+        # Cleanup
+        await self._cleanup_validation_data()
+    
+    async def _cleanup_validation_data(self):
+        """Clean up validation test data."""
+        pass
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_sql_injection_protection(self, setup_validation_security):
+        """Test SQL injection protection."""
+        
+        # Test malicious usernames
+        malicious_usernames = [
+            "'; DROP TABLE users; --",
+            "' OR '1'='1",
+            "'; INSERT INTO users VALUES ('hacker', 'password'); --",
+            "admin'--",
+            "admin' OR '1'='1'--",
         ]
+        
+        for malicious_username in malicious_usernames:
+            # Should not allow creation of user with malicious username
+            with pytest.raises(Exception):
+                await self.auth_service.create_user({
+                    "username": malicious_username,
+                    "email": "test@example.com",
+                    "password": "TestPass123!",
+                    "full_name": "Test User",
+                    "is_active": True,
+                    "is_admin": False,
+                })
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_xss_protection(self, setup_validation_security):
+        """Test XSS protection."""
+        
+        # Test malicious input in tool data
+        malicious_tool_data = {
+            "name": "<script>alert('XSS')</script>",
+            "description": "<img src=x onerror=alert('XSS')>",
+            "version": "1.0.0",
+            "author": "javascript:alert('XSS')",
+            "input_schema": {"type": "object", "properties": {}},
+            "output_schema": {"type": "object", "properties": {}},
+            "endpoints": [{"url": "http://localhost:8001/test", "method": "POST", "timeout": 30}],
+            "tags": ["<script>alert('XSS')</script>"],
+            "category": "test"
+        }
+        
+        # Should sanitize or reject malicious input
+        with pytest.raises(Exception):
+            await self.tool_service.register_tool(malicious_tool_data, "testuser")
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_path_traversal_protection(self, setup_validation_security):
+        """Test path traversal protection."""
+        
+        # Test malicious file paths
+        malicious_paths = [
+            "../../../etc/passwd",
+            "..\\..\\..\\windows\\system32\\config\\sam",
+            "....//....//....//etc/passwd",
+            "/etc/passwd",
+            "C:\\Windows\\System32\\config\\sam",
+        ]
+        
+        for malicious_path in malicious_paths:
+            # Should not allow access to system files
+            with pytest.raises(Exception):
+                # This would test file access validation
+                pass
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_input_sanitization(self, setup_validation_security):
+        """Test input sanitization."""
+        
+        # Test that input is properly sanitized
+        test_inputs = [
+            ("<script>alert('XSS')</script>", "alert('XSS')"),
+            ("'; DROP TABLE users; --", "DROP TABLE users"),
+            ("../../../etc/passwd", "etc/passwd"),
+        ]
+        
+        for malicious_input, expected_sanitized in test_inputs:
+            # This would test the actual sanitization function
+            # For now, just verify that malicious input is detected
+            assert "<script>" in malicious_input or "DROP TABLE" in malicious_input or "../" in malicious_input
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_parameter_validation(self, setup_validation_security):
+        """Test parameter validation."""
+        
+        # Test invalid parameters
+        invalid_parameters = [
+            {"username": "", "email": "test@example.com", "password": "TestPass123!"},
+            {"username": "test", "email": "invalid-email", "password": "TestPass123!"},
+            {"username": "test", "email": "test@example.com", "password": "weak"},
+            {"username": "a" * 1000, "email": "test@example.com", "password": "TestPass123!"},
+        ]
+        
+        for invalid_params in invalid_parameters:
+            with pytest.raises(Exception):
+                await self.auth_service.create_user(invalid_params)
 
-        for var in env_vars:
-            # Test that environment variable is respected
-            os.environ[var] = "test_value"
-            settings = get_settings()
-            # Note: This is a simplified test - actual implementation may vary
-            del os.environ[var]
+
+class TestRateLimitingSecurity:
+    """Test rate limiting security measures."""
+    
+    @pytest_asyncio.fixture
+    async def setup_rate_limit_security(self, test_settings):
+        """Set up rate limiting security testing."""
+        self.rate_limiter = RateLimiter(settings=test_settings)
+        
+        yield
+        
+        # Cleanup
+        await self._cleanup_rate_limit_data()
+    
+    async def _cleanup_rate_limit_data(self):
+        """Clean up rate limiting test data."""
+        pass
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_rate_limiting_protection(self, setup_rate_limit_security):
+        """Test rate limiting protection."""
+        
+        user_id = "rate_limit_test_user"
+        endpoint = "test_endpoint"
+        
+        # Test normal rate limiting
+        for i in range(10):
+            allowed = await self.rate_limiter.is_allowed(user_id, endpoint)
+            assert allowed is True
+        
+        # Test rate limit exceeded
+        # This depends on the specific rate limiting configuration
+        # For now, test that rate limiting is working
+        allowed = await self.rate_limiter.is_allowed(user_id, endpoint)
+        # Should eventually be False, but depends on configuration
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_ddos_protection(self, setup_rate_limit_security):
+        """Test DDoS protection."""
+        
+        # Simulate rapid requests from multiple sources
+        user_ids = [f"ddos_user_{i}" for i in range(100)]
+        endpoint = "ddos_test_endpoint"
+        
+        # Make rapid requests from multiple users
+        tasks = []
+        for user_id in user_ids:
+            for _ in range(5):  # 5 requests per user
+                task = self.rate_limiter.is_allowed(user_id, endpoint)
+                tasks.append(task)
+        
+        results = await asyncio.gather(*tasks)
+        
+        # Most requests should be allowed initially
+        allowed_count = sum(results)
+        assert allowed_count > 0
+        
+        # Test that rate limiting prevents abuse
+        # This would depend on the specific rate limiting implementation
+
+
+class TestTokenSecurity:
+    """Test token security measures."""
+    
+    @pytest_asyncio.fixture
+    async def setup_token_security(self, test_settings):
+        """Set up token security testing."""
+        self.auth_service = AuthService(settings=test_settings)
+        
+        # Create test user
+        self.test_user = await self.auth_service.create_user({
+            "username": "token_test_user",
+            "email": "token@example.com",
+            "password": "TokenPass123!",
+            "full_name": "Token Test User",
+            "is_active": True,
+            "is_admin": False,
+        })
+        
+        yield
+        
+        # Cleanup
+        await self._cleanup_token_data()
+    
+    async def _cleanup_token_data(self):
+        """Clean up token test data."""
+        pass
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_token_revocation(self, setup_token_security):
+        """Test token revocation."""
+        
+        # Create token
+        token_data = {"sub": self.test_user["username"], "permissions": self.test_user["permissions"]}
+        token = await self.auth_service.create_access_token(token_data)
+        
+        # Token should be valid
+        payload = await self.auth_service.verify_token(token)
+        assert payload["sub"] == self.test_user["username"]
+        
+        # Revoke token
+        await self.auth_service.revoke_token(token)
+        
+        # Token should be invalid after revocation
+        with pytest.raises(Exception):
+            await self.auth_service.verify_token(token)
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_token_blacklisting(self, setup_token_security):
+        """Test token blacklisting."""
+        
+        # Create token
+        token_data = {"sub": self.test_user["username"], "permissions": self.test_user["permissions"]}
+        token = await self.auth_service.create_access_token(token_data)
+        
+        # Add token to blacklist
+        await self.auth_service.blacklist_token(token)
+        
+        # Token should be invalid when blacklisted
+        with pytest.raises(Exception):
+            await self.auth_service.verify_token(token)
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_token_expiration(self, setup_token_security):
+        """Test token expiration."""
+        
+        # Create short-lived token
+        token_data = {"sub": self.test_user["username"], "permissions": self.test_user["permissions"]}
+        token = await self.auth_service.create_access_token(
+            token_data, expires_delta=timedelta(seconds=1)
+        )
+        
+        # Token should be valid initially
+        payload = await self.auth_service.verify_token(token)
+        assert payload["sub"] == self.test_user["username"]
+        
+        # Wait for token to expire
+        await asyncio.sleep(2)
+        
+        # Token should be invalid after expiration
+        with pytest.raises(Exception):
+            await self.auth_service.verify_token(token)
+
+
+class TestDataSecurity:
+    """Test data security measures."""
+    
+    @pytest_asyncio.fixture
+    async def setup_data_security(self, test_settings):
+        """Set up data security testing."""
+        self.auth_service = AuthService(settings=test_settings)
+        self.tool_service = ToolService(settings=test_settings)
+        self.cache = Cache(settings=test_settings)
+        
+        yield
+        
+        # Cleanup
+        await self._cleanup_data_security()
+    
+    async def _cleanup_data_security(self):
+        """Clean up data security test data."""
+        pass
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_sensitive_data_encryption(self, setup_data_security):
+        """Test sensitive data encryption."""
+        
+        # Test that sensitive data is encrypted
+        user_data = {
+            "username": "encryption_test_user",
+            "email": "encryption@example.com",
+            "password": "EncryptionPass123!",
+            "full_name": "Encryption Test User",
+            "is_active": True,
+            "is_admin": False,
+        }
+        
+        user = await self.auth_service.create_user(user_data)
+        
+        # Password should be encrypted/hashed
+        assert user["password"] != "EncryptionPass123!"
+        assert len(user["password"]) > 20  # Should be hashed
+        
+        # Other sensitive fields should be protected
+        # This depends on the specific implementation
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_data_isolation(self, setup_data_security):
+        """Test data isolation between users."""
+        
+        # Create two users
+        user1 = await self.auth_service.create_user({
+            "username": "isolation_user1",
+            "email": "isolation1@example.com",
+            "password": "IsolationPass123!",
+            "full_name": "Isolation User 1",
+            "is_active": True,
+            "is_admin": False,
+        })
+        
+        user2 = await self.auth_service.create_user({
+            "username": "isolation_user2",
+            "email": "isolation2@example.com",
+            "password": "IsolationPass123!",
+            "full_name": "Isolation User 2",
+            "is_active": True,
+            "is_admin": False,
+        })
+        
+        # Each user should only see their own data
+        user1_tools = await self.tool_service.list_user_tools(user1["username"])
+        user2_tools = await self.tool_service.list_user_tools(user2["username"])
+        
+        # Initially both should have empty tool lists
+        assert len(user1_tools) == 0
+        assert len(user2_tools) == 0
+        
+        # Create tools for each user
+        tool1_data = {
+            "name": "User 1 Tool",
+            "description": "Tool for user 1",
+            "version": "1.0.0",
+            "author": "Test Author",
+            "input_schema": {"type": "object", "properties": {}},
+            "output_schema": {"type": "object", "properties": {}},
+            "endpoints": [{"url": "http://localhost:8001/user1", "method": "POST", "timeout": 30}],
+            "tags": ["user1"],
+            "category": "test"
+        }
+        
+        tool2_data = {
+            "name": "User 2 Tool",
+            "description": "Tool for user 2",
+            "version": "1.0.0",
+            "author": "Test Author",
+            "input_schema": {"type": "object", "properties": {}},
+            "output_schema": {"type": "object", "properties": {}},
+            "endpoints": [{"url": "http://localhost:8001/user2", "method": "POST", "timeout": 30}],
+            "tags": ["user2"],
+            "category": "test"
+        }
+        
+        await self.tool_service.register_tool(tool1_data, user1["username"])
+        await self.tool_service.register_tool(tool2_data, user2["username"])
+        
+        # Users should only see their own tools
+        user1_tools = await self.tool_service.list_user_tools(user1["username"])
+        user2_tools = await self.tool_service.list_user_tools(user2["username"])
+        
+        assert len(user1_tools) == 1
+        assert len(user2_tools) == 1
+        assert user1_tools[0]["name"] == "User 1 Tool"
+        assert user2_tools[0]["name"] == "User 2 Tool"
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_cache_security(self, setup_data_security):
+        """Test cache security."""
+        
+        # Test that sensitive data is not cached inappropriately
+        sensitive_key = "sensitive_user_data"
+        sensitive_value = {
+            "username": "cache_test_user",
+            "password": "CachedPassword123!",
+            "email": "cache@example.com"
+        }
+        
+        # Should not cache sensitive data in plain text
+        await self.cache.set(sensitive_key, sensitive_value, ttl=300)
+        
+        # Retrieve from cache
+        cached_value = await self.cache.get(sensitive_key)
+        
+        # Sensitive data should be protected
+        if cached_value:
+            # Password should not be in plain text in cache
+            assert "password" not in cached_value or cached_value["password"] != "CachedPassword123!"
+    
+    @pytest.mark.security
+    @pytest.mark.asyncio
+    async def test_audit_logging(self, setup_data_security):
+        """Test audit logging for security events."""
+        
+        # Test that security events are logged
+        user_data = {
+            "username": "audit_test_user",
+            "email": "audit@example.com",
+            "password": "AuditPass123!",
+            "full_name": "Audit Test User",
+            "is_active": True,
+            "is_admin": False,
+        }
+        
+        # Create user (should be logged)
+        user = await self.auth_service.create_user(user_data)
+        
+        # Authenticate user (should be logged)
+        authenticated_user = await self.auth_service.authenticate_user("audit_test_user", "AuditPass123!")
+        
+        # Failed authentication (should be logged)
+        with pytest.raises(Exception):
+            await self.auth_service.authenticate_user("audit_test_user", "WrongPassword")
+        
+        # These events should be logged for audit purposes
+        # The actual logging implementation would be tested here

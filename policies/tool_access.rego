@@ -186,5 +186,27 @@ violation_reason := "category_not_allowed" if {
 
 violation_reason := "general_denial" if {
     not allow
-    not violation_reason
+    not violation_reason_defined
+}
+
+# Helper rule to check if any specific violation reason is defined
+violation_reason_defined if {
+    input.tool.security_level > input.user.clearance_level
+}
+
+violation_reason_defined if {
+    not input.user.role in ["admin", "agent", "user", "developer"]
+}
+
+violation_reason_defined if {
+    not time_window_allowed
+}
+
+violation_reason_defined if {
+    not rate_limit_ok
+}
+
+violation_reason_defined if {
+    input.tool.category
+    not tool_category_allowed
 }
