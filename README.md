@@ -5,18 +5,20 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Tests](https://github.com/metamcp/metamcp/workflows/Tests/badge.svg)](https://github.com/metamcp/metamcp/actions)
 
-MetaMCP is a comprehensive tool management and execution platform that provides a unified interface for discovering, registering, and executing tools across multiple Model Context Protocol (MCP) servers. Built with FastAPI and modern Python practices, it offers enterprise-grade features for tool orchestration, authentication, monitoring, and fault tolerance.
+MetaMCP is a comprehensive tool management and execution platform that provides a unified interface for discovering, registering, and executing tools across multiple Model Context Protocol (MCP) servers. Built with FastAPI and modern Python practices, it offers enterprise-grade features for tool orchestration, workflow composition, authentication, monitoring, and fault tolerance.
 
 ## 🚀 Features
 
 ### Core Functionality
 - **Tool Management**: Register, discover, and manage tools across multiple MCP servers
-- **Unified API**: RESTful API for all tool operations with comprehensive documentation
+- **Workflow Composition**: Create complex workflows with conditional logic, parallel execution, and state management
+- **Unified API**: RESTful API for all tool and workflow operations with comprehensive documentation
 - **Authentication & Authorization**: JWT-based authentication with role-based access control
 - **Tool Execution**: Execute tools with HTTP calls, retries, and error handling
 - **Search & Discovery**: Semantic, keyword, and hybrid search for tools
 
 ### Advanced Features
+- **Workflow Orchestration**: Complete workflow engine with dependency resolution and parallel execution
 - **Circuit Breaker Pattern**: Automatic fault tolerance and recovery mechanisms
 - **Caching System**: Multi-backend caching (Memory, Redis) with TTL and eviction policies
 - **Health Monitoring**: Comprehensive health checks with uptime tracking and component monitoring
@@ -134,6 +136,10 @@ MetaMCP follows a modular architecture with clear separation of concerns:
                     │  │   Services  │  │   Utils     │         │
                     │  │   Layer     │  │   Layer     │         │
                     │  └─────────────┘  └─────────────┘         │
+                    │  ┌─────────────┐  ┌─────────────┐         │
+                    │  │ Composition │  │   Proxy     │         │
+                    │  │   Engine    │  │ Management  │         │
+                    │  └─────────────┘  └─────────────┘         │
                     └─────────────────────────────────────────────┘
                                            │
                     ┌─────────────────────────────────────────────┐
@@ -157,9 +163,10 @@ MetaMCP follows a modular architecture with clear separation of concerns:
 
 - **API Layer** (`metamcp/api/`): RESTful endpoints for all operations
 - **Service Layer** (`metamcp/services/`): Business logic and service classes
+- **Composition Engine** (`metamcp/composition/`): Workflow orchestration and execution
+- **Proxy Management** (`metamcp/proxy/`): External MCP server management
 - **Utility Layer** (`metamcp/utils/`): Reusable components (circuit breaker, caching)
 - **MCP Integration** (`metamcp/mcp/`): Model Context Protocol communication
-- **Proxy Management** (`metamcp/proxy/`): External MCP server management
 - **Monitoring** (`metamcp/monitoring/`): Health checks and metrics collection
 - **Security** (`metamcp/security/`): Authentication and authorization
 
@@ -219,6 +226,88 @@ response = requests.post(
 )
 ```
 
+### Workflow Composition
+
+```python
+# Register a workflow
+workflow_definition = {
+    "id": "data-processing-workflow",
+    "name": "Data Processing Workflow",
+    "description": "Process data through multiple tools",
+    "version": "1.0.0",
+    "steps": [
+        {
+            "id": "fetch_data",
+            "name": "Fetch Data",
+            "step_type": "tool_call",
+            "config": {
+                "tool_name": "database_query",
+                "arguments": {
+                    "query": "SELECT * FROM data_table",
+                    "database": "$database_name"
+                }
+            }
+        },
+        {
+            "id": "process_data",
+            "name": "Process Data",
+            "step_type": "tool_call",
+            "config": {
+                "tool_name": "data_processor",
+                "arguments": {
+                    "input_data": "$fetch_data.result",
+                    "processing_type": "aggregation"
+                }
+            },
+            "depends_on": ["fetch_data"]
+        },
+        {
+            "id": "save_results",
+            "name": "Save Results",
+            "step_type": "tool_call",
+            "config": {
+                "tool_name": "file_operations",
+                "arguments": {
+                    "operation": "write",
+                    "path": "/results/output.json",
+                    "content": "$process_data.result"
+                }
+            },
+            "depends_on": ["process_data"]
+        }
+    ],
+    "entry_point": "fetch_data",
+    "parallel_execution": false,
+    "timeout": 300
+}
+
+response = requests.post(
+    "http://localhost:8000/api/v1/composition/workflows",
+    json={"workflow": workflow_definition},
+    headers={"Authorization": f"Bearer {token}"}
+)
+
+# Execute a workflow
+execution_request = {
+    "workflow_id": "data-processing-workflow",
+    "input_data": {"database_name": "production_db"},
+    "variables": {"environment": "production"},
+    "timeout": 600
+}
+
+response = requests.post(
+    "http://localhost:8000/api/v1/composition/workflows/data-processing-workflow/execute",
+    json=execution_request,
+    headers={"Authorization": f"Bearer {token}"}
+)
+
+# Check execution status
+response = requests.get(
+    "http://localhost:8000/api/v1/composition/executions/{execution_id}",
+    headers={"Authorization": f"Bearer {token}"}
+)
+```
+
 ### Search Tools
 
 ```python
@@ -249,6 +338,116 @@ curl "http://localhost:8000/api/v1/health/ready"
 curl "http://localhost:8000/api/v1/health/live"
 ```
 
+## 🔄 Workflow Composition Features
+
+### Step Types
+
+MetaMCP supports various step types for complex workflow orchestration:
+
+- **Tool Calls**: Execute tools with variable substitution
+- **Conditions**: Evaluate conditions and branch accordingly
+- **Parallel Steps**: Execute multiple sub-steps concurrently
+- **Loops**: Iterate over collections with loop variables
+- **Delays**: Add delays between steps
+- **HTTP Requests**: Make HTTP requests with dynamic data
+
+### Variable Management
+
+- **Variable Substitution**: Replace variables in step configurations
+- **State Persistence**: Maintain workflow state across steps
+- **Loop Variables**: Automatic loop variable management
+- **Dynamic Values**: Runtime variable evaluation
+
+### Error Handling
+
+- **Retry Logic**: Configurable retry with exponential backoff
+- **Error Recovery**: Graceful error handling and recovery
+- **Circuit Breaker**: Integration with existing circuit breaker patterns
+- **Timeout Management**: Configurable timeouts for all operations
+
+### Example Workflow
+
+```json
+{
+  "id": "ml-pipeline",
+  "name": "Machine Learning Pipeline",
+  "description": "Complete ML data processing pipeline",
+  "steps": [
+    {
+      "id": "data_extraction",
+      "name": "Extract Data",
+      "step_type": "tool_call",
+      "config": {
+        "tool_name": "data_extractor",
+        "arguments": {
+          "source": "$data_source",
+          "format": "csv"
+        }
+      }
+    },
+    {
+      "id": "data_validation",
+      "name": "Validate Data",
+      "step_type": "condition",
+      "config": {
+        "condition": {
+          "operator": "greater_than",
+          "left_operand": "$data_extraction.record_count",
+          "right_operand": 1000
+        }
+      },
+      "depends_on": ["data_extraction"]
+    },
+    {
+      "id": "feature_engineering",
+      "name": "Feature Engineering",
+      "step_type": "tool_call",
+      "config": {
+        "tool_name": "feature_engineer",
+        "arguments": {
+          "input_data": "$data_extraction.result",
+          "features": ["numeric", "categorical"]
+        }
+      },
+      "depends_on": ["data_validation"]
+    },
+    {
+      "id": "model_training",
+      "name": "Train Model",
+      "step_type": "tool_call",
+      "config": {
+        "tool_name": "ml_trainer",
+        "arguments": {
+          "features": "$feature_engineering.result",
+          "algorithm": "random_forest",
+          "hyperparameters": {
+            "n_estimators": 100,
+            "max_depth": 10
+          }
+        }
+      },
+      "depends_on": ["feature_engineering"]
+    },
+    {
+      "id": "model_evaluation",
+      "name": "Evaluate Model",
+      "step_type": "tool_call",
+      "config": {
+        "tool_name": "model_evaluator",
+        "arguments": {
+          "model": "$model_training.result",
+          "test_data": "$data_extraction.result"
+        }
+      },
+      "depends_on": ["model_training"]
+    }
+  ],
+  "entry_point": "data_extraction",
+  "parallel_execution": false,
+  "timeout": 1800
+}
+```
+
 ## 🧪 Testing
 
 MetaMCP includes comprehensive testing with high coverage:
@@ -263,6 +462,7 @@ pytest --cov=metamcp --cov-report=html
 # Run specific test categories
 pytest tests/test_auth.py      # Authentication tests
 pytest tests/test_tools.py     # Tool management tests
+pytest tests/test_composition.py # Workflow composition tests
 pytest tests/test_services.py  # Service layer tests
 pytest tests/test_utils.py     # Utility component tests
 
@@ -280,6 +480,7 @@ pytest tests/blackbox/
 
 - **Unit Tests**: Individual function and class testing
 - **Integration Tests**: API endpoint and service interaction testing
+- **Workflow Tests**: Workflow composition and execution testing
 - **Performance Tests**: Load testing and resource monitoring
 - **Security Tests**: Authentication, authorization, and vulnerability testing
 - **Black-Box Tests**: Containerized API testing for end-to-end validation
@@ -327,6 +528,11 @@ META_MCP_CACHE_TTL=300
 META_MCP_METRICS_ENABLED=true
 META_MCP_LOGGING_LEVEL=INFO
 META_MCP_TELEMETRY_ENABLED=true
+
+# Workflow Configuration
+META_MCP_WORKFLOW_TIMEOUT=3600
+META_MCP_WORKFLOW_MAX_RETRIES=3
+META_MCP_WORKFLOW_PARALLEL_LIMIT=10
 ```
 
 ### Circuit Breaker Configuration
@@ -450,6 +656,7 @@ MetaMCP exposes Prometheus metrics for monitoring:
 
 - Request counts and durations
 - Tool execution statistics
+- Workflow execution metrics
 - Circuit breaker states
 - Cache hit rates
 - Authentication metrics
@@ -533,6 +740,7 @@ git push origin feature/your-feature
 
 - [Architecture Guide](docs/developer-guide/architecture.md)
 - [API Reference](docs/api/index.md)
+- [Workflow Composition Guide](docs/composition-improvements.md)
 - [Testing Guide](docs/developer-guide/testing.md)
 - [Deployment Guide](docs/deployment/)
 - [Developer Guide](docs/developer-guide/)
@@ -541,6 +749,7 @@ git push origin feature/your-feature
 
 ### Recent Improvements
 
+- ✅ **Workflow Composition**: Complete workflow orchestration engine
 - ✅ **FastMCP 2.0 Integration**: Full compatibility with latest MCP protocol
 - ✅ **OpenTelemetry Support**: Distributed tracing and observability
 - ✅ **Enhanced Testing**: Comprehensive test suite with black-box testing
@@ -592,4 +801,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**MetaMCP** - Empowering tool orchestration and management for the Model Context Protocol ecosystem.
+**MetaMCP** - Empowering tool orchestration and workflow composition for the Model Context Protocol ecosystem.
