@@ -21,24 +21,50 @@ MetaMCP is a comprehensive tool management and execution platform that provides 
 - **Caching System**: Multi-backend caching (Memory, Redis) with TTL and eviction policies
 - **Health Monitoring**: Comprehensive health checks with uptime tracking and component monitoring
 - **Service Layer Architecture**: Clean separation of concerns with dedicated service classes
-- **Comprehensive Testing**: Unit tests, integration tests, and performance tests
+- **Comprehensive Testing**: Unit tests, integration tests, and performance tests with high coverage
 
 ### Enterprise Features
 - **Security**: Input validation, SQL injection prevention, XSS protection
-- **Monitoring**: Prometheus metrics, Grafana dashboards, distributed tracing
+- **Monitoring**: Prometheus metrics, Grafana dashboards, distributed tracing with OpenTelemetry
 - **Scalability**: Docker containerization, Kubernetes deployment support
 - **Documentation**: Comprehensive API documentation and developer guides
+- **FastMCP 2.0 Integration**: Full compatibility with latest MCP protocol standards
 
 ## 📋 Requirements
 
 - Python 3.9+
 - FastAPI 0.100+
+- FastMCP 2.0+
 - Redis (optional, for distributed caching)
 - PostgreSQL (optional, for persistent storage)
+- OpenTelemetry (for distributed tracing)
 
 ## 🛠️ Installation
 
-### Quick Start
+### Quick Start with uv (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/metamcp/metamcp.git
+cd metamcp
+
+# Create virtual environment with uv
+uv venv
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+
+# Install dependencies
+uv pip install -r requirements.txt
+
+# Set environment variables
+export META_MCP_SECRET_KEY="your-secret-key-here"
+export META_MCP_HOST="0.0.0.0"
+export META_MCP_PORT="8000"
+
+# Run the application
+python -m metamcp.main
+```
+
+### Traditional Installation
 
 ```bash
 # Clone the repository
@@ -76,7 +102,12 @@ docker-compose up -d
 
 ```bash
 # Install development dependencies
-pip install -r requirements-dev.txt
+uv pip install -r requirements-dev.txt
+
+# Run linting and code quality checks
+flake8 metamcp/
+ruff check metamcp/
+bandit -r metamcp/
 
 # Run tests
 pytest
@@ -129,6 +160,8 @@ MetaMCP follows a modular architecture with clear separation of concerns:
 - **Utility Layer** (`metamcp/utils/`): Reusable components (circuit breaker, caching)
 - **MCP Integration** (`metamcp/mcp/`): Model Context Protocol communication
 - **Proxy Management** (`metamcp/proxy/`): External MCP server management
+- **Monitoring** (`metamcp/monitoring/`): Health checks and metrics collection
+- **Security** (`metamcp/security/`): Authentication and authorization
 
 ## 📚 API Documentation
 
@@ -238,6 +271,9 @@ pytest tests/test_performance.py
 
 # Run security tests
 pytest tests/test_security.py
+
+# Run black-box tests
+pytest tests/blackbox/
 ```
 
 ### Test Categories
@@ -246,6 +282,24 @@ pytest tests/test_security.py
 - **Integration Tests**: API endpoint and service interaction testing
 - **Performance Tests**: Load testing and resource monitoring
 - **Security Tests**: Authentication, authorization, and vulnerability testing
+- **Black-Box Tests**: Containerized API testing for end-to-end validation
+
+### Code Quality
+
+```bash
+# Run linting
+flake8 metamcp/
+ruff check metamcp/
+bandit -r metamcp/
+
+# Run type checking
+mypy metamcp/
+
+# Run all quality checks
+make lint
+make test
+make security
+```
 
 ## 🔧 Configuration
 
@@ -272,6 +326,7 @@ META_MCP_CACHE_TTL=300
 # Monitoring Configuration
 META_MCP_METRICS_ENABLED=true
 META_MCP_LOGGING_LEVEL=INFO
+META_MCP_TELEMETRY_ENABLED=true
 ```
 
 ### Circuit Breaker Configuration
@@ -398,6 +453,7 @@ MetaMCP exposes Prometheus metrics for monitoring:
 - Circuit breaker states
 - Cache hit rates
 - Authentication metrics
+- OpenTelemetry distributed tracing
 
 ### Logging
 
@@ -451,7 +507,7 @@ cd metamcp
 git checkout -b feature/your-feature
 
 # Install development dependencies
-pip install -r requirements-dev.txt
+uv pip install -r requirements-dev.txt
 
 # Run tests
 pytest
@@ -469,7 +525,8 @@ git push origin feature/your-feature
 - **Type Hints**: All functions include type annotations
 - **Documentation**: Comprehensive docstrings and comments
 - **Testing**: High test coverage with unit and integration tests
-- **Linting**: Black, flake8, and mypy for code quality
+- **Linting**: Black, flake8, ruff, and mypy for code quality
+- **Security**: Bandit for security vulnerability scanning
 - **Pre-commit Hooks**: Automated code quality checks
 
 ## 📖 Documentation
@@ -481,6 +538,15 @@ git push origin feature/your-feature
 - [Developer Guide](docs/developer-guide/)
 
 ## 🗺️ Roadmap
+
+### Recent Improvements
+
+- ✅ **FastMCP 2.0 Integration**: Full compatibility with latest MCP protocol
+- ✅ **OpenTelemetry Support**: Distributed tracing and observability
+- ✅ **Enhanced Testing**: Comprehensive test suite with black-box testing
+- ✅ **Code Quality**: Improved linting and security scanning
+- ✅ **Error Handling**: Robust exception handling and error recovery
+- ✅ **Health Monitoring**: Comprehensive health checks and metrics
 
 ### Planned Features
 
@@ -511,8 +577,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 - [FastAPI](https://fastapi.tiangolo.com/) for the excellent web framework
 - [Pydantic](https://pydantic-docs.helpmanual.io/) for data validation
+- [FastMCP](https://github.com/fastmcp/fastmcp) for MCP protocol implementation
 - [JWT](https://jwt.io/) for authentication
 - [Prometheus](https://prometheus.io/) for monitoring
+- [OpenTelemetry](https://opentelemetry.io/) for distributed tracing
 - [Docker](https://www.docker.com/) for containerization
 
 ## 📞 Support
