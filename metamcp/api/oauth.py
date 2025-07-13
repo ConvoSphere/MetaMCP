@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from ..auth.oauth import OAuthUser, get_oauth_manager
 from ..exceptions import MetaMCPException
-from ..security.auth import get_current_user
+from .auth import get_current_user
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)

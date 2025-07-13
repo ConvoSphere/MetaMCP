@@ -6,17 +6,18 @@ for testing the MetaMCP application.
 """
 
 import asyncio
+from typing import Any
+from unittest.mock import AsyncMock, Mock
+
 import pytest
-from unittest.mock import Mock, AsyncMock
-from typing import Dict, Any
 
 from metamcp.config import get_settings, reload_settings
+from metamcp.llm.service import LLMService
 from metamcp.monitoring.telemetry import TelemetryManager
-from metamcp.tools.registry import ToolRegistry
-from metamcp.vector.client import VectorSearchClient
 from metamcp.security.auth import AuthManager
 from metamcp.security.policies import PolicyEngine
-from metamcp.llm.service import LLMService
+from metamcp.tools.registry import ToolRegistry
+from metamcp.vector.client import VectorSearchClient
 
 
 @pytest.fixture(scope="session")
@@ -190,9 +191,9 @@ def setup_test_environment(test_config):
     for key, value in test_config.items():
         if hasattr(get_settings(), key):
             setattr(get_settings(), key, value)
-    
+
     yield
-    
+
     # Cleanup
     reload_settings()
 
@@ -216,7 +217,7 @@ def mock_websocket():
 
 
 # Test utilities
-def create_mock_response(status_code: int = 200, content: Dict[str, Any] = None):
+def create_mock_response(status_code: int = 200, content: dict[str, Any] = None):
     """Create a mock response."""
     response = Mock()
     response.status_code = status_code
@@ -224,7 +225,7 @@ def create_mock_response(status_code: int = 200, content: Dict[str, Any] = None)
     return response
 
 
-def create_mock_request(method: str = "GET", path: str = "/", headers: Dict[str, str] = None):
+def create_mock_request(method: str = "GET", path: str = "/", headers: dict[str, str] = None):
     """Create a mock request."""
     request = Mock()
     request.method = method
@@ -252,4 +253,4 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         # Mark tests without explicit marker as unit tests
         if not any(item.iter_markers()):
-            item.add_marker(pytest.mark.unit) 
+            item.add_marker(pytest.mark.unit)

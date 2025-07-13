@@ -6,10 +6,9 @@ MCP Meta-Server status and component health.
 """
 
 import time
-from datetime import datetime, UTC
-from typing import Any
+from datetime import UTC, datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
 
 from ..config import get_settings
@@ -70,7 +69,7 @@ def format_uptime(seconds: float) -> str:
     hours = int((seconds % 86400) // 3600)
     minutes = int((seconds % 3600) // 60)
     seconds = int(seconds % 60)
-    
+
     if days > 0:
         return f"{days}d {hours}h {minutes}m {seconds}s"
     elif hours > 0:
@@ -84,12 +83,12 @@ def format_uptime(seconds: float) -> str:
 async def check_database_health() -> ComponentHealth:
     """Check database connectivity."""
     start_time = time.time()
-    
+
     try:
         # TODO: Implement actual database health check
         # For now, return mock healthy status
         response_time = time.time() - start_time
-        
+
         return ComponentHealth(
             name="database",
             status="healthy",
@@ -107,12 +106,12 @@ async def check_database_health() -> ComponentHealth:
 async def check_vector_db_health() -> ComponentHealth:
     """Check vector database connectivity."""
     start_time = time.time()
-    
+
     try:
         # TODO: Implement actual vector database health check
         # For now, return mock healthy status
         response_time = time.time() - start_time
-        
+
         return ComponentHealth(
             name="vector_database",
             status="healthy",
@@ -130,12 +129,12 @@ async def check_vector_db_health() -> ComponentHealth:
 async def check_llm_service_health() -> ComponentHealth:
     """Check LLM service connectivity."""
     start_time = time.time()
-    
+
     try:
         # TODO: Implement actual LLM service health check
         # For now, return mock healthy status
         response_time = time.time() - start_time
-        
+
         return ComponentHealth(
             name="llm_service",
             status="healthy",
@@ -165,7 +164,7 @@ async def get_mcp_server():
 # =============================================================================
 
 @health_router.get(
-    "",
+    "/",
     response_model=HealthStatus,
     summary="Basic health check"
 )
@@ -177,7 +176,7 @@ async def health_check():
     """
     try:
         uptime_seconds = get_uptime()
-        
+
         return HealthStatus(
             healthy=True,
             timestamp=datetime.now(UTC).isoformat(),
@@ -209,23 +208,23 @@ async def detailed_health_check():
     try:
         # Check all components
         components = []
-        
+
         # Database health
         db_health = await check_database_health()
         components.append(db_health)
-        
+
         # Vector database health
         vector_health = await check_vector_db_health()
         components.append(vector_health)
-        
+
         # LLM service health
         llm_health = await check_llm_service_health()
         components.append(llm_health)
-        
+
         # Determine overall health
         overall_healthy = all(comp.status == "healthy" for comp in components)
         uptime_seconds = get_uptime()
-        
+
         return DetailedHealthStatus(
             overall_healthy=overall_healthy,
             timestamp=datetime.now(UTC).isoformat(),
@@ -256,13 +255,13 @@ async def readiness_probe():
         # Check if all critical components are ready
         db_health = await check_database_health()
         vector_health = await check_vector_db_health()
-        
+
         if db_health.status != "healthy" or vector_health.status != "healthy":
             raise HTTPException(
                 status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
                 detail="Service not ready"
             )
-        
+
         return {"status": "ready"}
 
     except HTTPException:
@@ -288,7 +287,7 @@ async def liveness_probe():
     try:
         # Simple liveness check - just verify the service is responding
         uptime_seconds = get_uptime()
-        
+
         return {
             "status": "alive",
             "uptime": uptime_seconds,
@@ -315,7 +314,7 @@ async def service_info():
     """
     try:
         uptime_seconds = get_uptime()
-        
+
         return {
             "service": "MetaMCP",
             "version": "1.0.0",

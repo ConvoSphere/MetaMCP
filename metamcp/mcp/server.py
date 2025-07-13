@@ -10,11 +10,7 @@ from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastmcp import FastMCP
-from fastmcp.models import (
-    Resource,
-    TextContent,
-    Tool,
-)
+from mcp.types import Resource, TextContent, Tool
 
 from ..config import get_settings
 from ..exceptions import MetaMCPException
@@ -276,7 +272,7 @@ class MCPServer:
         try:
             import time
             start_time = time.time()
-            
+
             results = await self.tool_registry.search_tools(
                 query=query,
                 max_results=max_results,

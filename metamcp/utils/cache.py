@@ -418,7 +418,8 @@ def cache(ttl: Optional[int] = None, key_prefix: str = ""):
     def decorator(func):
         async def async_wrapper(*args, **kwargs):
             # Generate cache key
-            cache_key = f"{key_prefix}:{func.__name__}:{hash(str(args) + str(sorted(kwargs.items()))}"
+            key_data = str(args) + str(sorted(kwargs.items()))
+            cache_key = f"{key_prefix}:{func.__name__}:{hash(key_data)}"
             
             # Get cache instance (this would be injected or global)
             cache_instance = get_cache_instance()
@@ -442,7 +443,8 @@ def cache(ttl: Optional[int] = None, key_prefix: str = ""):
         def sync_wrapper(*args, **kwargs):
             # For sync functions, we'd need to handle differently
             # This is a simplified version
-            cache_key = f"{key_prefix}:{func.__name__}:{hash(str(args) + str(sorted(kwargs.items()))}"
+            key_data = str(args) + str(sorted(kwargs.items()))
+            cache_key = f"{key_prefix}:{func.__name__}:{hash(key_data)}"
             
             # Get cache instance
             cache_instance = get_cache_instance()

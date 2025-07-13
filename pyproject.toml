@@ -52,6 +52,8 @@ dependencies = [
     "structlog>=23.2.0",
     "rich>=13.7.0",
     "click>=8.1.7",
+    "opentelemetry-instrumentation",
+    "weaviate",
 ]
 
 [project.optional-dependencies]

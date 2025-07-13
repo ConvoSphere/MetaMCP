@@ -19,6 +19,11 @@ class LLMProvider(str, Enum):
     FALLBACK = "fallback"
 
 
+class PolicyEngineType(Enum):
+    OPA = "opa"
+    INTERNAL = "internal"
+
+
 class Settings(BaseSettings):
     """
     Application Settings

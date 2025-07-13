@@ -6,16 +6,16 @@ using various discovery mechanisms like network scanning,
 service discovery, and configuration files.
 """
 
-from typing import Any, Dict, List, Optional
-from dataclasses import dataclass
-from datetime import datetime, UTC
 import asyncio
 import json
 import os
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
 
-from .wrapper import WrappedServerConfig
 from ..exceptions import ServerDiscoveryError
 from ..utils.logging import get_logger
+from .wrapper import WrappedServerConfig
 
 logger = get_logger(__name__)
 
@@ -26,10 +26,10 @@ class DiscoveryConfig:
     network_discovery: bool = True
     service_discovery: bool = False
     file_discovery: bool = True
-    ports: List[int] = None
-    base_urls: List[str] = None
-    config_paths: List[str] = None
-    service_endpoints: List[str] = None
+    ports: list[int] = None
+    base_urls: list[str] = None
+    config_paths: list[str] = None
+    service_endpoints: list[str] = None
     timeout: int = 5
     max_concurrent: int = 10
 
@@ -51,10 +51,10 @@ class DiscoveredServer:
     transport: str
     name: str
     description: str = ""
-    categories: List[str] = None
+    categories: list[str] = None
     security_level: str = "unknown"
     discovered_at: datetime = None
-    metadata: Dict[str, Any] = None
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         if self.categories is None:
@@ -76,7 +76,7 @@ class ServerDiscovery:
 
     def __init__(self):
         """Initialize the server discovery."""
-        self.discovered_servers: List[DiscoveredServer] = []
+        self.discovered_servers: list[DiscoveredServer] = []
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -88,12 +88,12 @@ class ServerDiscovery:
             logger.info("Initializing Server Discovery...")
             self._initialized = True
             logger.info("Server Discovery initialized successfully")
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize Server Discovery: {e}")
             raise ServerDiscoveryError(f"Initialization failed: {str(e)}")
 
-    async def discover_servers(self, config: DiscoveryConfig) -> List[DiscoveredServer]:
+    async def discover_servers(self, config: DiscoveryConfig) -> list[DiscoveredServer]:
         """
         Discover MCP servers using the provided configuration.
         
@@ -104,38 +104,38 @@ class ServerDiscovery:
             List of discovered servers
         """
         discovered = []
-        
+
         try:
             # Network discovery
             if config.network_discovery:
                 network_servers = await self._discover_network_servers(config)
                 discovered.extend(network_servers)
-            
+
             # Service discovery
             if config.service_discovery:
                 service_servers = await self._discover_service_servers(config)
                 discovered.extend(service_servers)
-                
+
             # File-based discovery
             if config.file_discovery:
                 file_servers = await self._discover_file_servers(config)
                 discovered.extend(file_servers)
-                
+
             # Update discovered servers list
             self.discovered_servers.extend(discovered)
-            
+
             logger.info(f"Discovered {len(discovered)} MCP servers")
-            
+
         except Exception as e:
             logger.error(f"Server discovery failed: {e}")
             raise ServerDiscoveryError(f"Discovery failed: {str(e)}")
-            
+
         return discovered
 
-    async def _discover_network_servers(self, config: DiscoveryConfig) -> List[DiscoveredServer]:
+    async def _discover_network_servers(self, config: DiscoveryConfig) -> list[DiscoveredServer]:
         """Discover servers on the network."""
         discovered = []
-        
+
         try:
             # Create tasks for concurrent scanning
             tasks = []
@@ -144,11 +144,11 @@ class ServerDiscovery:
                     endpoint = f"{base_url}:{port}"
                     task = self._test_endpoint(endpoint, config.timeout)
                     tasks.append((endpoint, task))
-            
+
             # Execute tasks with concurrency limit
             semaphore = asyncio.Semaphore(config.max_concurrent)
-            
-            async def limited_test(endpoint: str, task: asyncio.Task) -> Optional[DiscoveredServer]:
+
+            async def limited_test(endpoint: str, task: asyncio.Task) -> DiscoveredServer | None:
                 async with semaphore:
                     try:
                         is_mcp = await task
@@ -157,27 +157,27 @@ class ServerDiscovery:
                     except Exception as e:
                         logger.debug(f"Failed to test {endpoint}: {e}")
                     return None
-            
+
             # Run all tests concurrently
             results = await asyncio.gather(
                 *[limited_test(endpoint, task) for endpoint, task in tasks],
                 return_exceptions=True
             )
-            
+
             # Collect successful discoveries
             for result in results:
                 if isinstance(result, DiscoveredServer):
                     discovered.append(result)
-                    
+
         except Exception as e:
             logger.error(f"Network discovery failed: {e}")
-            
+
         return discovered
 
-    async def _discover_service_servers(self, config: DiscoveryConfig) -> List[DiscoveredServer]:
+    async def _discover_service_servers(self, config: DiscoveryConfig) -> list[DiscoveredServer]:
         """Discover servers via service discovery."""
         discovered = []
-        
+
         try:
             for endpoint in config.service_endpoints:
                 try:
@@ -187,30 +187,30 @@ class ServerDiscovery:
                         discovered.append(server)
                 except Exception as e:
                     logger.debug(f"Failed to test service endpoint {endpoint}: {e}")
-                    
+
         except Exception as e:
             logger.error(f"Service discovery failed: {e}")
-            
+
         return discovered
 
-    async def _discover_file_servers(self, config: DiscoveryConfig) -> List[DiscoveredServer]:
+    async def _discover_file_servers(self, config: DiscoveryConfig) -> list[DiscoveredServer]:
         """Discover servers from configuration files."""
         discovered = []
-        
+
         try:
             for config_path in config.config_paths:
                 if os.path.exists(config_path):
                     try:
-                        with open(config_path, 'r') as f:
+                        with open(config_path) as f:
                             server_configs = json.load(f)
-                            
+
                         for server_config in server_configs:
                             try:
                                 # Validate required fields
                                 if "endpoint" not in server_config:
                                     logger.warning(f"Missing endpoint in server config: {server_config}")
                                     continue
-                                    
+
                                 # Create discovered server from config
                                 server = DiscoveredServer(
                                     endpoint=server_config["endpoint"],
@@ -222,16 +222,16 @@ class ServerDiscovery:
                                     metadata=server_config.get("metadata", {})
                                 )
                                 discovered.append(server)
-                                
+
                             except Exception as e:
                                 logger.warning(f"Failed to parse server config: {e}")
-                                
+
                     except Exception as e:
                         logger.warning(f"Failed to read config file {config_path}: {e}")
-                        
+
         except Exception as e:
             logger.error(f"File discovery failed: {e}")
-            
+
         return discovered
 
     async def _test_endpoint(self, endpoint: str, timeout: int) -> bool:
@@ -245,7 +245,7 @@ class ServerDiscovery:
             else:
                 # Assume HTTP if no protocol specified
                 return await self._test_http_endpoint(f"http://{endpoint}", timeout)
-                
+
         except Exception:
             return False
 
@@ -253,7 +253,7 @@ class ServerDiscovery:
         """Test if an HTTP endpoint is an MCP server."""
         try:
             import httpx
-            
+
             async with httpx.AsyncClient(timeout=timeout) as client:
                 # Try tools/list endpoint
                 try:
@@ -262,7 +262,7 @@ class ServerDiscovery:
                         return True
                 except Exception:
                     pass
-                
+
                 # Try health endpoint
                 try:
                     response = await client.get(f"{endpoint}/health")
@@ -270,7 +270,7 @@ class ServerDiscovery:
                         return True
                 except Exception:
                     pass
-                    
+
                 # Try root endpoint
                 try:
                     response = await client.get(endpoint)
@@ -281,17 +281,17 @@ class ServerDiscovery:
                             return True
                 except Exception:
                     pass
-                    
+
         except Exception:
             pass
-            
+
         return False
 
     async def _test_websocket_endpoint(self, endpoint: str, timeout: int) -> bool:
         """Test if a WebSocket endpoint is an MCP server."""
         try:
             import websockets
-            
+
             async with websockets.connect(endpoint, timeout=timeout) as websocket:
                 # Send a simple ping or tools/list request
                 try:
@@ -304,26 +304,26 @@ class ServerDiscovery:
                     await websocket.send(json.dumps(request))
                     response = await websocket.recv()
                     result = json.loads(response)
-                    
+
                     if "result" in result and "error" not in result:
                         return True
-                        
+
                 except Exception:
                     pass
-                    
+
         except Exception:
             pass
-            
+
         return False
 
     async def _create_discovered_server(self, endpoint: str, transport: str) -> DiscoveredServer:
         """Create a discovered server from endpoint information."""
         # Extract name from endpoint
         name = self._extract_name_from_endpoint(endpoint)
-        
+
         # Determine categories based on endpoint
         categories = self._determine_categories(endpoint)
-        
+
         return DiscoveredServer(
             endpoint=endpoint,
             transport=transport,
@@ -339,48 +339,48 @@ class ServerDiscovery:
             # Remove protocol
             if "://" in endpoint:
                 endpoint = endpoint.split("://", 1)[1]
-                
+
             # Remove port
             if ":" in endpoint:
                 endpoint = endpoint.split(":", 1)[0]
-                
+
             # Remove path
             if "/" in endpoint:
                 endpoint = endpoint.split("/", 1)[0]
-                
+
             # Replace dots with dashes
             name = endpoint.replace(".", "-")
-            
+
             return f"discovered-{name}"
-            
+
         except Exception:
             return f"discovered-{hash(endpoint) % 10000}"
 
-    def _determine_categories(self, endpoint: str) -> List[str]:
+    def _determine_categories(self, endpoint: str) -> list[str]:
         """Determine categories based on endpoint."""
         categories = ["discovered"]
-        
+
         endpoint_lower = endpoint.lower()
-        
+
         # Add categories based on endpoint characteristics
         if "localhost" in endpoint_lower or "127.0.0.1" in endpoint_lower:
             categories.append("local")
-            
+
         if "api" in endpoint_lower:
             categories.append("api")
-            
+
         if "db" in endpoint_lower or "database" in endpoint_lower:
             categories.append("database")
-            
+
         if "file" in endpoint_lower or "fs" in endpoint_lower:
             categories.append("filesystem")
-            
+
         if "web" in endpoint_lower or "http" in endpoint_lower:
             categories.append("web")
-            
+
         return categories
 
-    async def get_discovered_servers(self) -> List[DiscoveredServer]:
+    async def get_discovered_servers(self) -> list[DiscoveredServer]:
         """
         Get all discovered servers.
         
@@ -421,4 +421,4 @@ class ServerDiscovery:
     @property
     def is_initialized(self) -> bool:
         """Check if the server discovery is initialized."""
-        return self._initialized 
+        return self._initialized

@@ -7,11 +7,11 @@ and includes all API endpoints.
 
 from fastapi import APIRouter
 
-from .auth import router as auth_router
-from .health import router as health_router
+from .auth import auth_router
+from .health import health_router
 from .oauth import router as oauth_router
-from .tools import router as tools_router
 from .proxy import router as proxy_router
+from .tools import tools_router
 
 # Create main router
 router = APIRouter()

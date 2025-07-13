@@ -5,9 +5,9 @@ Business logic service for authentication operations including
 user management, token handling, and permission validation.
 """
 
-from datetime import datetime, timedelta, UTC
-from typing import Any, Dict, List, Optional
 import uuid
+from datetime import UTC, datetime, timedelta
+from typing import Any
 
 from ..exceptions import AuthenticationError, ValidationError
 from ..utils.logging import get_logger
@@ -25,19 +25,19 @@ class AuthService:
 
     def __init__(self):
         """Initialize the authentication service."""
-        self.users: Dict[str, Dict[str, Any]] = {}
+        self.users: dict[str, dict[str, Any]] = {}
         self.token_blacklist: set = set()
-        self.login_history: List[Dict[str, Any]] = []
-        
+        self.login_history: list[dict[str, Any]] = []
+
         # Initialize with default users
         self._initialize_default_users()
 
     def _initialize_default_users(self):
         """Initialize default users for development."""
         from passlib.context import CryptContext
-        
+
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        
+
         default_users = {
             "admin": {
                 "username": "admin",
@@ -68,10 +68,10 @@ class AuthService:
                 "created_at": datetime.now(UTC).isoformat()
             }
         }
-        
+
         self.users = default_users
 
-    async def authenticate_user(self, username: str, password: str) -> Optional[Dict[str, Any]]:
+    async def authenticate_user(self, username: str, password: str) -> dict[str, Any] | None:
         """
         Authenticate a user with username and password.
         
@@ -84,34 +84,34 @@ class AuthService:
         """
         try:
             from passlib.context import CryptContext
-            
+
             pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-            
+
             user = self.users.get(username)
             if not user:
                 logger.warning(f"Authentication failed: user '{username}' not found")
                 return None
-            
+
             if not user.get("is_active", True):
                 logger.warning(f"Authentication failed: user '{username}' is inactive")
                 return None
-            
+
             if not pwd_context.verify(password, user["hashed_password"]):
                 logger.warning(f"Authentication failed: invalid password for user '{username}'")
                 return None
-            
+
             # Record successful login
             self._record_login(username, True)
-            
+
             logger.info(f"User '{username}' authenticated successfully")
             return user
-            
+
         except Exception as e:
             logger.error(f"Authentication error for user '{username}': {e}")
             self._record_login(username, False)
             return None
 
-    async def create_access_token(self, data: Dict[str, Any], expires_delta: Optional[timedelta] = None) -> str:
+    async def create_access_token(self, data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
         """
         Create a JWT access token.
         
@@ -124,21 +124,22 @@ class AuthService:
         """
         try:
             from jose import jwt
+
             from ..config import get_settings
-            
+
             settings = get_settings()
-            
+
             to_encode = data.copy()
             if expires_delta:
                 expire = datetime.now(UTC) + expires_delta
             else:
                 expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
-            
+
             to_encode.update({"exp": expire})
             encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
-            
+
             return encoded_jwt
-            
+
         except Exception as e:
             logger.error(f"Token creation failed: {e}")
             raise AuthenticationError(
@@ -146,7 +147,7 @@ class AuthService:
                 error_code="token_creation_failed"
             ) from e
 
-    async def verify_token(self, token: str) -> Dict[str, Any]:
+    async def verify_token(self, token: str) -> dict[str, Any]:
         """
         Verify and decode a JWT token.
         
@@ -160,29 +161,30 @@ class AuthService:
             AuthenticationError: If token is invalid or expired
         """
         try:
-            from jose import jwt, JWTError
+            from jose import JWTError, jwt
+
             from ..config import get_settings
-            
+
             settings = get_settings()
-            
+
             # Check if token is blacklisted
             if token in self.token_blacklist:
                 raise AuthenticationError(
                     message="Token has been revoked",
                     error_code="token_revoked"
                 )
-            
+
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
             username: str = payload.get("sub")
-            
+
             if username is None:
                 raise AuthenticationError(
                     message="Invalid token payload",
                     error_code="invalid_token_payload"
                 )
-            
+
             return payload
-            
+
         except JWTError as e:
             logger.warning(f"Token verification failed: {e}")
             raise AuthenticationError(
@@ -196,7 +198,7 @@ class AuthService:
                 error_code="verification_failed"
             ) from e
 
-    async def get_current_user(self, token: str) -> Dict[str, Any]:
+    async def get_current_user(self, token: str) -> dict[str, Any]:
         """
         Get current user from token.
         
@@ -212,28 +214,28 @@ class AuthService:
         try:
             payload = await self.verify_token(token)
             username = payload.get("sub")
-            
+
             if username is None:
                 raise AuthenticationError(
                     message="Invalid token payload",
                     error_code="invalid_token_payload"
                 )
-            
+
             user = self.users.get(username)
             if user is None:
                 raise AuthenticationError(
                     message="User not found",
                     error_code="user_not_found"
                 )
-            
+
             if not user.get("is_active", True):
                 raise AuthenticationError(
                     message="User is inactive",
                     error_code="user_inactive"
                 )
-            
+
             return user
-            
+
         except AuthenticationError:
             raise
         except Exception as e:
@@ -253,7 +255,7 @@ class AuthService:
         self.token_blacklist.add(token)
         logger.info("Token revoked successfully")
 
-    async def get_user_permissions(self, user_id: str) -> Dict[str, Any]:
+    async def get_user_permissions(self, user_id: str) -> dict[str, Any]:
         """
         Get user permissions.
         
@@ -269,7 +271,7 @@ class AuthService:
                 message="User not found",
                 error_code="user_not_found"
             )
-        
+
         return {
             "user_id": user["user_id"],
             "username": user["username"],
@@ -293,17 +295,17 @@ class AuthService:
         user = self._get_user_by_id(user_id)
         if not user:
             return False
-        
+
         permissions = user.get("permissions", {})
         resource_permissions = permissions.get(resource, [])
-        
+
         # Admin users have all permissions
         if "admin" in user.get("roles", []):
             return True
-        
+
         return action in resource_permissions
 
-    async def create_user(self, user_data: Dict[str, Any], created_by: str) -> str:
+    async def create_user(self, user_data: dict[str, Any], created_by: str) -> str:
         """
         Create a new user.
         
@@ -319,9 +321,9 @@ class AuthService:
         """
         try:
             from passlib.context import CryptContext
-            
+
             pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-            
+
             # Validate required fields
             required_fields = ["username", "password"]
             for field in required_fields:
@@ -330,18 +332,18 @@ class AuthService:
                         message=f"Missing required field: {field}",
                         error_code="missing_required_field"
                     )
-            
+
             # Check for duplicate username
             if user_data["username"] in self.users:
                 raise ValidationError(
                     message=f"User with username '{user_data['username']}' already exists",
                     error_code="user_already_exists"
                 )
-            
+
             # Create user entry
             user_id = str(uuid.uuid4())
             now = datetime.now(UTC).isoformat()
-            
+
             user_entry = {
                 "username": user_data["username"],
                 "hashed_password": pwd_context.hash(user_data["password"]),
@@ -357,12 +359,12 @@ class AuthService:
                 "created_at": now,
                 "created_by": created_by
             }
-            
+
             self.users[user_data["username"]] = user_entry
-            
+
             logger.info(f"User '{user_data['username']}' created with ID: {user_id}")
             return user_id
-            
+
         except ValidationError:
             raise
         except Exception as e:
@@ -372,7 +374,7 @@ class AuthService:
                 error_code="creation_failed"
             ) from e
 
-    async def update_user(self, user_id: str, update_data: Dict[str, Any], updated_by: str) -> Dict[str, Any]:
+    async def update_user(self, user_id: str, update_data: dict[str, Any], updated_by: str) -> dict[str, Any]:
         """
         Update an existing user.
         
@@ -393,22 +395,22 @@ class AuthService:
                 message="User not found",
                 error_code="user_not_found"
             )
-        
+
         # Update user fields
         for key, value in update_data.items():
             if value is not None and key != "hashed_password":  # Don't allow direct password updates
                 user[key] = value
-        
+
         # Update password if provided
         if "password" in update_data and update_data["password"]:
             from passlib.context import CryptContext
             pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
             user["hashed_password"] = pwd_context.hash(update_data["password"])
-        
+
         # Update timestamp
         user["updated_at"] = datetime.now(UTC).isoformat()
         user["updated_by"] = updated_by
-        
+
         logger.info(f"User '{user['username']}' updated by user: {updated_by}")
         return user
 
@@ -429,14 +431,14 @@ class AuthService:
                 message="User not found",
                 error_code="user_not_found"
             )
-        
+
         user["is_active"] = False
         user["updated_at"] = datetime.now(UTC).isoformat()
         user["deactivated_by"] = deactivated_by
-        
+
         logger.info(f"User '{user['username']}' deactivated by user: {deactivated_by}")
 
-    def _get_user_by_id(self, user_id: str) -> Optional[Dict[str, Any]]:
+    def _get_user_by_id(self, user_id: str) -> dict[str, Any] | None:
         """Get user by ID from storage."""
         for user in self.users.values():
             if user["user_id"] == user_id:
@@ -454,7 +456,7 @@ class AuthService:
         }
         self.login_history.append(login_record)
 
-    def get_login_history(self, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_login_history(self, limit: int = 100) -> list[dict[str, Any]]:
         """
         Get login history.
         
@@ -466,7 +468,7 @@ class AuthService:
         """
         return self.login_history[-limit:]
 
-    def get_user_statistics(self) -> Dict[str, Any]:
+    def get_user_statistics(self) -> dict[str, Any]:
         """
         Get user statistics.
         
@@ -474,15 +476,15 @@ class AuthService:
             Dictionary with user statistics
         """
         active_users = [user for user in self.users.values() if user.get("is_active", True)]
-        
+
         roles = {}
         for user in active_users:
             for role in user.get("roles", []):
                 roles[role] = roles.get(role, 0) + 1
-        
+
         successful_logins = len([login for login in self.login_history if login["successful"]])
         failed_logins = len([login for login in self.login_history if not login["successful"]])
-        
+
         return {
             "total_users": len(self.users),
             "active_users": len(active_users),
@@ -490,4 +492,4 @@ class AuthService:
             "total_logins": len(self.login_history),
             "successful_logins": successful_logins,
             "failed_logins": failed_logins
-        } 
+        }

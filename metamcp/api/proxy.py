@@ -5,13 +5,14 @@ This module provides REST API endpoints for managing wrapped MCP servers,
 including registration, discovery, and monitoring.
 """
 
-from typing import Any, Dict, List, Optional
-from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
+from typing import Any
+
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException
 from pydantic import BaseModel, Field
 
+from ..exceptions import ProxyError, ServerDiscoveryError
 from ..proxy import ProxyManager, WrappedServerConfig
 from ..proxy.discovery import DiscoveryConfig, ServerDiscovery
-from ..exceptions import ProxyError, ServerDiscoveryError
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -20,8 +21,8 @@ logger = get_logger(__name__)
 router = APIRouter(prefix="/proxy", tags=["proxy"])
 
 # Global instances
-proxy_manager: Optional[ProxyManager] = None
-server_discovery: Optional[ServerDiscovery] = None
+proxy_manager: ProxyManager | None = None
+server_discovery: ServerDiscovery | None = None
 
 
 # Pydantic models for API
@@ -31,13 +32,13 @@ class ServerConfigRequest(BaseModel):
     endpoint: str = Field(..., description="Server endpoint")
     transport: str = Field(default="http", description="Transport protocol")
     auth_required: bool = Field(default=False, description="Authentication required")
-    auth_token: Optional[str] = Field(default=None, description="Authentication token")
+    auth_token: str | None = Field(default=None, description="Authentication token")
     timeout: int = Field(default=30, description="Request timeout")
     retry_attempts: int = Field(default=3, description="Retry attempts")
     security_level: str = Field(default="medium", description="Security level")
-    categories: List[str] = Field(default_factory=list, description="Tool categories")
+    categories: list[str] = Field(default_factory=list, description="Tool categories")
     description: str = Field(default="", description="Server description")
-    metadata: Dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
 
 
 class DiscoveryConfigRequest(BaseModel):
@@ -45,10 +46,10 @@ class DiscoveryConfigRequest(BaseModel):
     network_discovery: bool = Field(default=True, description="Enable network discovery")
     service_discovery: bool = Field(default=False, description="Enable service discovery")
     file_discovery: bool = Field(default=True, description="Enable file discovery")
-    ports: List[int] = Field(default_factory=lambda: [8001, 8002, 8003, 8004, 8005], description="Ports to scan")
-    base_urls: List[str] = Field(default_factory=lambda: ["http://localhost", "http://127.0.0.1"], description="Base URLs to scan")
-    config_paths: List[str] = Field(default_factory=lambda: ["./mcp-servers.json", "./config/mcp-servers.json"], description="Config file paths")
-    service_endpoints: List[str] = Field(default_factory=list, description="Service discovery endpoints")
+    ports: list[int] = Field(default_factory=lambda: [8001, 8002, 8003, 8004, 8005], description="Ports to scan")
+    base_urls: list[str] = Field(default_factory=lambda: ["http://localhost", "http://127.0.0.1"], description="Base URLs to scan")
+    config_paths: list[str] = Field(default_factory=lambda: ["./mcp-servers.json", "./config/mcp-servers.json"], description="Config file paths")
+    service_endpoints: list[str] = Field(default_factory=list, description="Service discovery endpoints")
     timeout: int = Field(default=5, description="Discovery timeout")
     max_concurrent: int = Field(default=10, description="Maximum concurrent scans")
 
@@ -62,7 +63,7 @@ class ServerInfoResponse(BaseModel):
     status: str
     last_seen: str
     tool_count: int
-    categories: List[str]
+    categories: list[str]
     security_level: str
 
 
@@ -72,13 +73,13 @@ class HealthCheckResponse(BaseModel):
     status: str
     last_seen: str
     healthy: bool
-    error: Optional[str] = None
+    error: str | None = None
 
 
 class DiscoveryResultResponse(BaseModel):
     """Response model for discovery results."""
     discovered_count: int
-    servers: List[Dict[str, Any]]
+    servers: list[dict[str, Any]]
 
 
 # Dependency injection
@@ -101,11 +102,11 @@ async def get_server_discovery() -> ServerDiscovery:
 
 
 # API Endpoints
-@router.post("/servers", response_model=Dict[str, str])
+@router.post("/servers", response_model=dict[str, str])
 async def register_server(
     config: ServerConfigRequest,
     proxy_manager: ProxyManager = Depends(get_proxy_manager)
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Register a new MCP server for wrapping.
     
@@ -130,12 +131,12 @@ async def register_server(
             description=config.description,
             metadata=config.metadata
         )
-        
+
         server_id = await proxy_manager.register_server(wrapped_config)
-        
+
         logger.info(f"Registered server: {server_id}")
         return {"server_id": server_id}
-        
+
     except ProxyError as e:
         logger.error(f"Failed to register server: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -144,10 +145,10 @@ async def register_server(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/servers", response_model=List[ServerInfoResponse])
+@router.get("/servers", response_model=list[ServerInfoResponse])
 async def list_servers(
     proxy_manager: ProxyManager = Depends(get_proxy_manager)
-) -> List[ServerInfoResponse]:
+) -> list[ServerInfoResponse]:
     """
     List all registered servers.
     
@@ -156,7 +157,7 @@ async def list_servers(
     """
     try:
         servers = await proxy_manager.list_servers()
-        
+
         return [
             ServerInfoResponse(
                 server_id=server.server_id,
@@ -171,7 +172,7 @@ async def list_servers(
             )
             for server in servers
         ]
-        
+
     except Exception as e:
         logger.error(f"Failed to list servers: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -193,10 +194,10 @@ async def get_server_info(
     """
     try:
         server_info = await proxy_manager.get_server_info(server_id)
-        
+
         if server_info is None:
             raise HTTPException(status_code=404, detail="Server not found")
-            
+
         return ServerInfoResponse(
             server_id=server_info.server_id,
             name=server_info.name,
@@ -208,7 +209,7 @@ async def get_server_info(
             categories=server_info.categories,
             security_level=server_info.security_level
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -220,7 +221,7 @@ async def get_server_info(
 async def unregister_server(
     server_id: str,
     proxy_manager: ProxyManager = Depends(get_proxy_manager)
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Unregister a server.
     
@@ -232,10 +233,10 @@ async def unregister_server(
     """
     try:
         await proxy_manager.unregister_server(server_id)
-        
+
         logger.info(f"Unregistered server: {server_id}")
         return {"message": f"Server {server_id} unregistered successfully"}
-        
+
     except ProxyError as e:
         logger.error(f"Failed to unregister server: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -274,13 +275,13 @@ async def discover_servers(
             timeout=config.timeout,
             max_concurrent=config.max_concurrent
         )
-        
+
         # Discover servers
         discovered = await server_discovery.discover_servers(discovery_config)
-        
+
         # Register discovered servers in background
         background_tasks.add_task(_register_discovered_servers, discovered, proxy_manager)
-        
+
         # Convert to response format
         servers = []
         for server in discovered:
@@ -293,14 +294,14 @@ async def discover_servers(
                 "security_level": server.security_level,
                 "discovered_at": server.discovered_at.isoformat()
             })
-        
+
         logger.info(f"Discovered {len(discovered)} servers")
-        
+
         return DiscoveryResultResponse(
             discovered_count=len(discovered),
             servers=servers
         )
-        
+
     except ServerDiscoveryError as e:
         logger.error(f"Discovery failed: {e}")
         raise HTTPException(status_code=400, detail=str(e))
@@ -309,10 +310,10 @@ async def discover_servers(
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/health", response_model=Dict[str, HealthCheckResponse])
+@router.get("/health", response_model=dict[str, HealthCheckResponse])
 async def health_check(
     proxy_manager: ProxyManager = Depends(get_proxy_manager)
-) -> Dict[str, HealthCheckResponse]:
+) -> dict[str, HealthCheckResponse]:
     """
     Perform health check on all registered servers.
     
@@ -321,7 +322,7 @@ async def health_check(
     """
     try:
         results = await proxy_manager.health_check()
-        
+
         # Convert to response format
         health_results = {}
         for server_id, result in results.items():
@@ -332,18 +333,18 @@ async def health_check(
                 healthy=result.get("healthy", False),
                 error=result.get("error")
             )
-        
+
         return health_results
-        
+
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
 
-@router.get("/discovery/servers", response_model=List[Dict[str, Any]])
+@router.get("/discovery/servers", response_model=list[dict[str, Any]])
 async def get_discovered_servers(
     server_discovery: ServerDiscovery = Depends(get_server_discovery)
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """
     Get all discovered servers.
     
@@ -352,7 +353,7 @@ async def get_discovered_servers(
     """
     try:
         servers = await server_discovery.get_discovered_servers()
-        
+
         # Convert to response format
         result = []
         for server in servers:
@@ -366,9 +367,9 @@ async def get_discovered_servers(
                 "discovered_at": server.discovered_at.isoformat(),
                 "metadata": server.metadata
             })
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Failed to get discovered servers: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -377,7 +378,7 @@ async def get_discovered_servers(
 @router.delete("/discovery/servers")
 async def clear_discovered_servers(
     server_discovery: ServerDiscovery = Depends(get_server_discovery)
-) -> Dict[str, str]:
+) -> dict[str, str]:
     """
     Clear the list of discovered servers.
     
@@ -386,10 +387,10 @@ async def clear_discovered_servers(
     """
     try:
         await server_discovery.clear_discovered_servers()
-        
+
         logger.info("Cleared discovered servers")
         return {"message": "Discovered servers cleared successfully"}
-        
+
     except Exception as e:
         logger.error(f"Failed to clear discovered servers: {e}")
         raise HTTPException(status_code=500, detail="Internal server error")
@@ -397,7 +398,7 @@ async def clear_discovered_servers(
 
 # Background task
 async def _register_discovered_servers(
-    discovered: List,
+    discovered: list,
     proxy_manager: ProxyManager
 ) -> None:
     """Register discovered servers in the background."""
@@ -406,15 +407,15 @@ async def _register_discovered_servers(
             try:
                 # Convert to WrappedServerConfig
                 config = await server_discovery.convert_to_wrapped_config(server)
-                
+
                 # Register with proxy manager
                 await proxy_manager.register_server(config)
-                
+
                 logger.info(f"Registered discovered server: {server.name}")
-                
+
             except Exception as e:
                 logger.warning(f"Failed to register discovered server {server.name}: {e}")
-                
+
     except Exception as e:
         logger.error(f"Background server registration failed: {e}")
 
@@ -422,4 +423,4 @@ async def _register_discovered_servers(
 # Include router in main API
 def include_proxy_router(app):
     """Include the proxy router in the main FastAPI app."""
-    app.include_router(router) 
+    app.include_router(router)

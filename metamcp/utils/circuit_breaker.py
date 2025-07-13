@@ -7,10 +7,10 @@ gracefully and preventing cascading failures.
 
 import asyncio
 import time
-from datetime import datetime, UTC
-from enum import Enum
-from typing import Any, Callable, Dict, Optional, TypeVar
+from collections.abc import Callable
 from dataclasses import dataclass
+from enum import Enum
+from typing import Any, TypeVar
 
 from .logging import get_logger
 
@@ -44,7 +44,7 @@ class CircuitBreaker:
     a threshold is reached.
     """
 
-    def __init__(self, name: str, config: Optional[CircuitBreakerConfig] = None):
+    def __init__(self, name: str, config: CircuitBreakerConfig | None = None):
         """
         Initialize circuit breaker.
         
@@ -54,19 +54,19 @@ class CircuitBreaker:
         """
         self.name = name
         self.config = config or CircuitBreakerConfig()
-        
+
         # State
         self.state = CircuitState.CLOSED
         self.failure_count = 0
-        self.last_failure_time: Optional[float] = None
+        self.last_failure_time: float | None = None
         self.last_state_change: float = time.time()
-        
+
         # Metrics
         self.total_requests = 0
         self.successful_requests = 0
         self.failed_requests = 0
         self.rejected_requests = 0
-        
+
         logger.info(f"Circuit breaker '{name}' initialized")
 
     async def call(self, func: Callable[..., T], *args, **kwargs) -> T:
@@ -86,7 +86,7 @@ class CircuitBreaker:
             Exception: Original function exception
         """
         self.total_requests += 1
-        
+
         # Check circuit state
         if self.state == CircuitState.OPEN:
             if self._should_attempt_reset():
@@ -96,18 +96,18 @@ class CircuitBreaker:
                 raise CircuitBreakerOpenError(
                     f"Circuit breaker '{self.name}' is open"
                 )
-        
+
         try:
             # Execute function
             if asyncio.iscoroutinefunction(func):
                 result = await func(*args, **kwargs)
             else:
                 result = func(*args, **kwargs)
-            
+
             # Success - reset failure count
             self._on_success()
             return result
-            
+
         except self.config.expected_exception as e:
             # Failure - increment failure count
             self._on_failure()
@@ -121,10 +121,10 @@ class CircuitBreaker:
         """Handle successful execution."""
         self.successful_requests += 1
         self.failure_count = 0
-        
+
         if self.state == CircuitState.HALF_OPEN:
             self._transition_to_closed()
-        
+
         logger.debug(f"Circuit breaker '{self.name}' success")
 
     def _on_failure(self):
@@ -132,10 +132,10 @@ class CircuitBreaker:
         self.failed_requests += 1
         self.failure_count += 1
         self.last_failure_time = time.time()
-        
+
         if self.failure_count >= self.config.failure_threshold:
             self._transition_to_open()
-        
+
         logger.warning(f"Circuit breaker '{self.name}' failure: {self.failure_count}/{self.config.failure_threshold}")
 
     def _transition_to_open(self):
@@ -163,10 +163,10 @@ class CircuitBreaker:
         """Check if circuit should attempt reset."""
         if self.last_failure_time is None:
             return False
-        
+
         return (time.time() - self.last_failure_time) >= self.config.recovery_timeout
 
-    def get_state(self) -> Dict[str, Any]:
+    def get_state(self) -> dict[str, Any]:
         """
         Get current circuit breaker state.
         
@@ -210,11 +210,11 @@ class CircuitBreakerManager:
 
     def __init__(self):
         """Initialize circuit breaker manager."""
-        self.circuit_breakers: Dict[str, CircuitBreaker] = {}
-        self.monitoring_task: Optional[asyncio.Task] = None
+        self.circuit_breakers: dict[str, CircuitBreaker] = {}
+        self.monitoring_task: asyncio.Task | None = None
         self._stop_monitoring = False
 
-    def get_circuit_breaker(self, name: str, config: Optional[CircuitBreakerConfig] = None) -> CircuitBreaker:
+    def get_circuit_breaker(self, name: str, config: CircuitBreakerConfig | None = None) -> CircuitBreaker:
         """
         Get or create a circuit breaker.
         
@@ -227,7 +227,7 @@ class CircuitBreakerManager:
         """
         if name not in self.circuit_breakers:
             self.circuit_breakers[name] = CircuitBreaker(name, config)
-        
+
         return self.circuit_breakers[name]
 
     def remove_circuit_breaker(self, name: str) -> bool:
@@ -246,7 +246,7 @@ class CircuitBreakerManager:
             return True
         return False
 
-    def get_all_states(self) -> Dict[str, Dict[str, Any]]:
+    def get_all_states(self) -> dict[str, dict[str, Any]]:
         """
         Get states of all circuit breakers.
         
@@ -279,28 +279,28 @@ class CircuitBreakerManager:
                 # Check all circuit breakers
                 for name, cb in self.circuit_breakers.items():
                     state = cb.get_state()
-                    
+
                     # Log state changes
                     if state["state"] == "open":
                         logger.warning(f"Circuit breaker '{name}' is open")
                     elif state["state"] == "half_open":
                         logger.info(f"Circuit breaker '{name}' is half-open")
-                    
+
                     # Check for stuck half-open state
-                    if (state["state"] == "half_open" and 
+                    if (state["state"] == "half_open" and
                         (time.time() - state["last_state_change"]) > cb.config.monitor_interval):
                         logger.warning(f"Circuit breaker '{name}' stuck in half-open state")
-                
+
                 # Wait before next check
                 await asyncio.sleep(self.config.monitor_interval if hasattr(self, 'config') else 10.0)
-                
+
             except asyncio.CancelledError:
                 break
             except Exception as e:
                 logger.error(f"Circuit breaker monitoring error: {e}")
                 await asyncio.sleep(1.0)
 
-    def get_statistics(self) -> Dict[str, Any]:
+    def get_statistics(self) -> dict[str, Any]:
         """
         Get overall statistics.
         
@@ -311,10 +311,10 @@ class CircuitBreakerManager:
         total_successful = sum(cb.successful_requests for cb in self.circuit_breakers.values())
         total_failed = sum(cb.failed_requests for cb in self.circuit_breakers.values())
         total_rejected = sum(cb.rejected_requests for cb in self.circuit_breakers.values())
-        
+
         open_circuits = sum(1 for cb in self.circuit_breakers.values() if cb.state == CircuitState.OPEN)
         half_open_circuits = sum(1 for cb in self.circuit_breakers.values() if cb.state == CircuitState.HALF_OPEN)
-        
+
         return {
             "total_circuit_breakers": len(self.circuit_breakers),
             "open_circuits": open_circuits,
@@ -333,7 +333,7 @@ class CircuitBreakerManager:
 circuit_breaker_manager = CircuitBreakerManager()
 
 
-def circuit_breaker(name: str, config: Optional[CircuitBreakerConfig] = None):
+def circuit_breaker(name: str, config: CircuitBreakerConfig | None = None):
     """
     Decorator for circuit breaker protection.
     
@@ -346,16 +346,16 @@ def circuit_breaker(name: str, config: Optional[CircuitBreakerConfig] = None):
     """
     def decorator(func: Callable[..., T]) -> Callable[..., T]:
         cb = circuit_breaker_manager.get_circuit_breaker(name, config)
-        
+
         async def async_wrapper(*args, **kwargs) -> T:
             return await cb.call(func, *args, **kwargs)
-        
+
         def sync_wrapper(*args, **kwargs) -> T:
             return cb.call(func, *args, **kwargs)
-        
+
         if asyncio.iscoroutinefunction(func):
             return async_wrapper
         else:
             return sync_wrapper
-    
-    return decorator 
+
+    return decorator

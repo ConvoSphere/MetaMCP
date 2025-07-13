@@ -6,7 +6,7 @@ registration, search, execution, and CRUD operations.
 """
 
 import uuid
-from datetime import datetime, UTC
+from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -140,14 +140,14 @@ def _search_tools_simple(query: str, tools: list[dict[str, Any]]) -> list[dict[s
     """Simple text-based tool search."""
     query_lower = query.lower()
     results = []
-    
+
     for tool in tools:
         # Search in name, description, and tags
         if (query_lower in tool["name"].lower() or
             query_lower in tool["description"].lower() or
             any(query_lower in tag.lower() for tag in tool.get("tags", []))):
             results.append(tool)
-    
+
     return results
 
 
@@ -172,7 +172,7 @@ async def get_mcp_server():
 # =============================================================================
 
 @tools_router.post(
-    "",
+    "/",
     response_model=dict[str, str],
     status_code=status.HTTP_201_CREATED,
     summary="Register a new tool"
@@ -204,7 +204,7 @@ async def register_tool(
         # Create tool entry
         tool_id = _create_tool_id()
         now = datetime.now(UTC).isoformat()
-        
+
         tool_entry = {
             "id": tool_id,
             "name": tool_data.name,
@@ -223,11 +223,11 @@ async def register_tool(
             "is_active": True,
             "created_by": user_id
         }
-        
+
         mock_tools[tool_id] = tool_entry
-        
+
         logger.info(f"Tool '{tool_data.name}' registered with ID: {tool_id}")
-        
+
         return {"tool_id": tool_id, "message": "Tool registered successfully"}
 
     except ValidationError as e:
@@ -255,7 +255,7 @@ async def register_tool(
 
 
 @tools_router.get(
-    "",
+    "/",
     response_model=ToolListResponse,
     summary="List all tools"
 )
@@ -282,16 +282,16 @@ async def list_tools(
     try:
         # Get all active tools
         all_tools = [tool for tool in mock_tools.values() if tool.get("is_active", True)]
-        
+
         # Filter by category if specified
         filtered_tools = _filter_tools_by_category(all_tools, category)
-        
+
         # Get total count
         total = len(filtered_tools)
-        
+
         # Paginate results
         paginated_tools = _paginate_tools(filtered_tools, offset, limit)
-        
+
         # Convert to response format
         tool_responses = [
             ToolResponse(
@@ -313,7 +313,7 @@ async def list_tools(
             )
             for tool in paginated_tools
         ]
-        
+
         return ToolListResponse(
             tools=tool_responses,
             total=total,
@@ -435,16 +435,16 @@ async def update_tool(
         for key, value in update_data.items():
             if value is not None:
                 tool[key] = value
-        
+
         # Update timestamp
         tool["updated_at"] = datetime.now(UTC).isoformat()
         tool["updated_by"] = user_id
-        
+
         # Update in registry
         mock_tools[tool["id"]] = tool
-        
+
         logger.info(f"Tool '{tool_name}' updated by user: {user_id}")
-        
+
         return ToolResponse(
             id=tool["id"],
             name=tool["name"],
@@ -514,10 +514,10 @@ async def delete_tool(
         tool["is_active"] = False
         tool["updated_at"] = datetime.now(UTC).isoformat()
         tool["deleted_by"] = user_id
-        
+
         # Update in registry
         mock_tools[tool["id"]] = tool
-        
+
         logger.info(f"Tool '{tool_name}' deleted by user: {user_id}")
 
     except ToolNotFoundError as e:
@@ -568,26 +568,26 @@ async def search_tools(
     try:
         import time
         start_time = time.time()
-        
+
         # Get all active tools
         all_tools = [tool for tool in mock_tools.values() if tool.get("is_active", True)]
-        
+
         # Filter by category if specified
         if search_request.category:
             all_tools = _filter_tools_by_category(all_tools, search_request.category)
-        
+
         # Perform search
         search_results = _search_tools_simple(search_request.query, all_tools)
-        
+
         # Limit results
         max_results = search_request.max_results or 10
         search_results = search_results[:max_results]
-        
+
         # Calculate search time
         search_time = time.time() - start_time
-        
+
         logger.info(f"Tool search completed in {search_time:.3f}s, found {len(search_results)} results")
-        
+
         return ToolSearchResponse(
             tools=search_results,
             query=search_request.query,
@@ -646,9 +646,9 @@ async def execute_tool(
             "executed_by": user_id,
             "timestamp": datetime.now(UTC).isoformat()
         }
-        
+
         logger.info(f"Tool '{tool_name}' executed by user: {user_id}")
-        
+
         return result
 
     except ToolNotFoundError as e:

@@ -5,11 +5,11 @@ Business logic service for tool management operations including
 registration, discovery, execution, and lifecycle management.
 """
 
-from datetime import datetime, UTC
-from typing import Any, Dict, List, Optional
 import uuid
+from datetime import UTC, datetime
+from typing import Any
 
-from ..exceptions import ToolNotFoundError, ValidationError, ToolExecutionError
+from ..exceptions import ToolExecutionError, ToolNotFoundError, ValidationError
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -25,10 +25,10 @@ class ToolService:
 
     def __init__(self):
         """Initialize the tool service."""
-        self.tools: Dict[str, Dict[str, Any]] = {}
-        self.execution_history: List[Dict[str, Any]] = []
+        self.tools: dict[str, dict[str, Any]] = {}
+        self.execution_history: list[dict[str, Any]] = []
 
-    async def register_tool(self, tool_data: Dict[str, Any], user_id: str) -> str:
+    async def register_tool(self, tool_data: dict[str, Any], user_id: str) -> str:
         """
         Register a new tool.
         
@@ -62,7 +62,7 @@ class ToolService:
             # Create tool entry
             tool_id = str(uuid.uuid4())
             now = datetime.now(UTC).isoformat()
-            
+
             tool_entry = {
                 "id": tool_id,
                 "name": tool_data["name"],
@@ -81,9 +81,9 @@ class ToolService:
                 "is_active": True,
                 "created_by": user_id
             }
-            
+
             self.tools[tool_id] = tool_entry
-            
+
             logger.info(f"Tool '{tool_data['name']}' registered with ID: {tool_id}")
             return tool_id
 
@@ -96,7 +96,7 @@ class ToolService:
                 error_code="registration_failed"
             )
 
-    async def get_tool(self, tool_name: str) -> Dict[str, Any]:
+    async def get_tool(self, tool_name: str) -> dict[str, Any]:
         """
         Get tool by name.
         
@@ -112,15 +112,15 @@ class ToolService:
         tool = self._get_tool_by_name(tool_name)
         if not tool:
             raise ToolNotFoundError(tool_name)
-        
+
         return tool
 
     async def list_tools(
         self,
-        category: Optional[str] = None,
+        category: str | None = None,
         limit: int = 100,
         offset: int = 0
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         List tools with optional filtering and pagination.
         
@@ -134,17 +134,17 @@ class ToolService:
         """
         # Get all active tools
         all_tools = [tool for tool in self.tools.values() if tool.get("is_active", True)]
-        
+
         # Filter by category if specified
         if category:
             all_tools = [tool for tool in all_tools if tool.get("category") == category]
-        
+
         # Get total count
         total = len(all_tools)
-        
+
         # Paginate results
         paginated_tools = all_tools[offset:offset + limit]
-        
+
         return {
             "tools": paginated_tools,
             "total": total,
@@ -152,7 +152,7 @@ class ToolService:
             "limit": limit
         }
 
-    async def update_tool(self, tool_name: str, update_data: Dict[str, Any], user_id: str) -> Dict[str, Any]:
+    async def update_tool(self, tool_name: str, update_data: dict[str, Any], user_id: str) -> dict[str, Any]:
         """
         Update an existing tool.
         
@@ -175,14 +175,14 @@ class ToolService:
         for key, value in update_data.items():
             if value is not None:
                 tool[key] = value
-        
+
         # Update timestamp
         tool["updated_at"] = datetime.now(UTC).isoformat()
         tool["updated_by"] = user_id
-        
+
         # Update in storage
         self.tools[tool["id"]] = tool
-        
+
         logger.info(f"Tool '{tool_name}' updated by user: {user_id}")
         return tool
 
@@ -205,10 +205,10 @@ class ToolService:
         tool["is_active"] = False
         tool["updated_at"] = datetime.now(UTC).isoformat()
         tool["deleted_by"] = user_id
-        
+
         # Update in storage
         self.tools[tool["id"]] = tool
-        
+
         logger.info(f"Tool '{tool_name}' deleted by user: {user_id}")
 
     async def search_tools(
@@ -216,7 +216,7 @@ class ToolService:
         query: str,
         max_results: int = 10,
         similarity_threshold: float = 0.7
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         Search for tools using semantic search.
         
@@ -230,20 +230,20 @@ class ToolService:
         """
         # Get all active tools
         all_tools = [tool for tool in self.tools.values() if tool.get("is_active", True)]
-        
+
         # Simple text-based search for now
         # In production, this would use vector search
         results = self._search_tools_simple(query, all_tools)
-        
+
         # Limit results
         return results[:max_results]
 
     async def execute_tool(
         self,
         tool_name: str,
-        arguments: Dict[str, Any],
+        arguments: dict[str, Any],
         user_id: str
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Execute a tool.
         
@@ -266,13 +266,13 @@ class ToolService:
         try:
             import time
             start_time = time.time()
-            
+
             # Execute tool
             result = await self._execute_tool_internal(tool_name, arguments, tool)
-            
+
             # Calculate execution time
             execution_time = time.time() - start_time
-            
+
             # Record execution
             execution_record = {
                 "tool_name": tool_name,
@@ -283,7 +283,7 @@ class ToolService:
                 "timestamp": datetime.now(UTC).isoformat()
             }
             self.execution_history.append(execution_record)
-            
+
             return {
                 "tool_name": tool_name,
                 "input_data": arguments,
@@ -301,37 +301,38 @@ class ToolService:
                 error_code="execution_failed"
             ) from e
 
-    def _get_tool_by_name(self, name: str) -> Optional[Dict[str, Any]]:
+    def _get_tool_by_name(self, name: str) -> dict[str, Any] | None:
         """Get tool by name from storage."""
         for tool in self.tools.values():
             if tool["name"] == name:
                 return tool
         return None
 
-    def _search_tools_simple(self, query: str, tools: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def _search_tools_simple(self, query: str, tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Simple text-based tool search."""
         query_lower = query.lower()
         results = []
-        
+
         for tool in tools:
             # Search in name, description, and tags
             if (query_lower in tool["name"].lower() or
                 query_lower in tool["description"].lower() or
                 any(query_lower in tag.lower() for tag in tool.get("tags", []))):
                 results.append(tool)
-        
+
         return results
 
     async def _execute_tool_internal(
         self,
         tool_name: str,
-        arguments: Dict[str, Any],
-        tool_data: Dict[str, Any]
+        arguments: dict[str, Any],
+        tool_data: dict[str, Any]
     ) -> Any:
         """Internal tool execution implementation."""
-        import httpx
         import asyncio
-        
+
+        import httpx
+
         endpoint = tool_data.get("endpoint")
         if not endpoint:
             # Mock execution for development when no endpoint is provided
@@ -345,7 +346,7 @@ class ToolService:
 
         # Make HTTP call to tool endpoint
         timeout = 30.0
-        
+
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 # Try different endpoint patterns
@@ -355,10 +356,10 @@ class ToolService:
                     f"{endpoint}/api/v1/tools/{tool_name}/execute",
                     endpoint  # Direct endpoint
                 ]
-                
+
                 response = None
                 last_error = None
-                
+
                 for exec_endpoint in execution_endpoints:
                     try:
                         response = await client.post(
@@ -373,19 +374,19 @@ class ToolService:
                                 "User-Agent": "MetaMCP/1.0.0"
                             }
                         )
-                        
+
                         if response.status_code == 200:
                             break
                         else:
                             last_error = f"HTTP {response.status_code}: {response.text}"
-                            
+
                     except httpx.TimeoutException:
                         last_error = f"Timeout connecting to {exec_endpoint}"
                     except httpx.ConnectError:
                         last_error = f"Connection error to {exec_endpoint}"
                     except Exception as e:
                         last_error = f"Error calling {exec_endpoint}: {str(e)}"
-                
+
                 if response and response.status_code == 200:
                     try:
                         result = response.json()
@@ -417,7 +418,7 @@ class ToolService:
                         "fallback": True,
                         "error": last_error
                     }
-                    
+
         except Exception as e:
             logger.error(f"Tool execution failed for {tool_name}: {e}")
             raise ToolExecutionError(
@@ -425,7 +426,7 @@ class ToolService:
                 error_code="execution_failed"
             ) from e
 
-    def get_execution_history(self, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_execution_history(self, limit: int = 100) -> list[dict[str, Any]]:
         """
         Get tool execution history.
         
@@ -437,7 +438,7 @@ class ToolService:
         """
         return self.execution_history[-limit:]
 
-    def get_tool_statistics(self) -> Dict[str, Any]:
+    def get_tool_statistics(self) -> dict[str, Any]:
         """
         Get tool statistics.
         
@@ -445,15 +446,15 @@ class ToolService:
             Dictionary with tool statistics
         """
         active_tools = [tool for tool in self.tools.values() if tool.get("is_active", True)]
-        
+
         categories = {}
         for tool in active_tools:
             category = tool.get("category", "uncategorized")
             categories[category] = categories.get(category, 0) + 1
-        
+
         return {
             "total_tools": len(self.tools),
             "active_tools": len(active_tools),
             "categories": categories,
             "total_executions": len(self.execution_history)
-        } 
+        }

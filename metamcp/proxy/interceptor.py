@@ -5,10 +5,10 @@ This module provides interception functionality for tool calls,
 allowing for pre/post processing, validation, and transformation.
 """
 
-from typing import Any, Callable, Dict, List, Optional, Union
+from collections.abc import Callable
 from dataclasses import dataclass
-from datetime import datetime, UTC
-import asyncio
+from datetime import UTC, datetime
+from typing import Any
 
 from ..exceptions import ProxyError, ToolExecutionError
 from ..utils.logging import get_logger
@@ -21,12 +21,12 @@ class InterceptorContext:
     """Context for tool call interception."""
     tool_name: str
     server_id: str
-    arguments: Dict[str, Any]
-    user_id: Optional[str] = None
-    session_id: Optional[str] = None
-    request_id: Optional[str] = None
+    arguments: dict[str, Any]
+    user_id: str | None = None
+    session_id: str | None = None
+    request_id: str | None = None
     timestamp: datetime = None
-    metadata: Dict[str, Any] = None
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         if self.timestamp is None:
@@ -40,9 +40,9 @@ class InterceptorResult:
     """Result from tool call interception."""
     success: bool
     result: Any = None
-    error: Optional[str] = None
-    modified_arguments: Optional[Dict[str, Any]] = None
-    metadata: Dict[str, Any] = None
+    error: str | None = None
+    modified_arguments: dict[str, Any] | None = None
+    metadata: dict[str, Any] = None
 
     def __post_init__(self):
         if self.metadata is None:
@@ -60,9 +60,9 @@ class ToolCallInterceptor:
 
     def __init__(self):
         """Initialize the tool call interceptor."""
-        self.pre_hooks: List[Callable] = []
-        self.post_hooks: List[Callable] = []
-        self.error_hooks: List[Callable] = []
+        self.pre_hooks: list[Callable] = []
+        self.post_hooks: list[Callable] = []
+        self.error_hooks: list[Callable] = []
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -72,13 +72,13 @@ class ToolCallInterceptor:
 
         try:
             logger.info("Initializing Tool Call Interceptor...")
-            
+
             # Register default hooks
             self._register_default_hooks()
-            
+
             self._initialized = True
             logger.info("Tool Call Interceptor initialized successfully")
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize Tool Call Interceptor: {e}")
             raise ProxyError(f"Initialization failed: {str(e)}")
@@ -89,11 +89,11 @@ class ToolCallInterceptor:
         self.add_pre_hook(self._log_tool_call)
         self.add_pre_hook(self._validate_arguments)
         self.add_pre_hook(self._rate_limit_check)
-        
+
         # Post-execution hooks
         self.add_post_hook(self._log_tool_result)
         self.add_post_hook(self._transform_result)
-        
+
         # Error hooks
         self.add_error_hook(self._log_tool_error)
         self.add_error_hook(self._handle_error)
@@ -143,23 +143,23 @@ class ToolCallInterceptor:
         try:
             # Pre-execution hooks
             modified_context = await self._run_pre_hooks(context)
-            
+
             # Execute tool
             result = await tool_executor(modified_context.arguments)
-            
+
             # Post-execution hooks
             final_result = await self._run_post_hooks(modified_context, result)
-            
+
             return InterceptorResult(
                 success=True,
                 result=final_result,
                 metadata={"intercepted": True}
             )
-            
+
         except Exception as e:
             # Error hooks
             await self._run_error_hooks(context, e)
-            
+
             return InterceptorResult(
                 success=False,
                 error=str(e),
@@ -169,7 +169,7 @@ class ToolCallInterceptor:
     async def _run_pre_hooks(self, context: InterceptorContext) -> InterceptorContext:
         """Run pre-execution hooks."""
         modified_context = context
-        
+
         for hook in self.pre_hooks:
             try:
                 result = await hook(modified_context)
@@ -177,7 +177,7 @@ class ToolCallInterceptor:
                     modified_context = result
             except Exception as e:
                 logger.warning(f"Pre-hook failed: {e}")
-                
+
         return modified_context
 
     async def _run_post_hooks(
@@ -187,7 +187,7 @@ class ToolCallInterceptor:
     ) -> Any:
         """Run post-execution hooks."""
         modified_result = result
-        
+
         for hook in self.post_hooks:
             try:
                 hook_result = await hook(context, modified_result)
@@ -195,7 +195,7 @@ class ToolCallInterceptor:
                     modified_result = hook_result
             except Exception as e:
                 logger.warning(f"Post-hook failed: {e}")
-                
+
         return modified_result
 
     async def _run_error_hooks(
@@ -222,16 +222,16 @@ class ToolCallInterceptor:
         # Basic validation - can be extended with schema validation
         if not isinstance(context.arguments, dict):
             raise ToolExecutionError("Arguments must be a dictionary")
-            
+
         # Check for required arguments (tool-specific)
         required_args = self._get_required_arguments(context.tool_name)
         for arg in required_args:
             if arg not in context.arguments:
                 raise ToolExecutionError(f"Missing required argument: {arg}")
-                
+
         return context
 
-    def _get_required_arguments(self, tool_name: str) -> List[str]:
+    def _get_required_arguments(self, tool_name: str) -> list[str]:
         """Get required arguments for a tool."""
         # This would be tool-specific - for now return empty list
         return []
@@ -287,11 +287,11 @@ class ToolCallInterceptor:
         self,
         tool_name: str,
         server_id: str,
-        arguments: Dict[str, Any],
-        user_id: Optional[str] = None,
-        session_id: Optional[str] = None,
-        request_id: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None
+        arguments: dict[str, Any],
+        user_id: str | None = None,
+        session_id: str | None = None,
+        request_id: str | None = None,
+        metadata: dict[str, Any] | None = None
     ) -> InterceptorContext:
         """
         Create an interception context.
@@ -326,4 +326,4 @@ class ToolCallInterceptor:
     @property
     def is_initialized(self) -> bool:
         """Check if the interceptor is initialized."""
-        return self._initialized 
+        return self._initialized

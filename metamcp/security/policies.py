@@ -8,7 +8,7 @@ from typing import Any
 
 import httpx
 
-from ..config import PolicyEngine as PolicyEngineType
+from ..config import PolicyEngineType
 from ..config import get_settings
 from ..exceptions import PolicyViolationError
 from ..utils.logging import get_logger

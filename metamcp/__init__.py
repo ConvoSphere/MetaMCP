@@ -37,7 +37,7 @@ from .exceptions import (
 from .security.auth import AuthManager
 from .security.policies import PolicyEngine
 from .server import MetaMCPServer
-from .tools.models import Tool, ToolCapability, ToolCategory
+# from .tools.models import Tool, ToolCapability, ToolCategory
 
 # Tool-related exports
 from .tools.registry import ToolRegistry
@@ -48,7 +48,7 @@ from .utils.logging import get_logger
 
 # Vector search exports
 from .vector.client import VectorSearchClient
-from .vector.models import EmbeddingModel, SearchResult
+# from .vector.models import EmbeddingModel, SearchResult
 
 __all__ = [
     # Core
@@ -66,14 +66,14 @@ __all__ = [
 
     # Tools
     "ToolRegistry",
-    "Tool",
-    "ToolCategory",
-    "ToolCapability",
+    # "Tool",
+    # "ToolCategory",
+    # "ToolCapability",
 
     # Vector Search
     "VectorSearchClient",
-    "SearchResult",
-    "EmbeddingModel",
+    # "SearchResult",
+    # "EmbeddingModel",
 
     # Security
     "AuthManager",

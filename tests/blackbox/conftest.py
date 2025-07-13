@@ -7,14 +7,13 @@ Common fixtures and utilities for black box testing of MetaMCP container.
 import asyncio
 import json
 import time
-from typing import AsyncGenerator, Dict, Any
-from urllib.parse import urljoin
+from collections.abc import AsyncGenerator
+from typing import Any
 
 import httpx
 import pytest
 import websockets
 from websockets.exceptions import ConnectionClosed
-
 
 # Test Configuration
 BASE_URL = "http://localhost:8000"
@@ -74,11 +73,11 @@ async def authenticated_client(http_client: httpx.AsyncClient) -> AsyncGenerator
         f"{API_BASE_URL}/auth/login",
         json=TEST_USER
     )
-    
+
     if login_response.status_code == 200:
         token = login_response.json()["data"]["access_token"]
         http_client.headers["Authorization"] = f"Bearer {token}"
-    
+
     yield http_client
 
 
@@ -100,16 +99,16 @@ async def websocket_connection() -> AsyncGenerator[websockets.WebSocketServerPro
                     }
                 }
             }
-            
+
             await websocket.send(json.dumps(init_message))
             response = await websocket.recv()
             response_data = json.loads(response)
-            
+
             if "error" in response_data:
                 pytest.fail(f"MCP initialization failed: {response_data['error']}")
-            
+
             yield websocket
-            
+
     except ConnectionClosed:
         pytest.fail("WebSocket connection closed unexpectedly")
     except Exception as e:
@@ -124,11 +123,11 @@ async def test_tool_id(authenticated_client: httpx.AsyncClient) -> AsyncGenerato
         f"{API_BASE_URL}/tools",
         json=TEST_TOOL
     )
-    
+
     if response.status_code == 200:
         tool_id = response.json()["data"]["tool_id"]
         yield tool_id
-        
+
         # Cleanup: delete test tool
         try:
             await authenticated_client.delete(f"{API_BASE_URL}/tools/{TEST_TOOL['name']}")
@@ -147,14 +146,14 @@ def wait_for_service(max_retries: int = 30, delay: float = 2.0) -> bool:
                 return True
         except Exception:
             pass
-        
+
         if i < max_retries - 1:
             time.sleep(delay)
-    
+
     return False
 
 
-def assert_success_response(response: httpx.Response, expected_status: int = 200) -> Dict[str, Any]:
+def assert_success_response(response: httpx.Response, expected_status: int = 200) -> dict[str, Any]:
     """Assert that response is successful and return JSON data."""
     assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
     data = response.json()
@@ -162,11 +161,11 @@ def assert_success_response(response: httpx.Response, expected_status: int = 200
     return data["data"]
 
 
-def assert_error_response(response: httpx.Response, expected_status: int, expected_error: str = None) -> Dict[str, Any]:
+def assert_error_response(response: httpx.Response, expected_status: int, expected_error: str = None) -> dict[str, Any]:
     """Assert that response is an error and return error data."""
     assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
     data = response.json()
     assert "error" in data, f"Expected error in response, got: {data}"
     if expected_error:
         assert data["error"] == expected_error, f"Expected error '{expected_error}', got '{data['error']}'"
-    return data 
+    return data

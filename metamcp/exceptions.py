@@ -4,18 +4,18 @@ MetaMCP Exceptions
 This module defines all custom exceptions used throughout the MetaMCP system.
 """
 
-from typing import Any, Dict, Optional
+from typing import Any
 
 
 class MetaMCPError(Exception):
     """Base exception for all MetaMCP errors."""
-    
+
     def __init__(
         self,
         message: str,
         error_code: str,
         status_code: int = 500,
-        details: Optional[Dict[str, Any]] = None
+        details: dict[str, Any] | None = None
     ):
         self.message = message
         self.error_code = error_code
@@ -24,10 +24,14 @@ class MetaMCPError(Exception):
         super().__init__(self.message)
 
 
+# Alias for backward compatibility
+MetaMCPException = MetaMCPError
+
+
 class ConfigurationError(MetaMCPError):
     """Configuration-related errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="configuration_error",
@@ -38,8 +42,8 @@ class ConfigurationError(MetaMCPError):
 
 class AuthenticationError(MetaMCPError):
     """Authentication-related errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="authentication_error",
@@ -50,8 +54,8 @@ class AuthenticationError(MetaMCPError):
 
 class AuthorizationError(MetaMCPError):
     """Authorization-related errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="authorization_error",
@@ -62,8 +66,8 @@ class AuthorizationError(MetaMCPError):
 
 class ToolRegistrationError(MetaMCPError):
     """Tool registration errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="tool_registration_error",
@@ -74,8 +78,8 @@ class ToolRegistrationError(MetaMCPError):
 
 class ToolNotFoundError(MetaMCPError):
     """Tool not found errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="tool_not_found",
@@ -86,8 +90,8 @@ class ToolNotFoundError(MetaMCPError):
 
 class ToolExecutionError(MetaMCPError):
     """Tool execution errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="tool_execution_error",
@@ -98,8 +102,8 @@ class ToolExecutionError(MetaMCPError):
 
 class VectorSearchError(MetaMCPError):
     """Vector search errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="vector_search_error",
@@ -110,8 +114,8 @@ class VectorSearchError(MetaMCPError):
 
 class LLMServiceError(MetaMCPError):
     """LLM service errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="llm_service_error",
@@ -122,8 +126,8 @@ class LLMServiceError(MetaMCPError):
 
 class PolicyError(MetaMCPError):
     """Policy evaluation errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="policy_error",
@@ -134,8 +138,8 @@ class PolicyError(MetaMCPError):
 
 class TelemetryError(MetaMCPError):
     """Telemetry errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="telemetry_error",
@@ -146,8 +150,8 @@ class TelemetryError(MetaMCPError):
 
 class ProxyError(MetaMCPError):
     """Proxy-related errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="proxy_error",
@@ -158,8 +162,8 @@ class ProxyError(MetaMCPError):
 
 class ServerDiscoveryError(MetaMCPError):
     """Server discovery errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="server_discovery_error",
@@ -170,8 +174,8 @@ class ServerDiscoveryError(MetaMCPError):
 
 class ConnectionError(MetaMCPError):
     """Connection-related errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="connection_error",
@@ -182,8 +186,8 @@ class ConnectionError(MetaMCPError):
 
 class ValidationError(MetaMCPError):
     """Validation errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="validation_error",
@@ -194,8 +198,8 @@ class ValidationError(MetaMCPError):
 
 class RateLimitError(MetaMCPError):
     """Rate limiting errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="rate_limit_error",
@@ -206,8 +210,8 @@ class RateLimitError(MetaMCPError):
 
 class TimeoutError(MetaMCPError):
     """Timeout errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="timeout_error",
@@ -218,8 +222,8 @@ class TimeoutError(MetaMCPError):
 
 class ResourceNotFoundError(MetaMCPError):
     """Resource not found errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="resource_not_found",
@@ -230,8 +234,8 @@ class ResourceNotFoundError(MetaMCPError):
 
 class DatabaseError(MetaMCPError):
     """Database-related errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="database_error",
@@ -242,8 +246,8 @@ class DatabaseError(MetaMCPError):
 
 class ExternalServiceError(MetaMCPError):
     """External service errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="external_service_error",
@@ -254,8 +258,8 @@ class ExternalServiceError(MetaMCPError):
 
 class MCPProtocolError(MetaMCPError):
     """MCP protocol errors."""
-    
-    def __init__(self, operation: str, reason: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, operation: str, reason: str, details: dict[str, Any] | None = None):
         message = f"MCP protocol error during {operation}: {reason}"
         super().__init__(
             message=message,
@@ -267,8 +271,8 @@ class MCPProtocolError(MetaMCPError):
 
 class CircuitBreakerOpenError(MetaMCPError):
     """Circuit breaker is open error."""
-    
-    def __init__(self, circuit_name: str, details: Optional[Dict[str, Any]] = None):
+
+    def __init__(self, circuit_name: str, details: dict[str, Any] | None = None):
         message = f"Circuit breaker '{circuit_name}' is open"
         super().__init__(
             message=message,
@@ -279,12 +283,35 @@ class CircuitBreakerOpenError(MetaMCPError):
 
 
 class SearchError(MetaMCPError):
-    """Search operation errors."""
-    
-    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+    """Search-related errors."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
         super().__init__(
             message=message,
             error_code="search_error",
             status_code=500,
+            details=details
+        )
+
+
+class EmbeddingError(MetaMCPError):
+    """Embedding-related errors."""
+
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__(
+            message=message,
+            error_code="embedding_error",
+            status_code=500,
+            details=details
+        )
+
+
+class PolicyViolationError(MetaMCPError):
+    """Policy violation errors."""
+    def __init__(self, message: str, details: dict[str, Any] | None = None):
+        super().__init__(
+            message=message,
+            error_code="policy_violation",
+            status_code=403,
             details=details
         )

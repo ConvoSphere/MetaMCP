@@ -436,9 +436,10 @@ class ToolRegistry:
         tool_data: dict[str, Any]
     ) -> Any:
         """Internal tool execution implementation."""
-        import httpx
         import asyncio
-        
+
+        import httpx
+
         endpoint = tool_data.get("endpoint")
         if not endpoint:
             # Mock execution for development when no endpoint is provided
@@ -452,7 +453,7 @@ class ToolRegistry:
 
         # Make HTTP call to tool endpoint
         timeout = getattr(settings, 'tool_timeout', 30)
-        
+
         try:
             async with httpx.AsyncClient(timeout=timeout) as client:
                 # Try different endpoint patterns
@@ -462,10 +463,10 @@ class ToolRegistry:
                     f"{endpoint}/api/v1/tools/{tool_name}/execute",
                     endpoint  # Direct endpoint
                 ]
-                
+
                 response = None
                 last_error = None
-                
+
                 for exec_endpoint in execution_endpoints:
                     try:
                         response = await client.post(
@@ -480,19 +481,19 @@ class ToolRegistry:
                                 "User-Agent": "MetaMCP/1.0.0"
                             }
                         )
-                        
+
                         if response.status_code == 200:
                             break
                         else:
                             last_error = f"HTTP {response.status_code}: {response.text}"
-                            
+
                     except httpx.TimeoutException:
                         last_error = f"Timeout connecting to {exec_endpoint}"
                     except httpx.ConnectError:
                         last_error = f"Connection error to {exec_endpoint}"
                     except Exception as e:
                         last_error = f"Error calling {exec_endpoint}: {str(e)}"
-                
+
                 if response and response.status_code == 200:
                     try:
                         result = response.json()
@@ -524,7 +525,7 @@ class ToolRegistry:
                         "fallback": True,
                         "error": last_error
                     }
-                    
+
         except Exception as e:
             logger.error(f"Tool execution failed for {tool_name}: {e}")
             raise ToolExecutionError(

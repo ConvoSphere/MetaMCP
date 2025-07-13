@@ -5,9 +5,7 @@ This module provides authentication and authorization endpoints for the
 MCP Meta-Server API.
 """
 
-import time
-from datetime import datetime, timedelta, UTC
-from typing import Optional
+from datetime import UTC, datetime, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -82,7 +80,7 @@ class UserInfo(BaseModel):
 # JWT Token Functions
 # =============================================================================
 
-def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """
     Create JWT access token.
     
@@ -98,7 +96,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.now(UTC) + expires_delta
     else:
         expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
-    
+
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
@@ -121,18 +119,18 @@ def verify_token(token: str) -> dict:
         # Check if token is blacklisted
         if token in token_blacklist:
             raise AuthenticationError("Token has been revoked")
-        
+
         payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
         username: str = payload.get("sub")
         if username is None:
             raise AuthenticationError("Invalid token payload")
-        
+
         return payload
     except JWTError as e:
         raise AuthenticationError(f"Invalid token: {str(e)}")
 
 
-def authenticate_user(username: str, password: str) -> Optional[dict]:
+def authenticate_user(username: str, password: str) -> dict | None:
     """
     Authenticate user with username and password.
     
@@ -146,10 +144,10 @@ def authenticate_user(username: str, password: str) -> Optional[dict]:
     user = users_db.get(username)
     if not user:
         return None
-    
+
     if not pwd_context.verify(password, user["hashed_password"]):
         return None
-    
+
     return user
 
 
@@ -176,14 +174,14 @@ async def get_current_user(
         token = credentials.credentials
         payload = verify_token(token)
         username: str = payload.get("sub")
-        
+
         if username is None:
             raise AuthenticationError("Invalid token payload")
-        
+
         user = users_db.get(username)
         if user is None:
             raise AuthenticationError("User not found")
-        
+
         return user["user_id"]
 
     except AuthenticationError as e:
@@ -310,7 +308,7 @@ async def get_current_user_info(current_user: str = Depends(get_current_user)):
             if u["user_id"] == current_user:
                 user = u
                 break
-        
+
         if not user:
             raise AuthenticationError("User not found")
 
@@ -360,7 +358,7 @@ async def get_user_permissions(current_user: str = Depends(get_current_user)):
             if u["user_id"] == current_user:
                 user = u
                 break
-        
+
         if not user:
             raise AuthenticationError("User not found")
 
@@ -413,7 +411,7 @@ async def refresh_token(current_user: str = Depends(get_current_user)):
             if u["user_id"] == current_user:
                 user = u
                 break
-        
+
         if not user:
             raise AuthenticationError("User not found")
 
