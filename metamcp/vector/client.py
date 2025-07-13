@@ -45,7 +45,7 @@ class VectorSearchClient:
         self.timeout = timeout
 
         # Weaviate client
-        self.client: WeaviateClient | None = None
+        self.client: weaviate.Client | None = None
 
         self._initialized = False
 
@@ -57,15 +57,16 @@ class VectorSearchClient:
         try:
             logger.info("Initializing Vector Search Client...")
 
-            # Create Weaviate client (v4 API)
+            # Create Weaviate client
             auth_config = None
             if self.api_key:
                 auth_config = weaviate.auth.Auth.api_key(self.api_key)
 
-            self.client = WeaviateClient.connect(
+            # Use the correct connection method for Weaviate
+            self.client = weaviate.Client(
                 url=self.url,
-                auth_credentials=auth_config,
-                timeout=self.timeout
+                auth_client_secret=auth_config,
+                timeout_config=(self.timeout, self.timeout)
             )
 
             # Test connection

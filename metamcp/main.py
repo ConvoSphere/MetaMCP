@@ -48,7 +48,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         app.state.mcp_server = mcp_server
 
         # Setup monitoring
-        if settings.metrics_enabled:
+        if settings.telemetry_enabled:
             setup_metrics(app)
 
         # Setup health checks
@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         logger.info("Shutting down MCP Meta-Server...")
 
         if hasattr(app.state, "mcp_server"):
-            await app.state.mcp_server.shutdown()
+            await app.state.mcp_server._shutdown()
 
         logger.info("MCP Meta-Server shutdown complete")
 
