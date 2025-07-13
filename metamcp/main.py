@@ -97,7 +97,7 @@ def create_app() -> FastAPI:
 
     # Include API routers
     api_router = create_api_router()
-    app.include_router(api_router, prefix="/api/v1")
+    app.include_router(api_router)
 
     return app
 
@@ -119,8 +119,8 @@ def setup_middleware(app: FastAPI) -> None:
             allow_headers=["*"],
         )
 
-    # Trusted host middleware
-    if not settings.debug:
+    # Trusted host middleware (only in production)
+    if not settings.debug and settings.environment == "production":
         app.add_middleware(
             TrustedHostMiddleware,
             allowed_hosts=["localhost", "127.0.0.1", settings.host]

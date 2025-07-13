@@ -65,6 +65,9 @@ def get_uptime() -> float:
 
 def format_uptime(seconds: float) -> str:
     """Format uptime in human readable format."""
+    if seconds < 0:
+        return f"{int(seconds)}s"
+
     days = int(seconds // 86400)
     hours = int((seconds % 86400) // 3600)
     minutes = int((seconds % 3600) // 60)

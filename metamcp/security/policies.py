@@ -217,7 +217,7 @@ class PolicyEngine:
         input_data: dict[str, Any]
     ) -> dict[str, Any]:
         """
-        Evaluate a specific policy.
+        Evaluate a policy with input data.
         
         Args:
             policy_name: Name of the policy to evaluate
@@ -230,7 +230,7 @@ class PolicyEngine:
             if not self._initialized:
                 raise PolicyViolationError(
                     message="Policy engine not initialized",
-                    error_code="engine_not_initialized"
+                    error_code="policy_not_initialized"
                 )
 
             if self.engine_type == PolicyEngineType.OPA:
@@ -244,6 +244,49 @@ class PolicyEngine:
                 message=f"Policy evaluation failed: {str(e)}",
                 error_code="policy_evaluation_failed"
             ) from e
+
+    async def evaluate(self, policy_name: str, input_data: dict[str, Any]) -> dict[str, Any]:
+        """
+        Evaluate a policy (alias for evaluate_policy).
+        
+        Args:
+            policy_name: Name of the policy to evaluate
+            input_data: Input data for policy evaluation
+            
+        Returns:
+            Policy evaluation result
+        """
+        return await self.evaluate_policy(policy_name, input_data)
+
+    async def check_permission(self, user_id: str, permission: str) -> bool:
+        """
+        Check if user has a specific permission.
+        
+        Args:
+            user_id: User ID
+            permission: Permission to check
+            
+        Returns:
+            True if user has permission, False otherwise
+        """
+        try:
+            if not self._initialized:
+                logger.warning("Policy engine not initialized, denying permission")
+                return False
+
+            # Get user role
+            user_role = self._get_user_role(user_id)
+
+            # Get policy rules for user role
+            rules = self.policy_rules.get(user_role, {})
+
+            # Check if permission is allowed
+            allowed_actions = rules.get("actions", [])
+            return "*" in allowed_actions or permission in allowed_actions
+
+        except Exception as e:
+            logger.error(f"Permission check failed: {e}")
+            return False
 
     async def _evaluate_policy_opa(self, policy_name: str, input_data: dict[str, Any]) -> dict[str, Any]:
         """Evaluate policy using OPA."""

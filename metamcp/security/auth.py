@@ -86,6 +86,44 @@ class AuthManager:
         """Generate password hash."""
         return self.pwd_context.hash(password)
 
+    def hash_password(self, password: str) -> str:
+        """Generate password hash (alias for get_password_hash)."""
+        return self.get_password_hash(password)
+
+    def validate_password_strength(self, password: str) -> bool:
+        """
+        Validate password strength.
+        
+        Args:
+            password: Password to validate
+            
+        Returns:
+            True if password meets strength requirements
+        """
+        # Basic password strength validation
+        if len(password) < 8:
+            return False
+        
+        # Check for at least one uppercase, lowercase, and digit
+        has_upper = any(c.isupper() for c in password)
+        has_lower = any(c.islower() for c in password)
+        has_digit = any(c.isdigit() for c in password)
+        
+        return has_upper and has_lower and has_digit
+
+    def create_token(self, data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
+        """
+        Create a JWT access token (alias for create_access_token).
+        
+        Args:
+            data: Token payload data
+            expires_delta: Token expiration time
+            
+        Returns:
+            JWT token string
+        """
+        return self.create_access_token(data, expires_delta)
+
     def authenticate_user(self, username: str, password: str) -> dict[str, Any] | None:
         """
         Authenticate a user with username and password.

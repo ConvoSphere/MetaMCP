@@ -75,8 +75,13 @@ class LLMService:
                     message="OpenAI API key not configured"
                 )
 
+            # Handle both SecretStr and regular string
+            api_key = self.settings.openai_api_key
+            if hasattr(api_key, 'get_secret_value'):
+                api_key = api_key.get_secret_value()
+
             self.openai_client = openai.AsyncOpenAI(
-                api_key=self.settings.openai_api_key.get_secret_value(),
+                api_key=api_key,
                 base_url=self.settings.openai_base_url if self.settings.openai_base_url else None
             )
 

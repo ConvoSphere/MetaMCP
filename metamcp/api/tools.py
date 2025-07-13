@@ -198,7 +198,7 @@ async def register_tool(
         if _get_tool_by_name(tool_data.name):
             raise ValidationError(
                 message=f"Tool with name '{tool_data.name}' already exists",
-                error_code="tool_already_exists"
+                field="name"
             )
 
         # Create tool entry
