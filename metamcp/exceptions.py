@@ -250,3 +250,41 @@ class ExternalServiceError(MetaMCPError):
             status_code=502,
             details=details
         )
+
+
+class MCPProtocolError(MetaMCPError):
+    """MCP protocol errors."""
+    
+    def __init__(self, operation: str, reason: str, details: Optional[Dict[str, Any]] = None):
+        message = f"MCP protocol error during {operation}: {reason}"
+        super().__init__(
+            message=message,
+            error_code="mcp_protocol_error",
+            status_code=500,
+            details=details or {"operation": operation, "reason": reason}
+        )
+
+
+class CircuitBreakerOpenError(MetaMCPError):
+    """Circuit breaker is open error."""
+    
+    def __init__(self, circuit_name: str, details: Optional[Dict[str, Any]] = None):
+        message = f"Circuit breaker '{circuit_name}' is open"
+        super().__init__(
+            message=message,
+            error_code="circuit_breaker_open",
+            status_code=503,
+            details=details or {"circuit_name": circuit_name}
+        )
+
+
+class SearchError(MetaMCPError):
+    """Search operation errors."""
+    
+    def __init__(self, message: str, details: Optional[Dict[str, Any]] = None):
+        super().__init__(
+            message=message,
+            error_code="search_error",
+            status_code=500,
+            details=details
+        )

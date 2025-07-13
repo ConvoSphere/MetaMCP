@@ -1,35 +1,26 @@
 # Development dependencies
-pytest==8.0.0
-pytest-asyncio==0.23.5
-pytest-cov==4.1.0
-pytest-benchmark==5.1.0
-pytest-mock==3.12.0
-pytest-xdist==3.5.0
+pytest
+pytest-asyncio
+pytest-cov
+pytest-benchmark
+pytest-httpx
+pytest-mock
+pytest-xdist
 
 # Code quality
-black==24.1.1
-isort==5.13.2
-flake8==7.0.0
-mypy==1.8.0
-pre-commit==3.6.0
-
-# Security
-bandit==1.8.6
-safety==3.6.0
+black
+flake8
+mypy
+isort
+pre-commit
 
 # Documentation
-mkdocs==1.5.3
-mkdocs-material==9.5.3
-mkdocs-autorefs==0.4.0
-mkdocs-section-index==0.4.0
+mkdocs
+mkdocs-material
+mkdocs-autorefs
+mkdocs-section-index
 
 # Testing utilities
-httpx==0.27.0
-pytest-httpx==0.27.0
-pytest-env==1.1.3
-
-# Development utilities
-ipython==8.21.0
-ipdb==0.13.13
-rich==13.7.0
-click==8.1.7 
+httpx
+aioresponses
+freezegun 
