@@ -1,317 +1,432 @@
 """
-MetaMCP Exceptions
+Custom exceptions for MetaMCP.
 
 This module defines all custom exceptions used throughout the MetaMCP system.
 """
 
-from typing import Any
+from typing import Any, Dict, Optional
 
 
-class MetaMCPError(Exception):
-    """Base exception for all MetaMCP errors."""
-
+class MetaMCPException(Exception):
+    """Base exception for MetaMCP."""
+    
     def __init__(
         self,
         message: str,
-        error_code: str,
-        status_code: int = 500,
-        details: dict[str, Any] | None = None
+        error_code: Optional[str] = None,
+        details: Optional[Dict[str, Any]] = None,
+        status_code: int = 500
     ):
         self.message = message
         self.error_code = error_code
-        self.status_code = status_code
         self.details = details or {}
+        self.status_code = status_code
         super().__init__(self.message)
 
 
-# Alias for backward compatibility
-MetaMCPException = MetaMCPError
+class MetaMCPError(MetaMCPException):
+    """General MetaMCP error."""
+    pass
 
 
-class ConfigurationError(MetaMCPError):
-    """Configuration-related errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
+# Tool-related exceptions
+class ToolNotFoundError(MetaMCPException):
+    """Raised when a tool is not found."""
+    
+    def __init__(self, tool_name: str, error_code: str = "tool_not_found"):
         super().__init__(
-            message=message,
-            error_code="configuration_error",
-            status_code=500,
-            details=details
+            message=f"Tool '{tool_name}' not found",
+            error_code=error_code,
+            status_code=404
         )
 
 
-class AuthenticationError(MetaMCPError):
-    """Authentication-related errors."""
+class ToolExecutionError(MetaMCPException):
+    """Raised when tool execution fails."""
+    
+    def __init__(
+        self,
+        message: str,
+        error_code: str = "tool_execution_error",
+        tool_name: Optional[str] = None
+    ):
+        details = {"tool_name": tool_name} if tool_name else {}
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            details=details,
+            status_code=500
+        )
 
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
+
+class ToolRegistrationError(MetaMCPException):
+    """Raised when tool registration fails."""
+    
+    def __init__(self, message: str, error_code: str = "tool_registration_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=400
+        )
+
+
+# Authentication and authorization exceptions
+class AuthenticationError(MetaMCPException):
+    """Raised when authentication fails."""
+    
+    def __init__(self, message: str = "Authentication failed"):
         super().__init__(
             message=message,
             error_code="authentication_error",
-            status_code=401,
-            details=details
+            status_code=401
         )
 
 
-class AuthorizationError(MetaMCPError):
-    """Authorization-related errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
+class AuthorizationError(MetaMCPException):
+    """Raised when authorization fails."""
+    
+    def __init__(self, message: str = "Authorization failed"):
         super().__init__(
             message=message,
             error_code="authorization_error",
-            status_code=403,
-            details=details
+            status_code=403
         )
 
 
-class ToolRegistrationError(MetaMCPError):
-    """Tool registration errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="tool_registration_error",
-            status_code=400,
-            details=details
-        )
-
-
-class ToolNotFoundError(MetaMCPError):
-    """Tool not found errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="tool_not_found",
-            status_code=404,
-            details=details
-        )
-
-
-class ToolExecutionError(MetaMCPError):
-    """Tool execution errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="tool_execution_error",
-            status_code=500,
-            details=details
-        )
-
-
-class VectorSearchError(MetaMCPError):
-    """Vector search errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="vector_search_error",
-            status_code=500,
-            details=details
-        )
-
-
-class LLMServiceError(MetaMCPError):
-    """LLM service errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="llm_service_error",
-            status_code=500,
-            details=details
-        )
-
-
-class PolicyError(MetaMCPError):
-    """Policy evaluation errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="policy_error",
-            status_code=403,
-            details=details
-        )
-
-
-class TelemetryError(MetaMCPError):
-    """Telemetry errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="telemetry_error",
-            status_code=500,
-            details=details
-        )
-
-
-class ProxyError(MetaMCPError):
-    """Proxy-related errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="proxy_error",
-            status_code=500,
-            details=details
-        )
-
-
-class ServerDiscoveryError(MetaMCPError):
-    """Server discovery errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="server_discovery_error",
-            status_code=500,
-            details=details
-        )
-
-
-class ConnectionError(MetaMCPError):
-    """Connection-related errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="connection_error",
-            status_code=503,
-            details=details
-        )
-
-
-class ValidationError(MetaMCPError):
-    """Validation errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="validation_error",
-            status_code=400,
-            details=details
-        )
-
-
-class RateLimitError(MetaMCPError):
-    """Rate limiting errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="rate_limit_error",
-            status_code=429,
-            details=details
-        )
-
-
-class TimeoutError(MetaMCPError):
-    """Timeout errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="timeout_error",
-            status_code=408,
-            details=details
-        )
-
-
-class ResourceNotFoundError(MetaMCPError):
-    """Resource not found errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="resource_not_found",
-            status_code=404,
-            details=details
-        )
-
-
-class DatabaseError(MetaMCPError):
-    """Database-related errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="database_error",
-            status_code=500,
-            details=details
-        )
-
-
-class ExternalServiceError(MetaMCPError):
-    """External service errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="external_service_error",
-            status_code=502,
-            details=details
-        )
-
-
-class MCPProtocolError(MetaMCPError):
-    """MCP protocol errors."""
-
-    def __init__(self, operation: str, reason: str, details: dict[str, Any] | None = None):
-        message = f"MCP protocol error during {operation}: {reason}"
-        super().__init__(
-            message=message,
-            error_code="mcp_protocol_error",
-            status_code=500,
-            details=details or {"operation": operation, "reason": reason}
-        )
-
-
-class CircuitBreakerOpenError(MetaMCPError):
-    """Circuit breaker is open error."""
-
-    def __init__(self, circuit_name: str, details: dict[str, Any] | None = None):
-        message = f"Circuit breaker '{circuit_name}' is open"
-        super().__init__(
-            message=message,
-            error_code="circuit_breaker_open",
-            status_code=503,
-            details=details or {"circuit_name": circuit_name}
-        )
-
-
-class SearchError(MetaMCPError):
-    """Search-related errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="search_error",
-            status_code=500,
-            details=details
-        )
-
-
-class EmbeddingError(MetaMCPError):
-    """Embedding-related errors."""
-
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
-        super().__init__(
-            message=message,
-            error_code="embedding_error",
-            status_code=500,
-            details=details
-        )
-
-
-class PolicyViolationError(MetaMCPError):
-    """Policy violation errors."""
-    def __init__(self, message: str, details: dict[str, Any] | None = None):
+class PolicyViolationError(MetaMCPException):
+    """Raised when a policy violation occurs."""
+    
+    def __init__(self, message: str, policy_name: Optional[str] = None):
+        details = {"policy_name": policy_name} if policy_name else {}
         super().__init__(
             message=message,
             error_code="policy_violation",
-            status_code=403,
-            details=details
+            details=details,
+            status_code=403
         )
+
+
+# MCP protocol exceptions
+class MCPProtocolError(MetaMCPException):
+    """Raised when MCP protocol errors occur."""
+    
+    def __init__(self, message: str, error_code: str = "mcp_protocol_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=400
+        )
+
+
+# Vector search exceptions
+class VectorSearchError(MetaMCPException):
+    """Raised when vector search operations fail."""
+    
+    def __init__(self, message: str, error_code: str = "vector_search_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+class EmbeddingError(MetaMCPException):
+    """Raised when embedding operations fail."""
+    
+    def __init__(self, message: str, error_code: str = "embedding_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+# Proxy-related exceptions
+class ProxyError(MetaMCPException):
+    """Raised when proxy operations fail."""
+    
+    def __init__(self, message: str, error_code: str = "proxy_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+class ServerDiscoveryError(MetaMCPException):
+    """Raised when server discovery fails."""
+    
+    def __init__(self, message: str, error_code: str = "server_discovery_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+# Workflow-related exceptions
+class WorkflowExecutionError(MetaMCPException):
+    """Raised when workflow execution fails."""
+    
+    def __init__(self, message: str, error_code: str = "workflow_execution_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+class WorkflowValidationError(MetaMCPException):
+    """Raised when workflow validation fails."""
+    
+    def __init__(self, message: str, error_code: str = "workflow_validation_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=400
+        )
+
+
+# Search-related exceptions
+class SearchError(MetaMCPException):
+    """Raised when search operations fail."""
+    
+    def __init__(self, message: str, error_code: str = "search_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+# Validation exceptions
+class ValidationError(MetaMCPException):
+    """Raised when validation fails."""
+    
+    def __init__(self, message: str, field: Optional[str] = None):
+        details = {"field": field} if field else {}
+        super().__init__(
+            message=message,
+            error_code="validation_error",
+            details=details,
+            status_code=400
+        )
+
+
+# Circuit breaker exceptions
+class CircuitBreakerOpenError(MetaMCPException):
+    """Raised when circuit breaker is open."""
+    
+    def __init__(self, message: str, circuit_name: Optional[str] = None):
+        details = {"circuit_name": circuit_name} if circuit_name else {}
+        super().__init__(
+            message=message,
+            error_code="circuit_breaker_open",
+            details=details,
+            status_code=503
+        )
+
+
+# Configuration exceptions
+class ConfigurationError(MetaMCPException):
+    """Raised when configuration errors occur."""
+    
+    def __init__(self, message: str, config_key: Optional[str] = None):
+        details = {"config_key": config_key} if config_key else {}
+        super().__init__(
+            message=message,
+            error_code="configuration_error",
+            details=details,
+            status_code=500
+        )
+
+
+# Database exceptions
+class DatabaseError(MetaMCPException):
+    """Raised when database operations fail."""
+    
+    def __init__(self, message: str, error_code: str = "database_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+# Monitoring exceptions
+class MonitoringError(MetaMCPException):
+    """Raised when monitoring operations fail."""
+    
+    def __init__(self, message: str, error_code: str = "monitoring_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+# Rate limiting exceptions
+class RateLimitError(MetaMCPException):
+    """Raised when rate limits are exceeded."""
+    
+    def __init__(self, message: str = "Rate limit exceeded"):
+        super().__init__(
+            message=message,
+            error_code="rate_limit_exceeded",
+            status_code=429
+        )
+
+
+# Timeout exceptions
+class TimeoutError(MetaMCPException):
+    """Raised when operations timeout."""
+    
+    def __init__(self, message: str, operation: Optional[str] = None):
+        details = {"operation": operation} if operation else {}
+        super().__init__(
+            message=message,
+            error_code="timeout_error",
+            details=details,
+            status_code=408
+        )
+
+
+# Connection exceptions
+class ConnectionError(MetaMCPException):
+    """Raised when connection errors occur."""
+    
+    def __init__(self, message: str, endpoint: Optional[str] = None):
+        details = {"endpoint": endpoint} if endpoint else {}
+        super().__init__(
+            message=message,
+            error_code="connection_error",
+            details=details,
+            status_code=503
+        )
+
+
+# Resource exceptions
+class ResourceNotFoundError(MetaMCPException):
+    """Raised when a resource is not found."""
+    
+    def __init__(self, resource_type: str, resource_id: str):
+        super().__init__(
+            message=f"{resource_type} '{resource_id}' not found",
+            error_code="resource_not_found",
+            details={"resource_type": resource_type, "resource_id": resource_id},
+            status_code=404
+        )
+
+
+class ResourceConflictError(MetaMCPException):
+    """Raised when there's a conflict with a resource."""
+    
+    def __init__(self, message: str, resource_type: Optional[str] = None):
+        details = {"resource_type": resource_type} if resource_type else {}
+        super().__init__(
+            message=message,
+            error_code="resource_conflict",
+            details=details,
+            status_code=409
+        )
+
+
+# Service exceptions
+class ServiceUnavailableError(MetaMCPException):
+    """Raised when a service is unavailable."""
+    
+    def __init__(self, service_name: str, message: Optional[str] = None):
+        if not message:
+            message = f"Service '{service_name}' is unavailable"
+        super().__init__(
+            message=message,
+            error_code="service_unavailable",
+            details={"service_name": service_name},
+            status_code=503
+        )
+
+
+# Security exceptions
+class SecurityError(MetaMCPException):
+    """Raised when security-related errors occur."""
+    
+    def __init__(self, message: str, error_code: str = "security_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=403
+        )
+
+
+# Telemetry exceptions
+class TelemetryError(MetaMCPException):
+    """Raised when telemetry operations fail."""
+    
+    def __init__(self, message: str, error_code: str = "telemetry_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+# LLM service exceptions
+class LLMServiceError(MetaMCPException):
+    """Raised when LLM service operations fail."""
+    
+    def __init__(self, message: str, provider: Optional[str] = None):
+        details = {"provider": provider} if provider else {}
+        super().__init__(
+            message=message,
+            error_code="llm_service_error",
+            details=details,
+            status_code=500
+        )
+
+
+# Cache exceptions
+class CacheError(MetaMCPException):
+    """Raised when cache operations fail."""
+    
+    def __init__(self, message: str, error_code: str = "cache_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
+# Export all exceptions
+__all__ = [
+    "MetaMCPException",
+    "MetaMCPError",
+    "ToolNotFoundError",
+    "ToolExecutionError", 
+    "ToolRegistrationError",
+    "AuthenticationError",
+    "AuthorizationError",
+    "PolicyViolationError",
+    "MCPProtocolError",
+    "VectorSearchError",
+    "EmbeddingError",
+    "ProxyError",
+    "ServerDiscoveryError",
+    "WorkflowExecutionError",
+    "WorkflowValidationError",
+    "SearchError",
+    "ValidationError",
+    "CircuitBreakerOpenError",
+    "ConfigurationError",
+    "DatabaseError",
+    "MonitoringError",
+    "RateLimitError",
+    "TimeoutError",
+    "ConnectionError",
+    "ResourceNotFoundError",
+    "ResourceConflictError",
+    "ServiceUnavailableError",
+    "SecurityError",
+    "TelemetryError",
+    "LLMServiceError",
+    "CacheError",
+]
