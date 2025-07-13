@@ -23,7 +23,7 @@ MetaMCP is a comprehensive tool management and execution platform that provides 
 - **Caching System**: Multi-backend caching (Memory, Redis) with TTL and eviction policies
 - **Health Monitoring**: Comprehensive health checks with uptime tracking and component monitoring
 - **Service Layer Architecture**: Clean separation of concerns with dedicated service classes
-- **Comprehensive Testing**: Unit tests, integration tests, and performance tests with high coverage
+- **Comprehensive Testing**: Organized test suite with unit, integration, performance, and security tests
 
 ### Enterprise Features
 - **Security**: Input validation, SQL injection prevention, XSS protection
@@ -111,7 +111,15 @@ flake8 metamcp/
 ruff check metamcp/
 bandit -r metamcp/
 
-# Run tests
+# Run tests with organized structure
+pytest tests/unit/                    # Unit tests only
+pytest tests/unit/security/           # Security tests only
+pytest tests/unit/performance/        # Performance tests only
+pytest tests/unit/telemetry/          # Telemetry tests only
+pytest tests/integration/             # Integration tests only
+pytest tests/blackbox/                # Blackbox tests only
+
+# Run all tests
 pytest
 
 # Run with hot reload
@@ -169,6 +177,56 @@ MetaMCP follows a modular architecture with clear separation of concerns:
 - **MCP Integration** (`metamcp/mcp/`): Model Context Protocol communication
 - **Monitoring** (`metamcp/monitoring/`): Health checks and metrics collection
 - **Security** (`metamcp/security/`): Authentication and authorization
+
+## 🧪 Testing
+
+MetaMCP includes a comprehensive, well-organized test suite:
+
+### Test Structure
+```
+tests/
+├── unit/                    # Unit tests for individual components
+│   ├── security/           # Authentication, authorization, security tests
+│   ├── performance/        # Performance, benchmarking, scalability tests
+│   ├── telemetry/          # Monitoring, metrics, telemetry tests
+│   ├── health/             # Health check tests
+│   ├── services/           # Service layer tests
+│   └── utils/              # Utility function tests
+├── integration/            # Integration tests for component interactions
+├── regression/             # Regression tests for bug fixes
+└── blackbox/              # End-to-end and container tests
+    ├── rest_api/           # REST API endpoint tests
+    ├── mcp_api/            # MCP protocol tests
+    ├── integration/        # End-to-end workflow tests
+    └── performance/        # Load and stress tests
+```
+
+### Running Tests
+```bash
+# All tests
+pytest
+
+# Specific test categories
+pytest tests/unit/security/           # Security tests
+pytest tests/unit/performance/        # Performance tests
+pytest tests/unit/telemetry/          # Telemetry tests
+pytest tests/integration/             # Integration tests
+pytest tests/blackbox/                # Blackbox tests
+
+# With coverage
+pytest --cov=metamcp tests/
+
+# With verbose output
+pytest -v tests/
+```
+
+### Test Coverage
+- **192+ passing tests** with comprehensive coverage
+- **Security tests**: Authentication, authorization, input validation
+- **Performance tests**: Benchmarks, scaling, concurrency
+- **Telemetry tests**: Monitoring, metrics, distributed tracing
+- **Integration tests**: Component interactions and workflows
+- **Blackbox tests**: End-to-end API and container testing
 
 ## 📚 API Documentation
 
@@ -255,398 +313,20 @@ workflow_definition = {
             "config": {
                 "tool_name": "data_processor",
                 "arguments": {
-                    "input_data": "$fetch_data.result",
-                    "processing_type": "aggregation"
+                    "data": "$fetch_data.result",
+                    "operation": "transform"
                 }
             },
-            "depends_on": ["fetch_data"]
-        },
-        {
-            "id": "save_results",
-            "name": "Save Results",
-            "step_type": "tool_call",
-            "config": {
-                "tool_name": "file_operations",
-                "arguments": {
-                    "operation": "write",
-                    "path": "/results/output.json",
-                    "content": "$process_data.result"
-                }
-            },
-            "depends_on": ["process_data"]
+            "dependencies": ["fetch_data"]
         }
-    ],
-    "entry_point": "fetch_data",
-    "parallel_execution": false,
-    "timeout": 300
+    ]
 }
 
 response = requests.post(
-    "http://localhost:8000/api/v1/composition/workflows",
-    json={"workflow": workflow_definition},
+    "http://localhost:8000/api/v1/workflows",
+    json=workflow_definition,
     headers={"Authorization": f"Bearer {token}"}
 )
-
-# Execute a workflow
-execution_request = {
-    "workflow_id": "data-processing-workflow",
-    "input_data": {"database_name": "production_db"},
-    "variables": {"environment": "production"},
-    "timeout": 600
-}
-
-response = requests.post(
-    "http://localhost:8000/api/v1/composition/workflows/data-processing-workflow/execute",
-    json=execution_request,
-    headers={"Authorization": f"Bearer {token}"}
-)
-
-# Check execution status
-response = requests.get(
-    "http://localhost:8000/api/v1/composition/executions/{execution_id}",
-    headers={"Authorization": f"Bearer {token}"}
-)
-```
-
-### Search Tools
-
-```python
-# Search tools
-response = requests.get(
-    "http://localhost:8000/api/v1/tools/search",
-    params={
-        "q": "database query",
-        "search_type": "hybrid",
-        "max_results": 10,
-        "similarity_threshold": 0.7
-    },
-    headers={"Authorization": f"Bearer {token}"}
-)
-```
-
-### Health Monitoring
-
-```bash
-# Basic health check
-curl "http://localhost:8000/api/v1/health"
-
-# Detailed health status
-curl "http://localhost:8000/api/v1/health/detailed"
-
-# Kubernetes probes
-curl "http://localhost:8000/api/v1/health/ready"
-curl "http://localhost:8000/api/v1/health/live"
-```
-
-## 🔄 Workflow Composition Features
-
-### Step Types
-
-MetaMCP supports various step types for complex workflow orchestration:
-
-- **Tool Calls**: Execute tools with variable substitution
-- **Conditions**: Evaluate conditions and branch accordingly
-- **Parallel Steps**: Execute multiple sub-steps concurrently
-- **Loops**: Iterate over collections with loop variables
-- **Delays**: Add delays between steps
-- **HTTP Requests**: Make HTTP requests with dynamic data
-
-### Variable Management
-
-- **Variable Substitution**: Replace variables in step configurations
-- **State Persistence**: Maintain workflow state across steps
-- **Loop Variables**: Automatic loop variable management
-- **Dynamic Values**: Runtime variable evaluation
-
-### Error Handling
-
-- **Retry Logic**: Configurable retry with exponential backoff
-- **Error Recovery**: Graceful error handling and recovery
-- **Circuit Breaker**: Integration with existing circuit breaker patterns
-- **Timeout Management**: Configurable timeouts for all operations
-
-### Example Workflow
-
-```json
-{
-  "id": "ml-pipeline",
-  "name": "Machine Learning Pipeline",
-  "description": "Complete ML data processing pipeline",
-  "steps": [
-    {
-      "id": "data_extraction",
-      "name": "Extract Data",
-      "step_type": "tool_call",
-      "config": {
-        "tool_name": "data_extractor",
-        "arguments": {
-          "source": "$data_source",
-          "format": "csv"
-        }
-      }
-    },
-    {
-      "id": "data_validation",
-      "name": "Validate Data",
-      "step_type": "condition",
-      "config": {
-        "condition": {
-          "operator": "greater_than",
-          "left_operand": "$data_extraction.record_count",
-          "right_operand": 1000
-        }
-      },
-      "depends_on": ["data_extraction"]
-    },
-    {
-      "id": "feature_engineering",
-      "name": "Feature Engineering",
-      "step_type": "tool_call",
-      "config": {
-        "tool_name": "feature_engineer",
-        "arguments": {
-          "input_data": "$data_extraction.result",
-          "features": ["numeric", "categorical"]
-        }
-      },
-      "depends_on": ["data_validation"]
-    },
-    {
-      "id": "model_training",
-      "name": "Train Model",
-      "step_type": "tool_call",
-      "config": {
-        "tool_name": "ml_trainer",
-        "arguments": {
-          "features": "$feature_engineering.result",
-          "algorithm": "random_forest",
-          "hyperparameters": {
-            "n_estimators": 100,
-            "max_depth": 10
-          }
-        }
-      },
-      "depends_on": ["feature_engineering"]
-    },
-    {
-      "id": "model_evaluation",
-      "name": "Evaluate Model",
-      "step_type": "tool_call",
-      "config": {
-        "tool_name": "model_evaluator",
-        "arguments": {
-          "model": "$model_training.result",
-          "test_data": "$data_extraction.result"
-        }
-      },
-      "depends_on": ["model_training"]
-    }
-  ],
-  "entry_point": "data_extraction",
-  "parallel_execution": false,
-  "timeout": 1800
-}
-```
-
-## 🧪 Testing
-
-MetaMCP includes a comprehensive test suite with structured test organization:
-
-### Test Structure
-
-```
-tests/
-├── unit/           # Unit tests (isolated functions, classes)
-├── integration/    # Integration tests (API endpoints, components)
-├── regression/     # Regression tests (bug fixes, edge cases)
-├── blackbox/       # Black-box and end-to-end tests
-└── README.md       # Test documentation and guidelines
-```
-
-### Running Tests
-
-```bash
-# All tests
-pytest
-
-# Specific test types
-pytest tests/unit/           # Unit tests only
-pytest tests/integration/    # Integration tests only
-pytest tests/regression/     # Regression tests only
-pytest tests/blackbox/       # Black-box tests only
-
-# With coverage
-pytest --cov=metamcp --cov-report=html
-
-# Specific test file
-pytest tests/unit/test_services.py
-
-# With verbose output
-pytest -v
-```
-
-### Test Categories
-
-- **Unit Tests**: Test individual functions and classes in isolation
-- **Integration Tests**: Test component interactions and API endpoints
-- **Regression Tests**: Ensure bug fixes remain effective
-- **Black-box Tests**: End-to-end testing of complete workflows
-
-### Code Quality Checks
-
-```bash
-# Linting
-flake8 metamcp/
-ruff check metamcp/
-black --check metamcp/
-
-# Type checking
-mypy metamcp/
-
-# Security scanning
-bandit -r metamcp/
-
-# All checks
-make lint
-```
-
-## 🔧 Configuration
-
-### Environment Variables
-
-```bash
-# Server Configuration
-META_MCP_HOST=0.0.0.0
-META_MCP_PORT=8000
-META_MCP_DEBUG=false
-
-# Security Configuration
-META_MCP_SECRET_KEY=your-secret-key
-META_MCP_ALGORITHM=HS256
-META_MCP_ACCESS_TOKEN_EXPIRE_MINUTES=30
-
-# Database Configuration
-META_MCP_DATABASE_URL=postgresql://user:pass@localhost/meta_mcp
-
-# Cache Configuration
-META_MCP_REDIS_URL=redis://localhost:6379
-META_MCP_CACHE_TTL=300
-
-# Monitoring Configuration
-META_MCP_METRICS_ENABLED=true
-META_MCP_LOGGING_LEVEL=INFO
-META_MCP_TELEMETRY_ENABLED=true
-
-# Workflow Configuration
-META_MCP_WORKFLOW_TIMEOUT=3600
-META_MCP_WORKFLOW_MAX_RETRIES=3
-META_MCP_WORKFLOW_PARALLEL_LIMIT=10
-```
-
-### Circuit Breaker Configuration
-
-```python
-from metamcp.utils.circuit_breaker import CircuitBreakerConfig
-
-config = CircuitBreakerConfig(
-    failure_threshold=3,      # Number of failures before opening
-    recovery_timeout=10.0,    # Time to wait before half-open
-    monitor_interval=5.0      # Monitoring interval
-)
-```
-
-### Cache Configuration
-
-```python
-from metamcp.utils.cache import CacheConfig
-
-config = CacheConfig(
-    ttl=300,        # Time to live in seconds
-    max_size=1000   # Maximum number of cache entries
-)
-```
-
-## 🚀 Deployment
-
-### Docker Deployment
-
-```bash
-# Build image
-docker build -t metamcp .
-
-# Run container
-docker run -d \
-  --name metamcp \
-  -p 8000:8000 \
-  -e META_MCP_SECRET_KEY="your-secret-key" \
-  -e META_MCP_REDIS_URL="redis://redis:6379" \
-  metamcp
-```
-
-### Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: metamcp
-spec:
-  replicas: 3
-  selector:
-    matchLabels:
-      app: metamcp
-  template:
-    metadata:
-      labels:
-        app: metamcp
-    spec:
-      containers:
-      - name: metamcp
-        image: metamcp:latest
-        ports:
-        - containerPort: 8000
-        env:
-        - name: META_MCP_SECRET_KEY
-          valueFrom:
-            secretKeyRef:
-              name: metamcp-secrets
-              key: secret-key
-        livenessProbe:
-          httpGet:
-            path: /api/v1/health/live
-            port: 8000
-        readinessProbe:
-          httpGet:
-            path: /api/v1/health/ready
-            port: 8000
-```
-
-### Monitoring Stack
-
-```yaml
-# docker-compose.monitoring.yml
-version: '3.8'
-services:
-  prometheus:
-    image: prom/prometheus
-    ports:
-      - "9090:9090"
-    volumes:
-      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
-  
-  grafana:
-    image: grafana/grafana
-    ports:
-      - "3000:3000"
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-  
-  alertmanager:
-    image: prom/alertmanager
-    ports:
-      - "9093:9093"
-    volumes:
-      - ./monitoring/alertmanager.yml:/etc/alertmanager/alertmanager.yml
 ```
 
 ## 📊 Monitoring
@@ -739,7 +419,7 @@ git push origin feature/your-feature
 
 - **Type Hints**: All functions include type annotations
 - **Documentation**: Comprehensive docstrings and comments
-- **Testing**: High test coverage with unit and integration tests
+- **Testing**: High test coverage with organized test structure
 - **Linting**: Black, flake8, ruff, and mypy for code quality
 - **Security**: Bandit for security vulnerability scanning
 - **Pre-commit Hooks**: Automated code quality checks
@@ -757,16 +437,17 @@ git push origin feature/your-feature
 
 ### Recent Improvements
 
-- ✅ **Structured Test Organization**: Organized tests into unit, integration, regression, and black-box categories
-- ✅ **Enhanced Test Coverage**: Comprehensive test suite with 64 passing tests
-- ✅ **Workflow Composition**: Complete workflow orchestration engine
-- ✅ **FastMCP 2.0 Integration**: Full compatibility with latest MCP protocol
-- ✅ **OpenTelemetry Support**: Distributed tracing and observability
-- ✅ **Code Quality**: Improved linting and security scanning
-- ✅ **Error Handling**: Robust exception handling and error recovery
-- ✅ **Health Monitoring**: Comprehensive health checks and metrics
+- ✅ **Organized Test Structure**: Comprehensive test organization with unit, integration, regression, and black-box categories
+- ✅ **Enhanced Test Coverage**: 192+ passing tests with security, performance, and telemetry coverage
+- ✅ **Workflow Composition**: Complete workflow orchestration engine with dependency resolution
+- ✅ **FastMCP 2.0 Integration**: Full compatibility with latest MCP protocol standards
+- ✅ **OpenTelemetry Support**: Distributed tracing and observability features
+- ✅ **Code Quality**: Improved linting, security scanning, and error handling
+- ✅ **Health Monitoring**: Comprehensive health checks and metrics collection
 - ✅ **API Routing**: Fixed routing issues and middleware configuration
 - ✅ **Authentication**: Enhanced JWT authentication with proper error handling
+- ✅ **Performance Optimization**: Circuit breaker patterns and caching strategies
+- ✅ **Security Hardening**: Input validation, SQL injection prevention, and XSS protection
 
 ### Planned Features
 
