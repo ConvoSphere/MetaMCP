@@ -450,56 +450,64 @@ MetaMCP supports various step types for complex workflow orchestration:
 
 ## 🧪 Testing
 
-MetaMCP includes comprehensive testing with high coverage:
+MetaMCP includes a comprehensive test suite with structured test organization:
+
+### Test Structure
+
+```
+tests/
+├── unit/           # Unit tests (isolated functions, classes)
+├── integration/    # Integration tests (API endpoints, components)
+├── regression/     # Regression tests (bug fixes, edge cases)
+├── blackbox/       # Black-box and end-to-end tests
+└── README.md       # Test documentation and guidelines
+```
+
+### Running Tests
 
 ```bash
-# Run all tests
+# All tests
 pytest
 
-# Run with coverage
+# Specific test types
+pytest tests/unit/           # Unit tests only
+pytest tests/integration/    # Integration tests only
+pytest tests/regression/     # Regression tests only
+pytest tests/blackbox/       # Black-box tests only
+
+# With coverage
 pytest --cov=metamcp --cov-report=html
 
-# Run specific test categories
-pytest tests/test_auth.py      # Authentication tests
-pytest tests/test_tools.py     # Tool management tests
-pytest tests/test_composition.py # Workflow composition tests
-pytest tests/test_services.py  # Service layer tests
-pytest tests/test_utils.py     # Utility component tests
+# Specific test file
+pytest tests/unit/test_services.py
 
-# Run performance tests
-pytest tests/test_performance.py
-
-# Run security tests
-pytest tests/test_security.py
-
-# Run black-box tests
-pytest tests/blackbox/
+# With verbose output
+pytest -v
 ```
 
 ### Test Categories
 
-- **Unit Tests**: Individual function and class testing
-- **Integration Tests**: API endpoint and service interaction testing
-- **Workflow Tests**: Workflow composition and execution testing
-- **Performance Tests**: Load testing and resource monitoring
-- **Security Tests**: Authentication, authorization, and vulnerability testing
-- **Black-Box Tests**: Containerized API testing for end-to-end validation
+- **Unit Tests**: Test individual functions and classes in isolation
+- **Integration Tests**: Test component interactions and API endpoints
+- **Regression Tests**: Ensure bug fixes remain effective
+- **Black-box Tests**: End-to-end testing of complete workflows
 
-### Code Quality
+### Code Quality Checks
 
 ```bash
-# Run linting
+# Linting
 flake8 metamcp/
 ruff check metamcp/
-bandit -r metamcp/
+black --check metamcp/
 
-# Run type checking
+# Type checking
 mypy metamcp/
 
-# Run all quality checks
+# Security scanning
+bandit -r metamcp/
+
+# All checks
 make lint
-make test
-make security
 ```
 
 ## 🔧 Configuration
@@ -749,13 +757,16 @@ git push origin feature/your-feature
 
 ### Recent Improvements
 
+- ✅ **Structured Test Organization**: Organized tests into unit, integration, regression, and black-box categories
+- ✅ **Enhanced Test Coverage**: Comprehensive test suite with 64 passing tests
 - ✅ **Workflow Composition**: Complete workflow orchestration engine
 - ✅ **FastMCP 2.0 Integration**: Full compatibility with latest MCP protocol
 - ✅ **OpenTelemetry Support**: Distributed tracing and observability
-- ✅ **Enhanced Testing**: Comprehensive test suite with black-box testing
 - ✅ **Code Quality**: Improved linting and security scanning
 - ✅ **Error Handling**: Robust exception handling and error recovery
 - ✅ **Health Monitoring**: Comprehensive health checks and metrics
+- ✅ **API Routing**: Fixed routing issues and middleware configuration
+- ✅ **Authentication**: Enhanced JWT authentication with proper error handling
 
 ### Planned Features
 
