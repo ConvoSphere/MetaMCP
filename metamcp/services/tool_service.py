@@ -48,15 +48,13 @@ class ToolService:
             for field in required_fields:
                 if field not in tool_data or not tool_data[field]:
                     raise ValidationError(
-                        message=f"Missing required field: {field}",
-                        error_code="missing_required_field"
+                        message=f"Missing required field: {field}"
                     )
 
             # Check for duplicate tool name
             if self._get_tool_by_name(tool_data["name"]):
                 raise ValidationError(
-                    message=f"Tool with name '{tool_data['name']}' already exists",
-                    error_code="tool_already_exists"
+                    message=f"Tool with name '{tool_data['name']}' already exists"
                 )
 
             # Create tool entry
@@ -92,8 +90,7 @@ class ToolService:
         except Exception as e:
             logger.error(f"Tool registration failed: {e}")
             raise ValidationError(
-                message=f"Tool registration failed: {str(e)}",
-                error_code="registration_failed"
+                message=f"Tool registration failed: {str(e)}"
             )
 
     async def get_tool(self, tool_name: str) -> dict[str, Any]:

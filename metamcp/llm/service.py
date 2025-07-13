@@ -62,8 +62,7 @@ class LLMService:
         except Exception as e:
             logger.error(f"Failed to initialize LLM Service: {e}")
             raise EmbeddingError(
-                message=f"Failed to initialize LLM service: {str(e)}",
-                error_code="llm_init_failed"
+                message=f"Failed to initialize LLM service: {str(e)}"
             ) from e
 
     async def _initialize_openai(self) -> None:
@@ -73,8 +72,7 @@ class LLMService:
 
             if not self.settings.openai_api_key:
                 raise EmbeddingError(
-                    message="OpenAI API key not configured",
-                    error_code="missing_api_key"
+                    message="OpenAI API key not configured"
                 )
 
             self.openai_client = openai.AsyncOpenAI(
@@ -86,13 +84,11 @@ class LLMService:
 
         except ImportError:
             raise EmbeddingError(
-                message="OpenAI library not installed",
-                error_code="missing_dependency"
+                message="OpenAI library not installed"
             )
         except Exception as e:
             raise EmbeddingError(
-                message=f"Failed to initialize OpenAI client: {str(e)}",
-                error_code="openai_init_failed"
+                message=f"Failed to initialize OpenAI client: {str(e)}"
             ) from e
 
     async def generate_embedding(self, text: str) -> list[float]:
@@ -111,8 +107,7 @@ class LLMService:
         try:
             if not self._initialized:
                 raise EmbeddingError(
-                    message="LLM service not initialized",
-                    error_code="service_not_initialized"
+                    message="LLM service not initialized"
                 )
 
             if self.provider == LLMProvider.OPENAI:
@@ -124,8 +119,7 @@ class LLMService:
         except Exception as e:
             logger.error(f"Embedding generation failed: {e}")
             raise EmbeddingError(
-                message=f"Failed to generate embedding: {str(e)}",
-                error_code="embedding_generation_failed"
+                message=f"Failed to generate embedding: {str(e)}"
             ) from e
 
     async def _generate_openai_embedding(self, text: str) -> list[float]:
@@ -141,8 +135,7 @@ class LLMService:
         except Exception as e:
             logger.error(f"OpenAI embedding failed: {e}")
             raise EmbeddingError(
-                message=f"OpenAI embedding failed: {str(e)}",
-                error_code="openai_embedding_failed"
+                message=f"OpenAI embedding failed: {str(e)}"
             ) from e
 
     def _generate_fallback_embedding(self, text: str) -> list[float]:
@@ -184,16 +177,14 @@ class LLMService:
         try:
             if not self._initialized:
                 raise EmbeddingError(
-                    message="LLM service not initialized",
-                    error_code="service_not_initialized"
+                    message="LLM service not initialized"
                 )
 
             if self.provider == LLMProvider.OPENAI:
                 return await self._generate_openai_text(prompt, max_tokens)
             else:
                 raise EmbeddingError(
-                    message=f"Text generation not supported for provider: {self.provider}",
-                    error_code="unsupported_provider"
+                    message=f"Text generation not supported for provider: {self.provider}"
                 )
 
         except Exception as e:

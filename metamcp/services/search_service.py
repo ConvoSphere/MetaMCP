@@ -77,8 +77,7 @@ class SearchService:
                 results = await self._hybrid_search(query, max_results, similarity_threshold)
             else:
                 raise SearchError(
-                    message=f"Unsupported search type: {search_type}",
-                    error_code="unsupported_search_type"
+                    message=f"Unsupported search type: {search_type}"
                 )
 
             # Calculate search duration
@@ -121,8 +120,7 @@ class SearchService:
 
             logger.error(f"Search failed: {e}")
             raise SearchError(
-                message=f"Search failed: {str(e)}",
-                error_code="search_failed"
+                message=f"Search failed: {str(e)}"
             ) from e
 
     async def _semantic_search(

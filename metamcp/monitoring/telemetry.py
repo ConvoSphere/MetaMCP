@@ -97,10 +97,7 @@ class TelemetryManager:
             trace.set_tracer_provider(self.tracer_provider)
 
             # Create tracer
-            self.tracer = trace.get_tracer(
-                "metamcp",
-                version="1.0.0"
-            )
+            self.tracer = trace.get_tracer("metamcp")
 
             logger.info("OpenTelemetry tracing initialized")
 
@@ -115,9 +112,7 @@ class TelemetryManager:
             metric_readers = []
 
             # Prometheus exporter for metrics
-            prometheus_reader = PrometheusMetricReader(
-                port=self.settings.prometheus_metrics_port
-            )
+            prometheus_reader = PrometheusMetricReader()
             metric_readers.append(prometheus_reader)
 
             # OTLP exporter for metrics (if configured)
@@ -136,10 +131,7 @@ class TelemetryManager:
             metrics.set_meter_provider(self.meter_provider)
 
             # Create meter
-            self.meter = metrics.get_meter(
-                "metamcp",
-                version="1.0.0"
-            )
+            self.meter = metrics.get_meter("metamcp")
 
             logger.info("OpenTelemetry metrics initialized")
 

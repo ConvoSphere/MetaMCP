@@ -16,7 +16,7 @@ from ..config import get_settings
 from ..exceptions import MetaMCPException
 from ..monitoring.telemetry import TelemetryManager
 from ..security.auth import AuthManager
-from ..security.policies import PolicyEngine
+from ..security.policies import PolicyEngine, PolicyEngineType
 from ..tools.registry import ToolRegistry
 from ..utils.logging import get_logger
 from ..vector.client import VectorSearchClient
@@ -81,20 +81,29 @@ class MCPServer:
                 await self.vector_client.initialize()
 
             # Initialize auth manager
-            self.auth_manager = AuthManager()
+            self.auth_manager = AuthManager(self.settings)
             await self.auth_manager.initialize()
 
             # Initialize policy engine
             if self.settings.policy_enforcement_enabled:
-                self.policy_engine = PolicyEngine()
+                self.policy_engine = PolicyEngine(PolicyEngineType.INTERNAL)
                 await self.policy_engine.initialize()
 
+            # Initialize LLM service
+            from ..llm.service import LLMService
+            self.llm_service = LLMService(self.settings)
+            await self.llm_service.initialize()
+
             # Initialize tool registry
-            self.tool_registry = ToolRegistry(
-                vector_client=self.vector_client,
-                policy_engine=self.policy_engine
-            )
-            await self.tool_registry.initialize()
+            if self.vector_client and self.llm_service and self.policy_engine:
+                self.tool_registry = ToolRegistry(
+                    vector_client=self.vector_client,
+                    llm_service=self.llm_service,
+                    policy_engine=self.policy_engine
+                )
+                await self.tool_registry.initialize()
+            else:
+                logger.warning("Tool registry not initialized due to missing dependencies")
 
         except Exception as e:
             logger.error(f"Failed to initialize components: {e}")

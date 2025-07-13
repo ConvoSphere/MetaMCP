@@ -63,10 +63,9 @@ class AuthManager:
             logger.info("Initializing Authentication Manager...")
 
             # Validate JWT secret
-            if not self.settings.jwt_secret_key:
+            if not self.settings.secret_key:
                 raise AuthenticationError(
-                    message="JWT secret key not configured",
-                    error_code="missing_jwt_secret"
+                    message="JWT secret key not configured"
                 )
 
             self._initialized = True
@@ -123,14 +122,14 @@ class AuthManager:
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(hours=self.settings.jwt_expiration_hours)
+            expire = datetime.utcnow() + timedelta(minutes=self.settings.access_token_expire_minutes)
 
         to_encode.update({"exp": expire})
 
         encoded_jwt = jwt.encode(
             to_encode,
-            self.settings.jwt_secret_key.get_secret_value(),
-            algorithm=self.settings.jwt_algorithm
+            self.settings.secret_key,
+            algorithm=self.settings.algorithm
         )
 
         return encoded_jwt
@@ -155,8 +154,8 @@ class AuthManager:
 
             payload = jwt.decode(
                 token,
-                self.settings.jwt_secret_key.get_secret_value(),
-                algorithms=[self.settings.jwt_algorithm]
+                self.settings.secret_key,
+                algorithms=[self.settings.algorithm]
             )
 
             username: str = payload.get("sub")

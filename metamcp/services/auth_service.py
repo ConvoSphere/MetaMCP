@@ -170,8 +170,7 @@ class AuthService:
             # Check if token is blacklisted
             if token in self.token_blacklist:
                 raise AuthenticationError(
-                    message="Token has been revoked",
-                    error_code="token_revoked"
+                    message="Token has been revoked"
                 )
 
             payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
@@ -179,8 +178,7 @@ class AuthService:
 
             if username is None:
                 raise AuthenticationError(
-                    message="Invalid token payload",
-                    error_code="invalid_token_payload"
+                    message="Invalid token payload"
                 )
 
             return payload
@@ -188,14 +186,12 @@ class AuthService:
         except JWTError as e:
             logger.warning(f"Token verification failed: {e}")
             raise AuthenticationError(
-                message="Invalid token",
-                error_code="invalid_token"
+                message="Invalid token"
             ) from e
         except Exception as e:
             logger.error(f"Token verification error: {e}")
             raise AuthenticationError(
-                message=f"Token verification failed: {str(e)}",
-                error_code="verification_failed"
+                message=f"Token verification failed: {str(e)}"
             ) from e
 
     async def get_current_user(self, token: str) -> dict[str, Any]:
@@ -217,21 +213,18 @@ class AuthService:
 
             if username is None:
                 raise AuthenticationError(
-                    message="Invalid token payload",
-                    error_code="invalid_token_payload"
+                    message="Invalid token payload"
                 )
 
             user = self.users.get(username)
             if user is None:
                 raise AuthenticationError(
-                    message="User not found",
-                    error_code="user_not_found"
+                    message="User not found"
                 )
 
             if not user.get("is_active", True):
                 raise AuthenticationError(
-                    message="User is inactive",
-                    error_code="user_inactive"
+                    message="User is inactive"
                 )
 
             return user
@@ -241,8 +234,7 @@ class AuthService:
         except Exception as e:
             logger.error(f"Get current user failed: {e}")
             raise AuthenticationError(
-                message=f"Authentication failed: {str(e)}",
-                error_code="authentication_failed"
+                message=f"Authentication failed: {str(e)}"
             ) from e
 
     async def revoke_token(self, token: str) -> None:
@@ -329,15 +321,13 @@ class AuthService:
             for field in required_fields:
                 if field not in user_data or not user_data[field]:
                     raise ValidationError(
-                        message=f"Missing required field: {field}",
-                        error_code="missing_required_field"
+                        message=f"Missing required field: {field}"
                     )
 
             # Check for duplicate username
             if user_data["username"] in self.users:
                 raise ValidationError(
-                    message=f"User with username '{user_data['username']}' already exists",
-                    error_code="user_already_exists"
+                    message=f"User with username '{user_data['username']}' already exists"
                 )
 
             # Create user entry

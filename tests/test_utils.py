@@ -411,7 +411,7 @@ class TestCacheDecorator:
 
     def test_cache_decorator_sync(self, cache_instance):
         """Test cache decorator with sync function."""
-        from metamcp.utils.cache import set_cache_instance
+        from metamcp.utils.cache import set_cache_instance, cache
         set_cache_instance(cache_instance)
 
         call_count = 0

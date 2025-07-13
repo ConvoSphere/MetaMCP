@@ -21,8 +21,14 @@ class TestAuthentication:
 
     @pytest.fixture
     def auth_manager(self):
-        """Create auth manager for testing."""
-        return AuthManager()
+        """Create AuthManager instance for testing."""
+        from unittest.mock import Mock
+        mock_settings = Mock()
+        mock_settings.jwt_secret_key = Mock()
+        mock_settings.jwt_secret_key.get_secret_value.return_value = "test_secret"
+        mock_settings.jwt_algorithm = "HS256"
+        mock_settings.jwt_expiration_hours = 24
+        return AuthManager(mock_settings)
 
     @pytest.mark.asyncio
     async def test_jwt_token_creation(self, auth_manager):
@@ -93,8 +99,9 @@ class TestAuthorization:
 
     @pytest.fixture
     def policy_engine(self):
-        """Create policy engine for testing."""
-        return PolicyEngine()
+        """Create PolicyEngine instance for testing."""
+        from metamcp.config import PolicyEngineType
+        return PolicyEngine(PolicyEngineType.INTERNAL)
 
     @pytest.mark.asyncio
     async def test_role_based_access_control(self, policy_engine):

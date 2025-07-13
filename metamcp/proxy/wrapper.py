@@ -15,7 +15,7 @@ from ..config import get_settings
 from ..exceptions import ProxyError, ToolExecutionError
 from ..monitoring.telemetry import TelemetryManager
 from ..security.auth import AuthManager
-from ..security.policies import PolicyEngine
+from ..security.policies import PolicyEngine, PolicyEngineType
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -64,11 +64,11 @@ class MCPProxyWrapper:
             logger.info("Initializing MCP Proxy Wrapper...")
 
             # Initialize components
-            self.auth_manager = AuthManager()
+            self.auth_manager = AuthManager(settings)
             await self.auth_manager.initialize()
 
             if settings.policy_enforcement_enabled:
-                self.policy_engine = PolicyEngine()
+                self.policy_engine = PolicyEngine(PolicyEngineType.INTERNAL)
                 await self.policy_engine.initialize()
 
             if settings.telemetry_enabled:
