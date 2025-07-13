@@ -203,8 +203,8 @@ class TestToolService:
         results = await tool_service.search_tools("nonexistent")
         assert len(results) == 0
 
-    @patch('metamcp.services.tool_service.httpx')
-    async def test_execute_tool_success(self, mock_httpx, tool_service, sample_tool_data):
+    @patch('httpx.AsyncClient')
+    async def test_execute_tool_success(self, mock_httpx_client, tool_service, sample_tool_data):
         """Test successful tool execution."""
         user_id = "test_user"
         await tool_service.register_tool(sample_tool_data, user_id)
@@ -217,7 +217,7 @@ class TestToolService:
 
         mock_client = AsyncMock()
         mock_client.post.return_value = mock_response
-        mock_httpx.AsyncClient.return_value.__aenter__.return_value = mock_client
+        mock_httpx_client.return_value.__aenter__.return_value = mock_client
 
         arguments = {"param1": "value1", "param2": "value2"}
 

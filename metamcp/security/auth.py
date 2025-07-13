@@ -198,22 +198,19 @@ class AuthManager:
 
             username: str = payload.get("sub")
             if username is None:
-                raise AuthenticationError(
-                    message="Invalid token: missing subject",
-                    error_code="invalid_token"
-                )
+                            raise AuthenticationError(
+                message="Invalid token: missing subject"
+            )
 
             return username
 
         except jwt.ExpiredSignatureError:
             raise AuthenticationError(
-                message="Token has expired",
-                error_code="token_expired"
+                message="Token has expired"
             )
-        except jwt.JWTError as e:
+        except jwt.PyJWTError as e:
             raise AuthenticationError(
-                message=f"Invalid token: {str(e)}",
-                error_code="invalid_token"
+                message=f"Invalid token: {str(e)}"
             )
 
     def get_user_permissions(self, username: str) -> list:
@@ -263,8 +260,7 @@ class AuthManager:
         user = self.authenticate_user(username, password)
         if not user:
             raise AuthenticationError(
-                message="Invalid username or password",
-                error_code="invalid_credentials"
+                message="Invalid username or password"
             )
 
         # Create access token
@@ -312,8 +308,7 @@ class AuthManager:
         user = self.users.get(username)
         if not user:
             raise AuthenticationError(
-                message="User not found",
-                error_code="user_not_found"
+                message="User not found"
             )
 
         return {

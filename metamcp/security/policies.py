@@ -229,8 +229,7 @@ class PolicyEngine:
         try:
             if not self._initialized:
                 raise PolicyViolationError(
-                    message="Policy engine not initialized",
-                    error_code="policy_not_initialized"
+                    message="Policy engine not initialized"
                 )
 
             if self.engine_type == PolicyEngineType.OPA:
@@ -241,8 +240,7 @@ class PolicyEngine:
         except Exception as e:
             logger.error(f"Policy evaluation failed: {e}")
             raise PolicyViolationError(
-                message=f"Policy evaluation failed: {str(e)}",
-                error_code="policy_evaluation_failed"
+                message=f"Policy evaluation failed: {str(e)}"
             ) from e
 
     async def evaluate(self, policy_name: str, input_data: dict[str, Any]) -> dict[str, Any]:
@@ -301,18 +299,16 @@ class PolicyEngine:
             )
 
             if response.status_code != 200:
-                raise PolicyViolationError(
-                    message=f"OPA policy evaluation failed: {response.text}",
-                    error_code="opa_evaluation_failed"
-                )
+                            raise PolicyViolationError(
+                message=f"OPA policy evaluation failed: {response.text}"
+            )
 
             return response.json()
 
         except Exception as e:
             logger.error(f"OPA policy evaluation failed: {e}")
             raise PolicyViolationError(
-                message=f"OPA policy evaluation failed: {str(e)}",
-                error_code="opa_evaluation_failed"
+                message=f"OPA policy evaluation failed: {str(e)}"
             ) from e
 
     async def _evaluate_policy_internal(self, policy_name: str, input_data: dict[str, Any]) -> dict[str, Any]:
