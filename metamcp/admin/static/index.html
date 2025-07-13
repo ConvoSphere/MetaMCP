@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MetaMCP Admin Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+
+        .header h1 {
+            color: #4a5568;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #718096;
+        }
+
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+        }
+
+        .card h2 {
+            color: #4a5568;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        .metric {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .metric:last-child {
+            border-bottom: none;
+        }
+
+        .metric-label {
+            color: #718096;
+            font-weight: 500;
+        }
+
+        .metric-value {
+            color: #4a5568;
+            font-weight: bold;
+        }
+
+        .status {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: bold;
+        }
+
+        .status.active {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .status.warning {
+            background: #fed7d7;
+            color: #742a2a;
+        }
+
+        .status.maintenance {
+            background: #fef5e7;
+            color: #744210;
+        }
+
+        .refresh-btn {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        .refresh-btn:hover {
+            background: #5a67d8;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #718096;
+        }
+
+        .error {
+            background: #fed7d7;
+            color: #742a2a;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .user-list, .tool-list {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .list-item {
+            padding: 10px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item:last-child {
+            border-bottom: none;
+        }
+
+        .user-info, .tool-info {
+            flex: 1;
+        }
+
+        .user-name, .tool-name {
+            font-weight: bold;
+            color: #4a5568;
+        }
+
+        .user-email, .tool-description {
+            color: #718096;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>MetaMCP Admin Dashboard</h1>
+            <p>System monitoring and management interface</p>
+            <button class="refresh-btn" onclick="refreshData()">Refresh Data</button>
+        </div>
+
+        <div class="dashboard-grid">
+            <!-- System Overview -->
+            <div class="card">
+                <h2>System Overview</h2>
+                <div id="system-overview">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- User Management -->
+            <div class="card">
+                <h2>User Management</h2>
+                <div id="user-management">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Tool Management -->
+            <div class="card">
+                <h2>Tool Management</h2>
+                <div id="tool-management">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- API Management -->
+            <div class="card">
+                <h2>API Management</h2>
+                <div id="api-management">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Monitoring -->
+            <div class="card">
+                <h2>Monitoring & Alerts</h2>
+                <div id="monitoring">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+
+            <!-- Error Statistics -->
+            <div class="card">
+                <h2>Error Statistics</h2>
+                <div id="error-stats">
+                    <div class="loading">Loading...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // API base URL
+        const API_BASE = '/api/v1/admin';
+
+        // Fetch data from API
+        async function fetchData(endpoint) {
+            try {
+                const response = await fetch(`${API_BASE}${endpoint}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return await response.json();
+            } catch (error) {
+                console.error('Error fetching data:', error);
+                return null;
+            }
+        }
+
+        // Update system overview
+        async function updateSystemOverview() {
+            const data = await fetchData('/dashboard');
+            if (!data) {
+                document.getElementById('system-overview').innerHTML = 
+                    '<div class="error">Failed to load system overview</div>';
+                return;
+            }
+
+            const system = data.system;
+            const metrics = data.metrics;
+
+            document.getElementById('system-overview').innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">Uptime</span>
+                    <span class="metric-value">${system.uptime_formatted}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Version</span>
+                    <span class="metric-value">${system.version}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Environment</span>
+                    <span class="metric-value">${system.environment}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Requests</span>
+                    <span class="metric-value">${metrics.total_requests.toLocaleString()}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Error Count</span>
+                    <span class="metric-value">${metrics.error_count}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Memory Usage</span>
+                    <span class="metric-value">${metrics.memory_usage_mb} MB</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">CPU Usage</span>
+                    <span class="metric-value">${metrics.cpu_usage_percent}%</span>
+                </div>
+            `;
+        }
+
+        // Update user management
+        async function updateUserManagement() {
+            const data = await fetchData('/users');
+            if (!data) {
+                document.getElementById('user-management').innerHTML = 
+                    '<div class="error">Failed to load user data</div>';
+                return;
+            }
+
+            const users = data.users;
+            const stats = data.statistics;
+
+            let usersHtml = `
+                <div class="metric">
+                    <span class="metric-label">Total Users</span>
+                    <span class="metric-value">${stats.total_users}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Users</span>
+                    <span class="metric-value">${stats.active_users}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Admin Users</span>
+                    <span class="metric-value">${stats.admin_users}</span>
+                </div>
+                <div class="user-list">
+            `;
+
+            users.forEach(user => {
+                const statusClass = user.is_active ? 'active' : 'warning';
+                usersHtml += `
+                    <div class="list-item">
+                        <div class="user-info">
+                            <div class="user-name">${user.username}</div>
+                            <div class="user-email">${user.email}</div>
+                        </div>
+                        <span class="status ${statusClass}">${user.is_active ? 'Active' : 'Inactive'}</span>
+                    </div>
+                `;
+            });
+
+            usersHtml += '</div>';
+            document.getElementById('user-management').innerHTML = usersHtml;
+        }
+
+        // Update tool management
+        async function updateToolManagement() {
+            const data = await fetchData('/tools');
+            if (!data) {
+                document.getElementById('tool-management').innerHTML = 
+                    '<div class="error">Failed to load tool data</div>';
+                return;
+            }
+
+            const tools = data.tools;
+            const stats = data.statistics;
+
+            let toolsHtml = `
+                <div class="metric">
+                    <span class="metric-label">Total Tools</span>
+                    <span class="metric-value">${stats.total_tools}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Active Tools</span>
+                    <span class="metric-value">${stats.active_tools}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Total Usage</span>
+                    <span class="metric-value">${stats.total_usage.toLocaleString()}</span>
+                </div>
+                <div class="tool-list">
+            `;
+
+            tools.forEach(tool => {
+                const statusClass = tool.status === 'active' ? 'active' : 
+                                  tool.status === 'maintenance' ? 'maintenance' : 'warning';
+                toolsHtml += `
+                    <div class="list-item">
+                        <div class="tool-info">
+                            <div class="tool-name">${tool.name}</div>
+                            <div class="tool-description">${tool.description}</div>
+                        </div>
+                        <span class="status ${statusClass}">${tool.status}</span>
+                    </div>
+                `;
+            });
+
+            toolsHtml += '</div>';
+            document.getElementById('tool-management').innerHTML = toolsHtml;
+        }
+
+        // Update API management
+        async function updateAPIManagement() {
+            const data = await fetchData('/dashboard');
+            if (!data) {
+                document.getElementById('api-management').innerHTML = 
+                    '<div class="error">Failed to load API data</div>';
+                return;
+            }
+
+            const api = data.api;
+
+            document.getElementById('api-management').innerHTML = `
+                <div class="metric">
+                    <span class="metric-label">Current Version</span>
+                    <span class="metric-value">${api.versions.current_version}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Latest Version</span>
+                    <span class="metric-value">${api.versions.latest_version}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Rate Limiting</span>
+                    <span class="metric-value">${api.rate_limiting.enabled ? 'Enabled' : 'Disabled'}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">Request Signing</span>
+                    <span class="metric-value">${api.security.request_signing ? 'Enabled' : 'Disabled'}</span>
+                </div>
+                <div class="metric">
+                    <span class="metric-label">API Keys</span>
+                    <span class="metric-value">${api.security.api_keys_enabled ? 'Enabled' : 'Disabled'}</span>
+                </div>
+            `;
+        }
+
+        // Update monitoring
+        async function updateMonitoring() {
+            const data = await fetchData('/dashboard');
+            if (!data) {
+                document.getElementById('monitoring').innerHTML = 
+                    '<div class="error">Failed to load monitoring data</div>';
+                return;
+            }
+
+            const monitoring = data.monitoring;
+
+            let monitoringHtml = '<div class="metric"><span class="metric-label">Active Alerts</span><span class="metric-value">' + 
+                               monitoring.alerts.filter(a => !a.resolved).length + '</span></div>';
+
+            monitoring.alerts.forEach(alert => {
+                const severityClass = alert.severity === 'warning' ? 'warning' : 'active';
+                monitoringHtml += `
+                    <div class="list-item">
+                        <div class="tool-info">
+                            <div class="tool-name">${alert.message}</div>
+                            <div class="tool-description">${new Date(alert.timestamp).toLocaleString()}</div>
+                        </div>
+                        <span class="status ${severityClass}">${alert.severity}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('monitoring').innerHTML = monitoringHtml;
+        }
+
+        // Update error statistics
+        async function updateErrorStats() {
+            const data = await fetchData('/dashboard');
+            if (!data) {
+                document.getElementById('error-stats').innerHTML = 
+                    '<div class="error">Failed to load error statistics</div>';
+                return;
+            }
+
+            const errors = data.system.errors;
+
+            let errorHtml = `
+                <div class="metric">
+                    <span class="metric-label">Total Errors</span>
+                    <span class="metric-value">${Object.values(errors.by_severity).reduce((a, b) => a + b, 0)}</span>
+                </div>
+            `;
+
+            Object.entries(errors.by_severity).forEach(([severity, count]) => {
+                errorHtml += `
+                    <div class="metric">
+                        <span class="metric-label">${severity.charAt(0).toUpperCase() + severity.slice(1)}</span>
+                        <span class="metric-value">${count}</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('error-stats').innerHTML = errorHtml;
+        }
+
+        // Refresh all data
+        async function refreshData() {
+            await Promise.all([
+                updateSystemOverview(),
+                updateUserManagement(),
+                updateToolManagement(),
+                updateAPIManagement(),
+                updateMonitoring(),
+                updateErrorStats()
+            ]);
+        }
+
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            refreshData();
+            
+            // Auto-refresh every 30 seconds
+            setInterval(refreshData, 30000);
+        });
+    </script>
+</body>
+</html> 

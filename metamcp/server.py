@@ -22,6 +22,7 @@ from .exceptions import MetaMCPException
 from .mcp.server import MCPServer
 from .monitoring.telemetry import TelemetryManager
 from .utils.logging import get_logger, setup_logging
+from .utils.rate_limiter import create_rate_limiter, RateLimitMiddleware
 
 logger = get_logger(__name__)
 
@@ -161,6 +162,10 @@ class MetaMCPServer:
 
         # Gzip middleware
         app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+        # Rate limiting middleware
+        rate_limiter = create_rate_limiter(use_redis=False)  # Use memory limiter for now
+        app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
 
         # Metrics middleware
         if self.settings.telemetry_enabled:
