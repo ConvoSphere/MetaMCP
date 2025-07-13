@@ -274,20 +274,27 @@ class MCPServer:
             return []
 
         try:
+            import time
+            start_time = time.time()
+            
             results = await self.tool_registry.search_tools(
                 query=query,
                 max_results=max_results,
                 similarity_threshold=similarity_threshold
             )
 
+            # Calculate actual duration
+            duration = time.time() - start_time
+
             # Record vector search metrics
             if self.telemetry_manager:
                 self.telemetry_manager.record_vector_search(
                     query_length=len(query),
                     result_count=len(results),
-                    duration=0.0  # TODO: Add timing
+                    duration=duration
                 )
 
+            logger.info(f"Vector search completed in {duration:.3f}s, found {len(results)} results")
             return results
 
         except Exception as e:

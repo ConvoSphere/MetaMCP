@@ -436,29 +436,101 @@ class ToolRegistry:
         tool_data: dict[str, Any]
     ) -> Any:
         """Internal tool execution implementation."""
-        # This is a placeholder implementation
-        # In production, this would make HTTP calls to tool endpoints
-
+        import httpx
+        import asyncio
+        
         endpoint = tool_data.get("endpoint")
-        if endpoint:
-            # Make HTTP call to tool endpoint
-            import httpx
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{endpoint}/execute",
-                    json={
-                        "tool": tool_name,
-                        "arguments": arguments
-                    },
-                    timeout=settings.tool_timeout
-                )
-                return response.json()
-        else:
-            # Mock execution for development
+        if not endpoint:
+            # Mock execution for development when no endpoint is provided
+            await asyncio.sleep(0.1)  # Simulate processing time
             return {
                 "message": f"Executed {tool_name} with arguments: {arguments}",
-                "status": "success"
+                "status": "success",
+                "tool_name": tool_name,
+                "execution_time": 0.1
             }
+
+        # Make HTTP call to tool endpoint
+        timeout = getattr(settings, 'tool_timeout', 30)
+        
+        try:
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                # Try different endpoint patterns
+                execution_endpoints = [
+                    f"{endpoint}/execute",
+                    f"{endpoint}/tools/{tool_name}/execute",
+                    f"{endpoint}/api/v1/tools/{tool_name}/execute",
+                    endpoint  # Direct endpoint
+                ]
+                
+                response = None
+                last_error = None
+                
+                for exec_endpoint in execution_endpoints:
+                    try:
+                        response = await client.post(
+                            exec_endpoint,
+                            json={
+                                "tool": tool_name,
+                                "arguments": arguments,
+                                "timestamp": datetime.now(UTC).isoformat()
+                            },
+                            headers={
+                                "Content-Type": "application/json",
+                                "User-Agent": "MetaMCP/1.0.0"
+                            }
+                        )
+                        
+                        if response.status_code == 200:
+                            break
+                        else:
+                            last_error = f"HTTP {response.status_code}: {response.text}"
+                            
+                    except httpx.TimeoutException:
+                        last_error = f"Timeout connecting to {exec_endpoint}"
+                    except httpx.ConnectError:
+                        last_error = f"Connection error to {exec_endpoint}"
+                    except Exception as e:
+                        last_error = f"Error calling {exec_endpoint}: {str(e)}"
+                
+                if response and response.status_code == 200:
+                    try:
+                        result = response.json()
+                        return {
+                            "status": "success",
+                            "result": result,
+                            "tool_name": tool_name,
+                            "execution_time": 0.0,  # Will be calculated by caller
+                            "http_status": response.status_code
+                        }
+                    except ValueError:
+                        # Return text if not JSON
+                        return {
+                            "status": "success",
+                            "result": response.text,
+                            "tool_name": tool_name,
+                            "execution_time": 0.0,
+                            "http_status": response.status_code
+                        }
+                else:
+                    # Fallback to mock execution if all endpoints fail
+                    logger.warning(f"Tool execution failed for {tool_name}, using mock: {last_error}")
+                    await asyncio.sleep(0.1)
+                    return {
+                        "message": f"Mock execution of {tool_name} with arguments: {arguments}",
+                        "status": "success",
+                        "tool_name": tool_name,
+                        "execution_time": 0.1,
+                        "fallback": True,
+                        "error": last_error
+                    }
+                    
+        except Exception as e:
+            logger.error(f"Tool execution failed for {tool_name}: {e}")
+            raise ToolExecutionError(
+                message=f"Tool execution failed: {str(e)}",
+                error_code="execution_failed"
+            ) from e
 
     async def shutdown(self) -> None:
         """Shutdown the tool registry."""

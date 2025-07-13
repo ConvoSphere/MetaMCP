@@ -22,3 +22,13 @@ router.include_router(health_router)
 router.include_router(oauth_router)
 router.include_router(tools_router)
 router.include_router(proxy_router)
+
+
+def create_api_router() -> APIRouter:
+    """
+    Create and configure the main API router.
+    
+    Returns:
+        APIRouter: Configured router with all endpoints
+    """
+    return router

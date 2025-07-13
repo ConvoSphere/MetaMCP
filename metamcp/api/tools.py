@@ -5,6 +5,8 @@ This module provides REST API endpoints for tool management including
 registration, search, execution, and CRUD operations.
 """
 
+import uuid
+from datetime import datetime, UTC
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -19,6 +21,9 @@ settings = get_settings()
 
 # Create router
 tools_router = APIRouter()
+
+# Mock tool registry (in production, this would be a database)
+mock_tools: dict[str, dict[str, Any]] = {}
 
 
 # =============================================================================
@@ -103,12 +108,56 @@ class ToolSearchResponse(BaseModel):
 
 
 # =============================================================================
+# Mock Tool Registry Functions
+# =============================================================================
+
+def _create_tool_id() -> str:
+    """Create a unique tool ID."""
+    return str(uuid.uuid4())
+
+
+def _get_tool_by_name(name: str) -> dict[str, Any] | None:
+    """Get tool by name from mock registry."""
+    for tool in mock_tools.values():
+        if tool["name"] == name:
+            return tool
+    return None
+
+
+def _filter_tools_by_category(tools: list[dict[str, Any]], category: str | None) -> list[dict[str, Any]]:
+    """Filter tools by category."""
+    if category is None:
+        return tools
+    return [tool for tool in tools if tool.get("category") == category]
+
+
+def _paginate_tools(tools: list[dict[str, Any]], offset: int, limit: int) -> list[dict[str, Any]]:
+    """Paginate tools list."""
+    return tools[offset:offset + limit]
+
+
+def _search_tools_simple(query: str, tools: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Simple text-based tool search."""
+    query_lower = query.lower()
+    results = []
+    
+    for tool in tools:
+        # Search in name, description, and tags
+        if (query_lower in tool["name"].lower() or
+            query_lower in tool["description"].lower() or
+            any(query_lower in tag.lower() for tag in tool.get("tags", []))):
+            results.append(tool)
+    
+    return results
+
+
+# =============================================================================
 # Dependencies
 # =============================================================================
 
 async def get_current_user_id() -> str:
     """Get current user ID from authentication context."""
-    # TODO: Implement actual authentication
+    # This would be implemented with proper authentication
     return "system_user"
 
 
@@ -145,11 +194,40 @@ async def register_tool(
         Tool registration result with tool ID
     """
     try:
-        tool_id = await mcp_server.register_tool(
-            tool_data=tool_data.dict(),
-            user_id=user_id
-        )
+        # Check if tool with same name already exists
+        if _get_tool_by_name(tool_data.name):
+            raise ValidationError(
+                message=f"Tool with name '{tool_data.name}' already exists",
+                error_code="tool_already_exists"
+            )
 
+        # Create tool entry
+        tool_id = _create_tool_id()
+        now = datetime.now(UTC).isoformat()
+        
+        tool_entry = {
+            "id": tool_id,
+            "name": tool_data.name,
+            "description": tool_data.description,
+            "endpoint": tool_data.endpoint,
+            "category": tool_data.category,
+            "capabilities": tool_data.capabilities or [],
+            "security_level": tool_data.security_level or 0,
+            "schema": tool_data.schema,
+            "metadata": tool_data.metadata or {},
+            "version": tool_data.version or "1.0.0",
+            "author": tool_data.author,
+            "tags": tool_data.tags or [],
+            "created_at": now,
+            "updated_at": now,
+            "is_active": True,
+            "created_by": user_id
+        }
+        
+        mock_tools[tool_id] = tool_entry
+        
+        logger.info(f"Tool '{tool_data.name}' registered with ID: {tool_id}")
+        
         return {"tool_id": tool_id, "message": "Tool registered successfully"}
 
     except ValidationError as e:
@@ -202,10 +280,43 @@ async def list_tools(
         List of tools with pagination information
     """
     try:
-        # TODO: Implement actual tool listing with MCP server
+        # Get all active tools
+        all_tools = [tool for tool in mock_tools.values() if tool.get("is_active", True)]
+        
+        # Filter by category if specified
+        filtered_tools = _filter_tools_by_category(all_tools, category)
+        
+        # Get total count
+        total = len(filtered_tools)
+        
+        # Paginate results
+        paginated_tools = _paginate_tools(filtered_tools, offset, limit)
+        
+        # Convert to response format
+        tool_responses = [
+            ToolResponse(
+                id=tool["id"],
+                name=tool["name"],
+                description=tool["description"],
+                endpoint=tool["endpoint"],
+                category=tool["category"],
+                capabilities=tool["capabilities"],
+                security_level=tool["security_level"],
+                schema=tool["schema"],
+                metadata=tool["metadata"],
+                version=tool["version"],
+                author=tool["author"],
+                tags=tool["tags"],
+                created_at=tool["created_at"],
+                updated_at=tool["updated_at"],
+                is_active=tool["is_active"]
+            )
+            for tool in paginated_tools
+        ]
+        
         return ToolListResponse(
-            tools=[],
-            total=0,
+            tools=tool_responses,
+            total=total,
             offset=offset,
             limit=limit
         )
@@ -245,8 +356,27 @@ async def get_tool(
         Tool details
     """
     try:
-        # TODO: Implement actual tool retrieval
-        raise ToolNotFoundError(tool_name)
+        tool = _get_tool_by_name(tool_name)
+        if not tool:
+            raise ToolNotFoundError(tool_name)
+
+        return ToolResponse(
+            id=tool["id"],
+            name=tool["name"],
+            description=tool["description"],
+            endpoint=tool["endpoint"],
+            category=tool["category"],
+            capabilities=tool["capabilities"],
+            security_level=tool["security_level"],
+            schema=tool["schema"],
+            metadata=tool["metadata"],
+            version=tool["version"],
+            author=tool["author"],
+            tags=tool["tags"],
+            created_at=tool["created_at"],
+            updated_at=tool["updated_at"],
+            is_active=tool["is_active"]
+        )
 
     except ToolNotFoundError as e:
         raise HTTPException(
@@ -296,8 +426,42 @@ async def update_tool(
         Updated tool details
     """
     try:
-        # TODO: Implement actual tool update
-        raise ToolNotFoundError(tool_name)
+        tool = _get_tool_by_name(tool_name)
+        if not tool:
+            raise ToolNotFoundError(tool_name)
+
+        # Update tool fields
+        update_data = tool_data.dict(exclude_unset=True)
+        for key, value in update_data.items():
+            if value is not None:
+                tool[key] = value
+        
+        # Update timestamp
+        tool["updated_at"] = datetime.now(UTC).isoformat()
+        tool["updated_by"] = user_id
+        
+        # Update in registry
+        mock_tools[tool["id"]] = tool
+        
+        logger.info(f"Tool '{tool_name}' updated by user: {user_id}")
+        
+        return ToolResponse(
+            id=tool["id"],
+            name=tool["name"],
+            description=tool["description"],
+            endpoint=tool["endpoint"],
+            category=tool["category"],
+            capabilities=tool["capabilities"],
+            security_level=tool["security_level"],
+            schema=tool["schema"],
+            metadata=tool["metadata"],
+            version=tool["version"],
+            author=tool["author"],
+            tags=tool["tags"],
+            created_at=tool["created_at"],
+            updated_at=tool["updated_at"],
+            is_active=tool["is_active"]
+        )
 
     except ToolNotFoundError as e:
         raise HTTPException(
@@ -342,8 +506,19 @@ async def delete_tool(
         mcp_server: MCP server instance
     """
     try:
-        # TODO: Implement actual tool deletion
-        raise ToolNotFoundError(tool_name)
+        tool = _get_tool_by_name(tool_name)
+        if not tool:
+            raise ToolNotFoundError(tool_name)
+
+        # Soft delete - mark as inactive
+        tool["is_active"] = False
+        tool["updated_at"] = datetime.now(UTC).isoformat()
+        tool["deleted_by"] = user_id
+        
+        # Update in registry
+        mock_tools[tool["id"]] = tool
+        
+        logger.info(f"Tool '{tool_name}' deleted by user: {user_id}")
 
     except ToolNotFoundError as e:
         raise HTTPException(
@@ -388,25 +563,35 @@ async def search_tools(
         mcp_server: MCP server instance
         
     Returns:
-        Search results with matching tools
+        Search results with metadata
     """
     try:
         import time
         start_time = time.time()
-
-        results = await mcp_server.search_tools(
-            query=search_request.query,
-            user_id=user_id,
-            max_results=search_request.max_results,
-            similarity_threshold=search_request.similarity_threshold
-        )
-
+        
+        # Get all active tools
+        all_tools = [tool for tool in mock_tools.values() if tool.get("is_active", True)]
+        
+        # Filter by category if specified
+        if search_request.category:
+            all_tools = _filter_tools_by_category(all_tools, search_request.category)
+        
+        # Perform search
+        search_results = _search_tools_simple(search_request.query, all_tools)
+        
+        # Limit results
+        max_results = search_request.max_results or 10
+        search_results = search_results[:max_results]
+        
+        # Calculate search time
         search_time = time.time() - start_time
-
+        
+        logger.info(f"Tool search completed in {search_time:.3f}s, found {len(search_results)} results")
+        
         return ToolSearchResponse(
-            tools=results,
+            tools=search_results,
             query=search_request.query,
-            total=len(results),
+            total=len(search_results),
             search_time=search_time
         )
 
@@ -434,11 +619,11 @@ async def execute_tool(
     mcp_server = Depends(get_mcp_server)
 ):
     """
-    Execute a tool with the provided input data.
+    Execute a specific tool.
     
     Args:
         tool_name: Name of the tool to execute
-        execution_request: Tool execution parameters
+        execution_request: Execution parameters
         user_id: Current user ID
         mcp_server: MCP server instance
         
@@ -446,17 +631,25 @@ async def execute_tool(
         Tool execution result
     """
     try:
-        result = await mcp_server.execute_tool(
-            tool_name=tool_name,
-            input_data=execution_request.input_data,
-            user_id=user_id
-        )
+        tool = _get_tool_by_name(tool_name)
+        if not tool:
+            raise ToolNotFoundError(tool_name)
 
-        return {
+        # Mock tool execution
+        # In production, this would make an HTTP call to the tool endpoint
+        result = {
             "tool_name": tool_name,
-            "result": result,
-            "success": True
+            "input_data": execution_request.input_data,
+            "status": "success",
+            "result": f"Mock execution of {tool_name} with input: {execution_request.input_data}",
+            "execution_time": 0.1,
+            "executed_by": user_id,
+            "timestamp": datetime.now(UTC).isoformat()
         }
+        
+        logger.info(f"Tool '{tool_name}' executed by user: {user_id}")
+        
+        return result
 
     except ToolNotFoundError as e:
         raise HTTPException(

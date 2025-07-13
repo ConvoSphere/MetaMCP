@@ -1,400 +1,39 @@
-# API Documentation
-
-MetaMCP provides a comprehensive REST API for tool discovery, execution, and management.
+# MetaMCP API Reference
 
 ## Overview
 
-The MetaMCP API is built on FastAPI and provides:
-
-- **Tool Management**: Register, discover, and execute tools
-- **Vector Search**: Semantic search for tools
-- **Authentication**: JWT-based authentication
-- **Monitoring**: Built-in metrics and health checks
-- **MCP Protocol**: WebSocket support for MCP clients
+The MetaMCP API provides a comprehensive RESTful interface for tool management, execution, and system administration. The API follows REST principles and uses JSON for data exchange.
 
 ## Base URL
 
 ```
-http://localhost:8000
+http://localhost:8000/api/v1
 ```
 
 ## Authentication
 
-### JWT Authentication
+All API endpoints require authentication using JWT tokens. Include the token in the Authorization header:
 
-Most endpoints require authentication using JWT tokens.
-
-```bash
-# Get token
-curl -X POST "http://localhost:8000/auth/login" \
-  -H "Content-Type: application/json" \
-  -d '{"username": "user", "password": "password"}'
-
-# Use token
-curl -X GET "http://localhost:8000/api/tools" \
-  -H "Authorization: Bearer YOUR_TOKEN"
+```
+Authorization: Bearer <your-jwt-token>
 ```
 
-### API Key Authentication
+## Response Format
 
-For service-to-service communication:
+All API responses follow a consistent format:
 
-```bash
-curl -X GET "http://localhost:8000/api/tools" \
-  -H "X-API-Key: YOUR_API_KEY"
-```
-
-## Endpoints
-
-### Health Check
-
-#### GET /health
-
-Check service health status.
-
-```bash
-curl -X GET "http://localhost:8000/health"
-```
-
-**Response:**
+### Success Response
 ```json
 {
-  "status": "healthy",
-  "timestamp": 1640995200.0,
-  "version": "1.0.0",
-  "components": {
-    "database": "healthy",
-    "vector_search": "healthy",
-    "llm_service": "healthy"
-  }
-}
-```
-
-### Authentication
-
-#### POST /auth/login
-
-Authenticate user and get JWT token.
-
-**Request:**
-```json
-{
-  "username": "user",
-  "password": "password"
-}
-```
-
-**Response:**
-```json
-{
-  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "token_type": "bearer",
-  "expires_in": 1800
-}
-```
-
-#### POST /auth/refresh
-
-Refresh JWT token.
-
-**Headers:**
-```
-Authorization: Bearer YOUR_TOKEN
-```
-
-**Response:**
-```json
-{
-  "access_token": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9...",
-  "token_type": "bearer",
-  "expires_in": 1800
-}
-```
-
-### Tools
-
-#### GET /api/tools
-
-List all available tools.
-
-**Headers:**
-```
-Authorization: Bearer YOUR_TOKEN
-```
-
-**Query Parameters:**
-- `limit` (int): Maximum number of tools to return (default: 100)
-- `offset` (int): Number of tools to skip (default: 0)
-- `category` (str): Filter by tool category
-- `tags` (str): Filter by tags (comma-separated)
-
-**Response:**
-```json
-{
-  "tools": [
-    {
-      "id": "calculator",
-      "name": "Calculator",
-      "description": "Perform mathematical calculations",
-      "version": "1.0.0",
-      "categories": ["math", "calculation"],
-      "tags": ["calculator", "math"],
-      "input_schema": {
-        "type": "object",
-        "properties": {
-          "operation": {
-            "type": "string",
-            "enum": ["add", "subtract", "multiply", "divide"]
-          },
-          "a": {"type": "number"},
-          "b": {"type": "number"}
-        },
-        "required": ["operation", "a", "b"]
-      },
-      "output_schema": {
-        "type": "object",
-        "properties": {
-          "result": {"type": "number"}
-        }
-      },
-      "created_at": "2024-01-01T12:00:00Z",
-      "updated_at": "2024-01-01T12:00:00Z"
-    }
-  ],
-  "total": 1,
-  "limit": 100,
-  "offset": 0
-}
-```
-
-#### GET /api/tools/{tool_id}
-
-Get specific tool details.
-
-**Headers:**
-```
-Authorization: Bearer YOUR_TOKEN
-```
-
-**Response:**
-```json
-{
-  "id": "calculator",
-  "name": "Calculator",
-  "description": "Perform mathematical calculations",
-  "version": "1.0.0",
-  "categories": ["math", "calculation"],
-  "tags": ["calculator", "math"],
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "operation": {
-        "type": "string",
-        "enum": ["add", "subtract", "multiply", "divide"]
-      },
-      "a": {"type": "number"},
-      "b": {"type": "number"}
-    },
-    "required": ["operation", "a", "b"]
+  "status": "success",
+  "data": {
+    // Response data
   },
-  "output_schema": {
-    "type": "object",
-    "properties": {
-      "result": {"type": "number"}
-    }
-  },
-  "created_at": "2024-01-01T12:00:00Z",
-  "updated_at": "2024-01-01T12:00:00Z"
+  "timestamp": "2023-01-01T00:00:00Z"
 }
 ```
 
-#### POST /api/tools/{tool_id}/execute
-
-Execute a tool.
-
-**Headers:**
-```
-Authorization: Bearer YOUR_TOKEN
-Content-Type: application/json
-```
-
-**Request:**
-```json
-{
-  "input": {
-    "operation": "add",
-    "a": 5,
-    "b": 3
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "result": {
-    "result": 8
-  },
-  "execution_time": 0.123,
-  "success": true,
-  "tool_id": "calculator"
-}
-```
-
-#### POST /api/tools
-
-Register a new tool.
-
-**Headers:**
-```
-Authorization: Bearer YOUR_TOKEN
-Content-Type: application/json
-```
-
-**Request:**
-```json
-{
-  "name": "New Tool",
-  "description": "A new tool description",
-  "version": "1.0.0",
-  "categories": ["utility"],
-  "tags": ["new", "tool"],
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "input": {"type": "string"}
-    },
-    "required": ["input"]
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {
-      "output": {"type": "string"}
-    }
-  }
-}
-```
-
-**Response:**
-```json
-{
-  "id": "new_tool_123",
-  "name": "New Tool",
-  "description": "A new tool description",
-  "version": "1.0.0",
-  "categories": ["utility"],
-  "tags": ["new", "tool"],
-  "input_schema": {
-    "type": "object",
-    "properties": {
-      "input": {"type": "string"}
-    },
-    "required": ["input"]
-  },
-  "output_schema": {
-    "type": "object",
-    "properties": {
-      "output": {"type": "string"}
-    }
-  },
-  "created_at": "2024-01-01T12:00:00Z",
-  "updated_at": "2024-01-01T12:00:00Z"
-}
-```
-
-### Vector Search
-
-#### POST /api/search
-
-Search for tools using semantic search.
-
-**Headers:**
-```
-Authorization: Bearer YOUR_TOKEN
-Content-Type: application/json
-```
-
-**Request:**
-```json
-{
-  "query": "mathematical calculation tool",
-  "limit": 10,
-  "similarity_threshold": 0.7
-}
-```
-
-**Response:**
-```json
-{
-  "results": [
-    {
-      "tool_id": "calculator",
-      "name": "Calculator",
-      "description": "Perform mathematical calculations",
-      "similarity_score": 0.95,
-      "categories": ["math", "calculation"],
-      "tags": ["calculator", "math"]
-    }
-  ],
-  "total_results": 1,
-  "query": "mathematical calculation tool",
-  "search_time": 0.123
-}
-```
-
-### MCP Protocol
-
-#### WebSocket /mcp/ws
-
-Connect to MCP protocol over WebSocket.
-
-**Connection:**
-```javascript
-const ws = new WebSocket('ws://localhost:8000/mcp/ws');
-
-ws.onopen = function() {
-  console.log('Connected to MCP');
-};
-
-ws.onmessage = function(event) {
-  const message = JSON.parse(event.data);
-  console.log('Received:', message);
-};
-```
-
-**MCP Messages:**
-```json
-{
-  "jsonrpc": "2.0",
-  "id": 1,
-  "method": "tools/list",
-  "params": {}
-}
-```
-
-### Monitoring
-
-#### GET /metrics
-
-Get Prometheus metrics.
-
-**Response:**
-```
-# HELP metamcp_requests_total Total number of requests
-# TYPE metamcp_requests_total counter
-metamcp_requests_total{method="GET",path="/api/tools",status_code="200"} 42
-
-# HELP metamcp_request_duration_seconds Request duration in seconds
-# TYPE metamcp_request_duration_seconds histogram
-metamcp_request_duration_seconds_bucket{method="GET",path="/api/tools",le="0.1"} 35
-metamcp_request_duration_seconds_bucket{method="GET",path="/api/tools",le="0.5"} 40
-metamcp_request_duration_seconds_bucket{method="GET",path="/api/tools",le="1.0"} 42
-```
-
-## Error Handling
-
-### Error Response Format
-
+### Error Response
 ```json
 {
   "error": "error_code",
@@ -402,147 +41,609 @@ metamcp_request_duration_seconds_bucket{method="GET",path="/api/tools",le="1.0"}
   "details": {
     "field": "additional_error_details"
   },
-  "timestamp": "2024-01-01T12:00:00Z"
+  "timestamp": "2023-01-01T00:00:00Z"
 }
 ```
 
-### Common Error Codes
+## Authentication Endpoints
 
-| Code | Description | HTTP Status |
-|------|-------------|-------------|
-| `authentication_failed` | Invalid credentials | 401 |
-| `authorization_failed` | Insufficient permissions | 403 |
-| `tool_not_found` | Tool does not exist | 404 |
-| `tool_execution_failed` | Tool execution error | 500 |
-| `validation_error` | Invalid input data | 400 |
-| `rate_limit_exceeded` | Too many requests | 429 |
-| `internal_server_error` | Server error | 500 |
+### POST /auth/login
 
-### Example Error Response
+Authenticate a user and receive an access token.
 
+**Request Body:**
 ```json
 {
-  "error": "validation_error",
-  "message": "Invalid input data",
-  "details": {
-    "field": "operation",
-    "message": "Operation must be one of: add, subtract, multiply, divide"
-  },
-  "timestamp": "2024-01-01T12:00:00Z"
+  "username": "admin",
+  "password": "admin123"
 }
 ```
 
-## Rate Limiting
-
-API requests are rate limited to prevent abuse.
-
-### Rate Limits
-
-- **Authentication**: 5 requests per minute
-- **Tool Execution**: 100 requests per minute
-- **Search**: 50 requests per minute
-- **General**: 1000 requests per hour
-
-### Rate Limit Headers
-
-```
-X-RateLimit-Limit: 1000
-X-RateLimit-Remaining: 999
-X-RateLimit-Reset: 1640995200
-```
-
-## Pagination
-
-List endpoints support pagination using `limit` and `offset` parameters.
-
-### Pagination Headers
-
-```
-X-Total-Count: 1000
-X-Page-Size: 100
-X-Page-Number: 1
-```
-
-## SDKs and Libraries
-
-### Python SDK
-
-```python
-from metamcp import MetaMCPClient
-
-client = MetaMCPClient("http://localhost:8000", api_key="your_key")
-
-# List tools
-tools = client.list_tools()
-
-# Execute tool
-result = client.execute_tool("calculator", {
-    "operation": "add",
-    "a": 5,
-    "b": 3
-})
-
-# Search tools
-results = client.search_tools("mathematical calculation")
-```
-
-### JavaScript SDK
-
-```javascript
-import { MetaMCPClient } from '@metamcp/client';
-
-const client = new MetaMCPClient('http://localhost:8000', {
-  apiKey: 'your_key'
-});
-
-// List tools
-const tools = await client.listTools();
-
-// Execute tool
-const result = await client.executeTool('calculator', {
-  operation: 'add',
-  a: 5,
-  b: 3
-});
-
-// Search tools
-const results = await client.searchTools('mathematical calculation');
-```
-
-## Webhooks
-
-### Webhook Configuration
-
+**Response:**
 ```json
 {
-  "url": "https://your-app.com/webhooks/metamcp",
-  "events": ["tool.executed", "tool.registered"],
-  "secret": "webhook_secret"
-}
-```
-
-### Webhook Payload
-
-```json
-{
-  "event": "tool.executed",
-  "timestamp": "2024-01-01T12:00:00Z",
+  "status": "success",
   "data": {
-    "tool_id": "calculator",
-    "user_id": "user_123",
-    "input": {"operation": "add", "a": 5, "b": 3},
-    "result": {"result": 8},
-    "execution_time": 0.123
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "expires_in": 1800,
+    "user": {
+      "user_id": "admin_user",
+      "username": "admin",
+      "roles": ["admin"],
+      "permissions": {
+        "tools": ["read", "write", "execute"],
+        "admin": ["manage", "configure"]
+      }
+    }
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### POST /auth/logout
+
+Logout the current user and invalidate the token.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Successfully logged out"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### POST /auth/refresh
+
+Refresh an expired access token.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "token_type": "bearer",
+    "expires_in": 1800
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### GET /auth/me
+
+Get current user information.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "user_id": "admin_user",
+    "username": "admin",
+    "roles": ["admin"],
+    "permissions": {
+      "tools": ["read", "write", "execute"],
+      "admin": ["manage", "configure"]
+    },
+    "is_active": true,
+    "created_at": "2023-01-01T00:00:00Z"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### GET /auth/permissions
+
+Get current user permissions.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "user_id": "admin_user",
+    "username": "admin",
+    "roles": ["admin"],
+    "permissions": {
+      "tools": ["read", "write", "execute"],
+      "admin": ["manage", "configure"]
+    }
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+## Tool Management Endpoints
+
+### GET /tools
+
+List all available tools with optional filtering.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Query Parameters:**
+- `category` (optional): Filter by tool category
+- `limit` (optional): Maximum number of results (default: 50)
+- `offset` (optional): Number of results to skip (default: 0)
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "tools": [
+      {
+        "name": "database_query",
+        "description": "Execute SQL queries on database",
+        "category": "database",
+        "endpoint": "http://localhost:8001",
+        "capabilities": ["read", "write"],
+        "security_level": 2,
+        "version": "1.0.0",
+        "author": "MetaMCP Team",
+        "tags": ["database", "sql"],
+        "is_active": true,
+        "created_at": "2023-01-01T00:00:00Z",
+        "created_by": "admin_user"
+      }
+    ],
+    "total": 1,
+    "offset": 0,
+    "limit": 50
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### GET /tools/{name}
+
+Get detailed information about a specific tool.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "name": "database_query",
+    "description": "Execute SQL queries on database",
+    "category": "database",
+    "endpoint": "http://localhost:8001",
+    "capabilities": ["read", "write"],
+    "security_level": 2,
+    "schema": {
+      "input": {
+        "query": {
+          "type": "string",
+          "description": "SQL query to execute"
+        }
+      },
+      "output": {
+        "result": {
+          "type": "array",
+          "description": "Query results"
+        }
+      }
+    },
+    "metadata": {
+      "version": "1.0.0",
+      "author": "MetaMCP Team"
+    },
+    "version": "1.0.0",
+    "author": "MetaMCP Team",
+    "tags": ["database", "sql"],
+    "is_active": true,
+    "created_at": "2023-01-01T00:00:00Z",
+    "created_by": "admin_user"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### POST /tools
+
+Register a new tool.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "name": "new_tool",
+  "description": "A new tool for testing",
+  "endpoint": "http://localhost:8002",
+  "category": "api",
+  "capabilities": ["read"],
+  "security_level": 1,
+  "schema": {
+    "input": {},
+    "output": {}
+  },
+  "metadata": {
+    "version": "1.0.0"
+  },
+  "version": "1.0.0",
+  "author": "test_author",
+  "tags": ["test", "api"]
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "tool_id": "tool_123456789",
+    "message": "Tool registered successfully"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### PUT /tools/{name}
+
+Update an existing tool.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "description": "Updated description",
+  "category": "updated_category",
+  "capabilities": ["read", "write", "execute"],
+  "security_level": 3
+}
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "name": "new_tool",
+    "description": "Updated description",
+    "category": "updated_category",
+    "capabilities": ["read", "write", "execute"],
+    "security_level": 3,
+    "updated_at": "2023-01-01T00:00:00Z",
+    "updated_by": "admin_user"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### DELETE /tools/{name}
+
+Deactivate a tool (soft delete).
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Tool deactivated successfully"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### POST /tools/{name}/execute
+
+Execute a tool with given arguments.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Request Body:**
+```json
+{
+  "arguments": {
+    "query": "SELECT * FROM users LIMIT 10",
+    "database": "test_db"
   }
 }
 ```
 
-## OpenAPI Specification
-
-The complete OpenAPI specification is available at:
-
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "tool_name": "database_query",
+    "input_data": {
+      "query": "SELECT * FROM users LIMIT 10",
+      "database": "test_db"
+    },
+    "output_data": {
+      "result": [
+        {"id": 1, "name": "John Doe"},
+        {"id": 2, "name": "Jane Smith"}
+      ]
+    },
+    "status": "success",
+    "execution_time": 0.125,
+    "executed_by": "admin_user",
+    "timestamp": "2023-01-01T00:00:00Z"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
 ```
-http://localhost:8000/docs
+
+### GET /tools/search
+
+Search tools by query string.
+
+**Headers:**
+```
+Authorization: Bearer <token>
 ```
 
-This provides interactive documentation and allows you to test the API directly from your browser. 
+**Query Parameters:**
+- `q` (required): Search query
+- `max_results` (optional): Maximum number of results (default: 10)
+- `similarity_threshold` (optional): Minimum similarity score (default: 0.5)
+- `search_type` (optional): Search type - "semantic", "keyword", or "hybrid" (default: "hybrid")
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "search_id": "search_123456789",
+    "query": "database query",
+    "search_type": "hybrid",
+    "results": [
+      {
+        "name": "database_query",
+        "description": "Execute SQL queries on database",
+        "category": "database",
+        "similarity_score": 0.85,
+        "tags": ["database", "sql"]
+      }
+    ],
+    "total": 1,
+    "search_time": 0.045,
+    "timestamp": "2023-01-01T00:00:00Z"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+## Health Monitoring Endpoints
+
+### GET /health
+
+Basic health check endpoint.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "status": "healthy",
+    "timestamp": "2023-01-01T00:00:00Z"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### GET /health/detailed
+
+Detailed health status with component information.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "status": "healthy",
+    "uptime": 3600.5,
+    "version": "1.0.0",
+    "components": {
+      "database": {
+        "status": "healthy",
+        "response_time": 0.002
+      },
+      "cache": {
+        "status": "healthy",
+        "hit_rate": 0.85
+      },
+      "circuit_breakers": {
+        "status": "healthy",
+        "open_circuits": 0,
+        "total_circuits": 5
+      }
+    },
+    "timestamp": "2023-01-01T00:00:00Z"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### GET /health/ready
+
+Kubernetes readiness probe endpoint.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "ready": true,
+    "timestamp": "2023-01-01T00:00:00Z"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### GET /health/live
+
+Kubernetes liveness probe endpoint.
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "alive": true,
+    "timestamp": "2023-01-01T00:00:00Z"
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+## Proxy Management Endpoints
+
+### GET /proxy/servers
+
+List all proxy servers.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "servers": [
+      {
+        "id": "server_1",
+        "name": "Database Server",
+        "endpoint": "http://localhost:8001",
+        "status": "active",
+        "tool_count": 5,
+        "last_seen": "2023-01-01T00:00:00Z",
+        "metadata": {
+          "version": "1.0.0",
+          "description": "Database tools server"
+        }
+      }
+    ],
+    "total": 1
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+### GET /proxy/servers/{id}
+
+Get detailed information about a specific proxy server.
+
+**Headers:**
+```
+Authorization: Bearer <token>
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "data": {
+    "id": "server_1",
+    "name": "Database Server",
+    "endpoint": "http://localhost:8001",
+    "status": "active",
+    "tool_count": 5,
+    "last_seen": "2023-01-01T00:00:00Z",
+    "metadata": {
+      "version": "1.0.0",
+      "description": "Database tools server"
+    },
+    "tools": [
+      {
+        "name": "database_query",
+        "description": "Execute SQL queries",
+        "category": "database"
+      }
+    ],
+    "statistics": {
+      "total_requests": 150,
+      "successful_requests": 145,
+      "failed_requests": 5,
+      "average_response_time": 0.125
+    }
+  },
+  "timestamp": "2023-01-01T00:00:00Z"
+}
+```
+
+## Error Codes
+
+| Code | Description |
+|------|-------------|
+| `AUTHENTICATION_ERROR` | Invalid or missing authentication token |
+| `AUTHORIZATION_ERROR` | Insufficient permissions for the requested operation |
+| `VALIDATION_ERROR` | Invalid request data or missing required fields |
+| `TOOL_NOT_FOUND` | Requested tool does not exist |
+| `TOOL_EXECUTION_ERROR` | Error occurred during tool execution |
+| `CIRCUIT_BREAKER_OPEN` | Circuit breaker is open, request rejected |
+| `SEARCH_ERROR` | Error occurred during search operation |
+| `INTERNAL_ERROR` | Internal server error |
+
+## Rate Limiting
+
+Rate limiting is planned for future releases. Limits will be applied per user and per endpoint.
+
+## API Versioning
+
+The API uses URL-based versioning (`/api/v1/`). Future versions will be available at `/api/v2/`, etc.
+
+## SDKs and Libraries
+
+Official SDKs and libraries are planned for:
+- Python
+- JavaScript/TypeScript
+- Go
+- Java
+
+## Support
+
+For API support and questions, please refer to the project documentation or create an issue in the GitHub repository. 

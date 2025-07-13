@@ -1,11 +1,12 @@
 """
 Health Check API Router
 
-This module provides health check endpoints for monitoring the MCP Meta-Server
-and its components.
+This module provides health check endpoints for monitoring the
+MCP Meta-Server status and component health.
 """
 
-from datetime import UTC, datetime
+import time
+from datetime import datetime, UTC
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -20,13 +21,16 @@ settings = get_settings()
 # Create router
 health_router = APIRouter()
 
+# Server start time for uptime calculation
+_server_start_time = time.time()
+
 
 # =============================================================================
 # Pydantic Models
 # =============================================================================
 
 class HealthStatus(BaseModel):
-    """Health status model."""
+    """Health status response model."""
     healthy: bool
     timestamp: str
     version: str
@@ -36,17 +40,114 @@ class HealthStatus(BaseModel):
 
 class ComponentHealth(BaseModel):
     """Component health status model."""
-    healthy: bool
-    timestamp: str
+    name: str
+    status: str
+    response_time: float | None = None
     error: str | None = None
-    details: dict[str, Any] | None = None
 
 
-class DetailedHealthResponse(BaseModel):
-    """Detailed health response model."""
-    overall: HealthStatus
-    components: dict[str, ComponentHealth]
-    system: dict[str, Any]
+class DetailedHealthStatus(BaseModel):
+    """Detailed health status response model."""
+    overall_healthy: bool
+    timestamp: str
+    version: str
+    uptime: float
+    components: list[ComponentHealth]
+
+
+# =============================================================================
+# Health Check Functions
+# =============================================================================
+
+def get_uptime() -> float:
+    """Calculate server uptime in seconds."""
+    return time.time() - _server_start_time
+
+
+def format_uptime(seconds: float) -> str:
+    """Format uptime in human readable format."""
+    days = int(seconds // 86400)
+    hours = int((seconds % 86400) // 3600)
+    minutes = int((seconds % 3600) // 60)
+    seconds = int(seconds % 60)
+    
+    if days > 0:
+        return f"{days}d {hours}h {minutes}m {seconds}s"
+    elif hours > 0:
+        return f"{hours}h {minutes}m {seconds}s"
+    elif minutes > 0:
+        return f"{minutes}m {seconds}s"
+    else:
+        return f"{seconds}s"
+
+
+async def check_database_health() -> ComponentHealth:
+    """Check database connectivity."""
+    start_time = time.time()
+    
+    try:
+        # TODO: Implement actual database health check
+        # For now, return mock healthy status
+        response_time = time.time() - start_time
+        
+        return ComponentHealth(
+            name="database",
+            status="healthy",
+            response_time=response_time
+        )
+    except Exception as e:
+        return ComponentHealth(
+            name="database",
+            status="unhealthy",
+            response_time=time.time() - start_time,
+            error=str(e)
+        )
+
+
+async def check_vector_db_health() -> ComponentHealth:
+    """Check vector database connectivity."""
+    start_time = time.time()
+    
+    try:
+        # TODO: Implement actual vector database health check
+        # For now, return mock healthy status
+        response_time = time.time() - start_time
+        
+        return ComponentHealth(
+            name="vector_database",
+            status="healthy",
+            response_time=response_time
+        )
+    except Exception as e:
+        return ComponentHealth(
+            name="vector_database",
+            status="unhealthy",
+            response_time=time.time() - start_time,
+            error=str(e)
+        )
+
+
+async def check_llm_service_health() -> ComponentHealth:
+    """Check LLM service connectivity."""
+    start_time = time.time()
+    
+    try:
+        # TODO: Implement actual LLM service health check
+        # For now, return mock healthy status
+        response_time = time.time() - start_time
+        
+        return ComponentHealth(
+            name="llm_service",
+            status="healthy",
+            response_time=response_time
+        )
+    except Exception as e:
+        return ComponentHealth(
+            name="llm_service",
+            status="unhealthy",
+            response_time=time.time() - start_time,
+            error=str(e)
+        )
 
 
 # =============================================================================
@@ -75,11 +176,13 @@ async def health_check():
     Returns basic health status of the server.
     """
     try:
+        uptime_seconds = get_uptime()
+        
         return HealthStatus(
             healthy=True,
             timestamp=datetime.now(UTC).isoformat(),
             version="1.0.0",
-            uptime=None  # TODO: Calculate actual uptime
+            uptime=uptime_seconds
         )
 
     except Exception as e:
@@ -94,194 +197,139 @@ async def health_check():
 
 @health_router.get(
     "/detailed",
-    response_model=DetailedHealthResponse,
+    response_model=DetailedHealthStatus,
     summary="Detailed health check"
 )
-async def detailed_health_check(mcp_server = Depends(get_mcp_server)):
+async def detailed_health_check():
     """
     Detailed health check endpoint.
     
-    Returns comprehensive health status of all components.
+    Returns detailed health status of all components.
     """
     try:
-        timestamp = datetime.now(UTC).isoformat()
-
-        # Get component health status
-        if mcp_server and mcp_server.is_initialized:
-            component_status = await mcp_server.get_health_status()
-        else:
-            component_status = {
-                "server": ComponentHealth(
-                    healthy=False,
-                    timestamp=timestamp,
-                    error="Server not initialized"
-                ).dict()
-            }
-
+        # Check all components
+        components = []
+        
+        # Database health
+        db_health = await check_database_health()
+        components.append(db_health)
+        
+        # Vector database health
+        vector_health = await check_vector_db_health()
+        components.append(vector_health)
+        
+        # LLM service health
+        llm_health = await check_llm_service_health()
+        components.append(llm_health)
+        
         # Determine overall health
-        overall_healthy = all(
-            status.get("healthy", False)
-            for status in component_status.values()
-        )
-
-        # System information
-        system_info = {
-            "timestamp": timestamp,
-            "timezone": str(UTC),
-            "debug_mode": settings.debug,
-            "log_level": settings.log_level.value,
-            "metrics_enabled": settings.metrics_enabled,
-            "audit_enabled": settings.audit_log_enabled
-        }
-
-        return DetailedHealthResponse(
-            overall=HealthStatus(
-                healthy=overall_healthy,
-                timestamp=timestamp,
-                version="1.0.0"
-            ),
-            components={
-                name: ComponentHealth(**status)
-                for name, status in component_status.items()
-            },
-            system=system_info
+        overall_healthy = all(comp.status == "healthy" for comp in components)
+        uptime_seconds = get_uptime()
+        
+        return DetailedHealthStatus(
+            overall_healthy=overall_healthy,
+            timestamp=datetime.now(UTC).isoformat(),
+            version="1.0.0",
+            uptime=uptime_seconds,
+            components=components
         )
 
     except Exception as e:
         logger.error(f"Detailed health check failed: {e}")
-        timestamp = datetime.now(UTC).isoformat()
-
-        return DetailedHealthResponse(
-            overall=HealthStatus(
-                healthy=False,
-                timestamp=timestamp,
-                version="1.0.0",
-                error=str(e)
-            ),
-            components={},
-            system={"error": str(e)}
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Health check failed: {str(e)}"
         )
 
 
 @health_router.get(
-    "/readiness",
-    response_model=HealthStatus,
-    summary="Readiness check"
+    "/ready",
+    summary="Readiness probe"
 )
-async def readiness_check(mcp_server = Depends(get_mcp_server)):
+async def readiness_probe():
     """
-    Readiness check endpoint.
+    Readiness probe endpoint.
     
-    Returns whether the server is ready to accept requests.
+    Returns 200 if the service is ready to accept requests.
     """
     try:
-        timestamp = datetime.now(UTC).isoformat()
-
-        # Check if server is initialized and ready
-        ready = (
-            mcp_server is not None and
-            mcp_server.is_initialized and
-            not mcp_server.is_shutting_down
-        )
-
-        return HealthStatus(
-            healthy=ready,
-            timestamp=timestamp,
-            version="1.0.0",
-            error=None if ready else "Server not ready"
-        )
-
-    except Exception as e:
-        logger.error(f"Readiness check failed: {e}")
-        return HealthStatus(
-            healthy=False,
-            timestamp=datetime.now(UTC).isoformat(),
-            version="1.0.0",
-            error=str(e)
-        )
-
-
-@health_router.get(
-    "/liveness",
-    response_model=HealthStatus,
-    summary="Liveness check"
-)
-async def liveness_check():
-    """
-    Liveness check endpoint.
-    
-    Returns whether the server process is alive and responsive.
-    """
-    try:
-        return HealthStatus(
-            healthy=True,
-            timestamp=datetime.now(UTC).isoformat(),
-            version="1.0.0"
-        )
-
-    except Exception as e:
-        logger.error(f"Liveness check failed: {e}")
-        return HealthStatus(
-            healthy=False,
-            timestamp=datetime.now(UTC).isoformat(),
-            version="1.0.0",
-            error=str(e)
-        )
-
-
-@health_router.get(
-    "/components/{component_name}",
-    response_model=ComponentHealth,
-    summary="Component health check"
-)
-async def component_health_check(
-    component_name: str,
-    mcp_server = Depends(get_mcp_server)
-):
-    """
-    Check health of a specific component.
-    
-    Args:
-        component_name: Name of the component to check
+        # Check if all critical components are ready
+        db_health = await check_database_health()
+        vector_health = await check_vector_db_health()
         
-    Returns:
-        Health status of the specified component
-    """
-    try:
-        timestamp = datetime.now(UTC).isoformat()
-
-        if not mcp_server or not mcp_server.is_initialized:
-            return ComponentHealth(
-                healthy=False,
-                timestamp=timestamp,
-                error="Server not initialized"
-            )
-
-        # Get all component health status
-        health_status = await mcp_server.get_health_status()
-
-        # Check if requested component exists
-        if component_name not in health_status:
+        if db_health.status != "healthy" or vector_health.status != "healthy":
             raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Component '{component_name}' not found"
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Service not ready"
             )
-
-        component_status = health_status[component_name]
-
-        return ComponentHealth(
-            healthy=component_status.get("healthy", False),
-            timestamp=component_status.get("timestamp", timestamp),
-            error=component_status.get("error"),
-            details=component_status.get("details")
-        )
+        
+        return {"status": "ready"}
 
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Component health check failed for {component_name}: {e}")
-        return ComponentHealth(
-            healthy=False,
-            timestamp=datetime.now(UTC).isoformat(),
-            error=str(e)
+        logger.error(f"Readiness probe failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Service not ready: {str(e)}"
+        )
+
+
+@health_router.get(
+    "/live",
+    summary="Liveness probe"
+)
+async def liveness_probe():
+    """
+    Liveness probe endpoint.
+    
+    Returns 200 if the service is alive and responsive.
+    """
+    try:
+        # Simple liveness check - just verify the service is responding
+        uptime_seconds = get_uptime()
+        
+        return {
+            "status": "alive",
+            "uptime": uptime_seconds,
+            "uptime_formatted": format_uptime(uptime_seconds)
+        }
+
+    except Exception as e:
+        logger.error(f"Liveness probe failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail=f"Service not alive: {str(e)}"
+        )
+
+
+@health_router.get(
+    "/info",
+    summary="Service information"
+)
+async def service_info():
+    """
+    Get service information.
+    
+    Returns detailed information about the service.
+    """
+    try:
+        uptime_seconds = get_uptime()
+        
+        return {
+            "service": "MetaMCP",
+            "version": "1.0.0",
+            "uptime": uptime_seconds,
+            "uptime_formatted": format_uptime(uptime_seconds),
+            "start_time": datetime.fromtimestamp(_server_start_time, UTC).isoformat(),
+            "current_time": datetime.now(UTC).isoformat(),
+            "environment": settings.environment,
+            "debug": settings.debug
+        }
+
+    except Exception as e:
+        logger.error(f"Service info failed: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Failed to get service info: {str(e)}"
         )

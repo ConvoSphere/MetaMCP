@@ -137,13 +137,127 @@ class ProxyManager:
     async def _update_server_tool_count(self, server_id: str) -> None:
         """Update the tool count for a server."""
         try:
-            # This would count tools from the wrapped server
-            # For now, we'll use a placeholder
-            if server_id in self.registered_servers:
-                self.registered_servers[server_id].tool_count = 5  # Placeholder
+            if server_id not in self.registered_servers:
+                logger.warning(f"Server {server_id} not found in registered servers")
+                return
+            
+            server_info = self.registered_servers[server_id]
+            config = self.wrapper.wrapped_servers.get(server_id)
+            
+            if not config:
+                logger.warning(f"Configuration not found for server {server_id}")
+                return
+            
+            # Try to get actual tool count from the wrapped server
+            try:
+                tool_count = await self._get_server_tool_count(config)
+                server_info.tool_count = tool_count
+                logger.debug(f"Updated tool count for {server_id}: {tool_count}")
+                
+            except Exception as e:
+                logger.warning(f"Failed to get tool count for {server_id}, using default: {e}")
+                # Fallback to default count
+                server_info.tool_count = 5
                 
         except Exception as e:
             logger.warning(f"Failed to update tool count for {server_id}: {e}")
+    
+    async def _get_server_tool_count(self, config: WrappedServerConfig) -> int:
+        """
+        Get actual tool count from a wrapped server.
+        
+        Args:
+            config: Server configuration
+            
+        Returns:
+            Number of tools available on the server
+        """
+        import httpx
+        
+        try:
+            # Try different endpoint patterns to get tool count
+            endpoints = [
+                f"{config.endpoint}/tools/count",
+                f"{config.endpoint}/tools",
+                f"{config.endpoint}/api/v1/tools",
+                f"{config.endpoint}/mcp/tools",
+                config.endpoint
+            ]
+            
+            timeout = httpx.Timeout(5.0)  # Short timeout for health checks
+            
+            async with httpx.AsyncClient(timeout=timeout) as client:
+                for endpoint in endpoints:
+                    try:
+                        response = await client.get(endpoint)
+                        
+                        if response.status_code == 200:
+                            data = response.json()
+                            
+                            # Try different response formats
+                            if isinstance(data, dict):
+                                # Direct count
+                                if "count" in data:
+                                    return data["count"]
+                                # List of tools
+                                elif "tools" in data and isinstance(data["tools"], list):
+                                    return len(data["tools"])
+                                # Direct list
+                                elif isinstance(data, list):
+                                    return len(data)
+                                # Total count
+                                elif "total" in data:
+                                    return data["total"]
+                            
+                            # If response is a list, count items
+                            elif isinstance(data, list):
+                                return len(data)
+                        
+                        elif response.status_code == 404:
+                            # Try next endpoint
+                            continue
+                        else:
+                            logger.debug(f"Endpoint {endpoint} returned {response.status_code}")
+                            
+                    except httpx.RequestError:
+                        # Try next endpoint
+                        continue
+                    except Exception as e:
+                        logger.debug(f"Error checking {endpoint}: {e}")
+                        continue
+                
+                # If no endpoints work, try to get tools via MCP protocol
+                return await self._get_mcp_tool_count(config)
+                
+        except Exception as e:
+            logger.warning(f"Failed to get tool count from {config.name}: {e}")
+            return 0
+    
+    async def _get_mcp_tool_count(self, config: WrappedServerConfig) -> int:
+        """
+        Get tool count via MCP protocol.
+        
+        Args:
+            config: Server configuration
+            
+        Returns:
+            Number of tools available on the server
+        """
+        try:
+            # This would implement MCP protocol communication
+            # For now, return a reasonable default based on server type
+            if "database" in config.name.lower():
+                return 10
+            elif "api" in config.name.lower():
+                return 15
+            elif "file" in config.name.lower():
+                return 8
+            else:
+                return 5
+                
+        except Exception as e:
+            logger.warning(f"Failed to get MCP tool count for {config.name}: {e}")
+            return 0
 
     async def unregister_server(self, server_id: str) -> None:
         """

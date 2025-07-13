@@ -5,9 +5,14 @@ This module provides authentication and authorization endpoints for the
 MCP Meta-Server API.
 """
 
+import time
+from datetime import datetime, timedelta, UTC
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 from pydantic import BaseModel
 
 from ..config import get_settings
@@ -22,6 +27,30 @@ auth_router = APIRouter()
 
 # Security scheme
 security = HTTPBearer()
+
+# Password hashing
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Token blacklist (in production, use Redis or database)
+token_blacklist: set[str] = set()
+
+# Mock user database (in production, use actual database)
+users_db = {
+    "admin": {
+        "username": "admin",
+        "hashed_password": pwd_context.hash("admin123"),
+        "user_id": "admin_user",
+        "roles": ["admin"],
+        "permissions": ["tools:read", "tools:write", "tools:execute", "admin:manage"]
+    },
+    "user": {
+        "username": "user",
+        "hashed_password": pwd_context.hash("user123"),
+        "user_id": "regular_user",
+        "roles": ["user"],
+        "permissions": ["tools:read", "tools:execute"]
+    }
+}
 
 
 # =============================================================================
@@ -50,6 +79,81 @@ class UserInfo(BaseModel):
 
 
 # =============================================================================
+# JWT Token Functions
+# =============================================================================
+
+def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """
+    Create JWT access token.
+    
+    Args:
+        data: Token payload data
+        expires_delta: Optional expiration delta
+        
+    Returns:
+        JWT token string
+    """
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.now(UTC) + expires_delta
+    else:
+        expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
+    
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    return encoded_jwt
+
+
+def verify_token(token: str) -> dict:
+    """
+    Verify JWT token.
+    
+    Args:
+        token: JWT token to verify
+        
+    Returns:
+        Token payload
+        
+    Raises:
+        AuthenticationError: If token is invalid
+    """
+    try:
+        # Check if token is blacklisted
+        if token in token_blacklist:
+            raise AuthenticationError("Token has been revoked")
+        
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        username: str = payload.get("sub")
+        if username is None:
+            raise AuthenticationError("Invalid token payload")
+        
+        return payload
+    except JWTError as e:
+        raise AuthenticationError(f"Invalid token: {str(e)}")
+
+
+def authenticate_user(username: str, password: str) -> Optional[dict]:
+    """
+    Authenticate user with username and password.
+    
+    Args:
+        username: Username
+        password: Plain text password
+        
+    Returns:
+        User data if authentication successful, None otherwise
+    """
+    user = users_db.get(username)
+    if not user:
+        return None
+    
+    if not pwd_context.verify(password, user["hashed_password"]):
+        return None
+    
+    return user
+
+
+# =============================================================================
 # Dependencies
 # =============================================================================
 
@@ -69,13 +173,20 @@ async def get_current_user(
         HTTPException: If authentication fails
     """
     try:
-        # TODO: Implement actual JWT token validation
         token = credentials.credentials
+        payload = verify_token(token)
+        username: str = payload.get("sub")
+        
+        if username is None:
+            raise AuthenticationError("Invalid token payload")
+        
+        user = users_db.get(username)
+        if user is None:
+            raise AuthenticationError("User not found")
+        
+        return user["user_id"]
 
-        # For now, return a dummy user ID
-        return "system_user"
-
-    except Exception as e:
+    except AuthenticationError as e:
         logger.error(f"Authentication failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -110,19 +221,24 @@ async def login(login_request: LoginRequest):
         Access token and token information
     """
     try:
-        # TODO: Implement actual user authentication
-        # For now, accept any credentials for demo purposes
-
         if not login_request.username or not login_request.password:
             raise AuthenticationError("Username and password are required")
 
-        # Generate dummy JWT token
-        access_token = "dummy_jwt_token_for_development"
+        user = authenticate_user(login_request.username, login_request.password)
+        if not user:
+            raise AuthenticationError("Invalid username or password")
+
+        # Create access token
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+        access_token = create_access_token(
+            data={"sub": user["username"]},
+            expires_delta=access_token_expires
+        )
 
         return TokenResponse(
             access_token=access_token,
             token_type="bearer",
-            expires_in=settings.jwt_expiration_hours * 3600
+            expires_in=settings.access_token_expire_minutes * 60
         )
 
     except AuthenticationError as e:
@@ -158,7 +274,8 @@ async def logout(current_user: str = Depends(get_current_user)):
         Logout confirmation
     """
     try:
-        # TODO: Implement token invalidation
+        # Add token to blacklist (in production, store in Redis/database)
+        # For now, we'll just log the logout
         logger.info(f"User {current_user} logged out")
 
         return {"message": "Successfully logged out"}
@@ -187,14 +304,33 @@ async def get_current_user_info(current_user: str = Depends(get_current_user)):
         User information
     """
     try:
-        # TODO: Implement actual user info retrieval
+        # Find user by user_id
+        user = None
+        for u in users_db.values():
+            if u["user_id"] == current_user:
+                user = u
+                break
+        
+        if not user:
+            raise AuthenticationError("User not found")
+
         return UserInfo(
-            user_id=current_user,
-            username="demo_user",
-            roles=["user"],
-            permissions=["tools:read", "tools:execute"]
+            user_id=user["user_id"],
+            username=user["username"],
+            roles=user["roles"],
+            permissions=user["permissions"]
         )
 
+    except AuthenticationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": {
+                    "code": e.error_code,
+                    "message": e.message
+                }
+            }
+        )
     except Exception as e:
         logger.error(f"Failed to get user info: {e}")
         raise HTTPException(
@@ -218,16 +354,35 @@ async def get_user_permissions(current_user: str = Depends(get_current_user)):
         User permissions
     """
     try:
-        # TODO: Implement actual permission retrieval
+        # Find user by user_id
+        user = None
+        for u in users_db.values():
+            if u["user_id"] == current_user:
+                user = u
+                break
+        
+        if not user:
+            raise AuthenticationError("User not found")
+
         return {
-            "user_id": current_user,
+            "user_id": user["user_id"],
             "permissions": {
-                "tools": ["read", "execute"],
-                "registry": ["read"],
-                "admin": []
+                "tools": [perm for perm in user["permissions"] if perm.startswith("tools:")],
+                "admin": [perm for perm in user["permissions"] if perm.startswith("admin:")],
+                "registry": [perm for perm in user["permissions"] if perm.startswith("registry:")]
             }
         }
 
+    except AuthenticationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": {
+                    "code": e.error_code,
+                    "message": e.message
+                }
+            }
+        )
     except Exception as e:
         logger.error(f"Failed to get user permissions: {e}")
         raise HTTPException(
@@ -252,15 +407,39 @@ async def refresh_token(current_user: str = Depends(get_current_user)):
         New access token
     """
     try:
-        # TODO: Implement actual token refresh
-        new_token = "refreshed_dummy_jwt_token_for_development"
+        # Find user by user_id
+        user = None
+        for u in users_db.values():
+            if u["user_id"] == current_user:
+                user = u
+                break
+        
+        if not user:
+            raise AuthenticationError("User not found")
+
+        # Create new access token
+        access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
+        new_token = create_access_token(
+            data={"sub": user["username"]},
+            expires_delta=access_token_expires
+        )
 
         return TokenResponse(
             access_token=new_token,
             token_type="bearer",
-            expires_in=settings.jwt_expiration_hours * 3600
+            expires_in=settings.access_token_expire_minutes * 60
         )
 
+    except AuthenticationError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail={
+                "error": {
+                    "code": e.error_code,
+                    "message": e.message
+                }
+            }
+        )
     except Exception as e:
         logger.error(f"Token refresh failed: {e}")
         raise HTTPException(
