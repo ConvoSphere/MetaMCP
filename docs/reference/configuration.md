@@ -149,6 +149,24 @@ All configuration options can be set via environment variables. Variable names a
 | `ADMIN_ENABLED` | `true` | Enable admin interface |
 | `ADMIN_PORT` | `8501` | Admin interface port |
 
+### Proxy Wrapper Settings
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `PROXY_ENABLED` | `true` | Enable proxy wrapper functionality |
+| `PROXY_DISCOVERY_ENABLED` | `true` | Enable automatic server discovery |
+| `PROXY_HEALTH_CHECK_INTERVAL` | `30` | Health check interval in seconds |
+| `PROXY_HEALTH_CHECK_TIMEOUT` | `5` | Health check timeout in seconds |
+| `PROXY_MAX_RETRY_ATTEMPTS` | `3` | Maximum retry attempts for failed requests |
+| `PROXY_DEFAULT_TIMEOUT` | `30` | Default request timeout in seconds |
+| `PROXY_MAX_CONCURRENT_REQUESTS` | `10` | Maximum concurrent requests per server |
+| `PROXY_RATE_LIMIT_ENABLED` | `true` | Enable rate limiting for proxy requests |
+| `PROXY_RATE_LIMIT_REQUESTS` | `100` | Rate limit requests per minute |
+| `PROXY_CACHE_ENABLED` | `true` | Enable caching for tool results |
+| `PROXY_CACHE_TTL` | `300` | Cache TTL in seconds |
+| `PROXY_LOAD_BALANCING_ENABLED` | `true` | Enable load balancing for multiple servers |
+| `PROXY_LOAD_BALANCING_STRATEGY` | `round_robin` | Load balancing strategy (round_robin/least_loaded/health_based) |
+
 ### Development Settings
 
 | Variable | Default | Description |

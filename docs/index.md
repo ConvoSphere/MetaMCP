@@ -8,6 +8,7 @@ MetaMCP is an open-source MCP (Model Context Protocol) Meta-Server that provides
 
 - **Dynamic Tool Discovery**: AI agents can describe tasks and receive the most suitable tools
 - **Semantic Search**: Tool selection using vector embeddings and similarity matching
+- **Proxy Wrapper**: Wrap arbitrary MCP servers with enhanced features
 - **Security & Policies**: Role-based access control and audit logging
 - **Enterprise Features**: OPA integration, monitoring, and admin UI
 
@@ -37,12 +38,14 @@ graph TB
     B --> D[Vector Search]
     B --> E[Policy Engine]
     B --> F[LLM Service]
-    C --> G[Registered Tools]
-    D --> H[Weaviate]
-    E --> I[OPA]
-    F --> J[OpenAI]
-    B --> K[OAuth Auth]
-    K --> L[Google/GitHub/MS]
+    B --> G[Proxy Wrapper]
+    C --> H[Registered Tools]
+    D --> I[Weaviate]
+    E --> J[OPA]
+    F --> K[OpenAI]
+    G --> L[Wrapped MCP Servers]
+    B --> M[OAuth Auth]
+    M --> N[Google/GitHub/MS]
 ```
 
 ## Key Features
@@ -53,10 +56,18 @@ graph TB
 - **Semantic Search**: AI-based tool selection using vector embeddings
 - **Proxy & Orchestration**: Intelligent routing of agent requests to appropriate tools
 
+### 🔄 Proxy Wrapper Features
+- **Server Wrapping**: Wrap arbitrary MCP servers with enhanced features
+- **Transport Support**: HTTP, WebSocket, and stdio transport protocols
+- **Server Discovery**: Automatic discovery of MCP servers on the network
+- **Health Monitoring**: Continuous health checks and status monitoring
+- **Load Balancing**: Intelligent routing and load distribution
+- **Authentication**: Proxy-level authentication for wrapped servers
+
 ### 🛡️ Enterprise Features
 - **Policy Engine**: OPA integration for granular access control
 - **Audit Logging**: Complete request tracking and compliance
-- **Admin UI**: Web interface for tool management
+- **Admin UI**: Web interface for tool and server management
 - **OpenAPI Integration**: Automatic tool import from Swagger specs
 
 ### 🔐 Security Features
@@ -85,6 +96,7 @@ graph TB
 - **[API Reference](user-guide/api-reference.md)** - REST API documentation
 - **[MCP Protocol](user-guide/mcp-protocol.md)** - MCP protocol implementation
 - **[Tool Management](user-guide/tool-management.md)** - Managing tools and capabilities
+- **[Proxy Wrapper](user-guide/proxy-wrapper.md)** - Using the proxy wrapper functionality
 - **[Security](user-guide/security.md)** - Security features and best practices
 - **[OAuth Integration](oauth/fastmcp-integration.md)** - OAuth authentication for agents
 
@@ -94,6 +106,7 @@ graph TB
 - **[Code Structure](developer-guide/code-structure.md)** - Understanding the codebase
 - **[Adding Tools](developer-guide/adding-tools.md)** - How to add new tools
 - **[Custom Policies](developer-guide/custom-policies.md)** - Creating custom access policies
+- **[Proxy Development](developer-guide/proxy-development.md)** - Developing with the proxy wrapper
 - **[Testing](developer-guide/testing.md)** - Testing guidelines and examples
 
 ## Deployment
@@ -107,6 +120,7 @@ graph TB
 
 - **[Configuration](reference/configuration.md)** - Complete configuration reference
 - **[API Endpoints](reference/api-endpoints.md)** - Detailed API endpoint documentation
+- **[Proxy API](reference/proxy-api.md)** - Proxy wrapper API documentation
 - **[Error Codes](reference/error-codes.md)** - Error codes and troubleshooting
 - **[Troubleshooting](reference/troubleshooting.md)** - Common issues and solutions
 

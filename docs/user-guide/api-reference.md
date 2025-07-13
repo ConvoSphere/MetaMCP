@@ -1,6 +1,6 @@
 # API Reference
 
-MetaMCP provides a comprehensive REST API for tool management, authentication, and MCP protocol integration.
+MetaMCP provides a comprehensive REST API for tool management, authentication, MCP protocol integration, and proxy wrapper functionality.
 
 ## Base URL
 
@@ -23,6 +23,46 @@ curl -H "Authorization: Bearer <token>" http://localhost:8000/api/tools
 ```
 
 ## Endpoints
+
+### Proxy Wrapper
+
+The proxy wrapper provides endpoints for managing wrapped MCP servers. For detailed documentation, see [Proxy API Reference](../reference/proxy-api.md).
+
+#### POST /proxy/servers
+
+Register a new MCP server for wrapping.
+
+#### GET /proxy/servers
+
+List all registered servers.
+
+#### GET /proxy/servers/{server_id}
+
+Get server information.
+
+#### PUT /proxy/servers/{server_id}
+
+Update server configuration.
+
+#### DELETE /proxy/servers/{server_id}
+
+Unregister a server.
+
+#### GET /proxy/health
+
+Check health of all registered servers.
+
+#### POST /proxy/discovery
+
+Discover MCP servers on the network.
+
+#### GET /proxy/tools
+
+List all tools from wrapped servers.
+
+#### POST /proxy/tools/{tool_name}
+
+Execute a tool on a wrapped server.
 
 ### Health Check
 

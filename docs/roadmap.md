@@ -11,6 +11,9 @@ This roadmap outlines the development plan for MetaMCP, including current featur
 - **Core MCP Server**: FastMCP integration with WebSocket support
 - **Tool Registry**: Centralized tool management and discovery
 - **Vector Search**: Semantic search for tools using Weaviate
+- **Proxy Wrapper**: Wrap arbitrary MCP servers with enhanced features
+- **Server Discovery**: Automatic discovery of MCP servers on the network
+- **Health Monitoring**: Continuous health checks and status tracking
 - **Authentication**: JWT-based authentication system
 - **Authorization**: Role-based access control with OPA
 - **Monitoring**: OpenTelemetry integration with Prometheus metrics
@@ -21,7 +24,16 @@ This roadmap outlines the development plan for MetaMCP, including current featur
 
 ## Upcoming Releases
 
-### v1.1.0 - OAuth Integration (Q2 2024)
+### v1.1.0 - Proxy Wrapper & OAuth Integration (Q2 2024)
+
+#### Proxy Wrapper Enhancements
+- **Advanced Load Balancing**: Intelligent load balancing strategies
+- **Circuit Breaker**: Fault tolerance with circuit breaker pattern
+- **Caching Layer**: Advanced caching for tool results
+- **Custom Transports**: Support for additional transport protocols
+- **Plugin System**: Extensible plugin architecture for custom functionality
+
+#### OAuth 2.0 Support
 
 #### OAuth 2.0 Support
 - **OAuth Providers**: Google, GitHub, Microsoft, Okta integration
