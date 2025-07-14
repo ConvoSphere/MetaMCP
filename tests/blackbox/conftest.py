@@ -17,17 +17,19 @@ from websockets.exceptions import ConnectionClosed
 
 # Test Configuration
 BASE_URL = "http://localhost:8000"
-API_BASE_URL = f"{BASE_URL}/api/v1"
+API_BASE_URL = f"{BASE_URL}/api/v1/"
 WS_URL = f"{BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://')}/mcp/ws"
 
 # Test Data
 TEST_USER = {
-    "username": "test_user",
-    "password": "test_password123"
+    "username": "admin",
+    "password": "admin123"
 }
 
+import uuid
+
 TEST_TOOL = {
-    "name": "test_calculator",
+    "name": f"test_calculator_{uuid.uuid4().hex[:8]}",
     "description": "Simple calculator for testing",
     "endpoint": "http://localhost:8001",
     "category": "math",
@@ -141,7 +143,7 @@ def wait_for_service(max_retries: int = 30, delay: float = 2.0) -> bool:
     """Wait for the MetaMCP service to be ready."""
     for i in range(max_retries):
         try:
-            response = httpx.get(f"{API_BASE_URL}/health", timeout=5.0)
+            response = httpx.get(f"{API_BASE_URL}health", timeout=5.0)
             if response.status_code == 200:
                 return True
         except Exception:

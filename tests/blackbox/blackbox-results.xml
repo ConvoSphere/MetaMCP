@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="0" failures="9" skipped="0" tests="9" time="0.207" timestamp="2025-07-13T23:45:31.703936+02:00" hostname="Laborator"><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_check" time="0.013"><failure message="AssertionError: Expected 200, got 307: &#10;assert 307 == 200&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">self = &lt;tests.blackbox.rest_api.test_health.TestHealthEndpoints object at 0x7768e2136990&gt;
+http_client = &lt;httpx.AsyncClient object at 0x7768e1fb0ec0&gt;
+
+    @pytest.mark.asyncio
+    async def test_health_check(self, http_client: AsyncClient):
+        """Test basic health check endpoint."""
+        response = await http_client.get(f"{API_BASE_URL}health")
+    
+&gt;       data = assert_success_response(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+rest_api/test_health.py:21: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+response = &lt;Response [307 Temporary Redirect]&gt;, expected_status = 200
+
+    def assert_success_response(response: httpx.Response, expected_status: int = 200) -&gt; dict[str, Any]:
+        """Assert that response is successful and return JSON data."""
+&gt;       assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+E       AssertionError: Expected 200, got 307: 
+E       assert 307 == 200
+E        +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code
+
+conftest.py:158: AssertionError</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_detailed_health" time="0.009"><failure message="KeyError: 'status'">self = &lt;tests.blackbox.rest_api.test_health.TestHealthEndpoints object at 0x7768e2136e90&gt;
+http_client = &lt;httpx.AsyncClient object at 0x7768e2050050&gt;
+
+    @pytest.mark.asyncio
+    async def test_detailed_health(self, http_client: AsyncClient):
+        """Test detailed health status endpoint."""
+        response = await http_client.get(f"{API_BASE_URL}health/detailed")
+    
+&gt;       data = assert_success_response(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+rest_api/test_health.py:31: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+response = &lt;Response [200 OK]&gt;, expected_status = 200
+
+    def assert_success_response(response: httpx.Response, expected_status: int = 200) -&gt; dict[str, Any]:
+        """Assert that response is successful and return JSON data."""
+        assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+        data = response.json()
+&gt;       assert data["status"] == "success", f"Expected success status, got: {data}"
+               ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+conftest.py:160: KeyError</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_ready" time="0.008"><failure message="AssertionError: Expected success status, got: {'status': 'ready'}&#10;assert 'ready' == 'success'&#10;  &#10;  #x1B[0m#x1B[91m- success#x1B[39;49;00m#x1B[90m#x1B[39;49;00m&#10;  #x1B[92m+ ready#x1B[39;49;00m#x1B[90m#x1B[39;49;00m">self = &lt;tests.blackbox.rest_api.test_health.TestHealthEndpoints object at 0x7768e210e9e0&gt;
+http_client = &lt;httpx.AsyncClient object at 0x7768e2051f90&gt;
+
+    @pytest.mark.asyncio
+    async def test_health_ready(self, http_client: AsyncClient):
+        """Test readiness probe endpoint."""
+        response = await http_client.get(f"{API_BASE_URL}health/ready")
+    
+&gt;       data = assert_success_response(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+rest_api/test_health.py:46: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+response = &lt;Response [200 OK]&gt;, expected_status = 200
+
+    def assert_success_response(response: httpx.Response, expected_status: int = 200) -&gt; dict[str, Any]:
+        """Assert that response is successful and return JSON data."""
+        assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+        data = response.json()
+&gt;       assert data["status"] == "success", f"Expected success status, got: {data}"
+E       AssertionError: Expected success status, got: {'status': 'ready'}
+E       assert 'ready' == 'success'
+E         
+E         #x1B[0m#x1B[91m- success#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+E         #x1B[92m+ ready#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+
+conftest.py:160: AssertionError</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_live" time="0.008"><failure message="AssertionError: Expected success status, got: {'status': 'alive', 'uptime': 999.370523929596, 'uptime_formatted': '16m 39s'}&#10;assert 'alive' == 'success'&#10;  &#10;  #x1B[0m#x1B[91m- success#x1B[39;49;00m#x1B[90m#x1B[39;49;00m&#10;  #x1B[92m+ alive#x1B[39;49;00m#x1B[90m#x1B[39;49;00m">self = &lt;tests.blackbox.rest_api.test_health.TestHealthEndpoints object at 0x7768e210ec40&gt;
+http_client = &lt;httpx.AsyncClient object at 0x7768e203a520&gt;
+
+    @pytest.mark.asyncio
+    async def test_health_live(self, http_client: AsyncClient):
+        """Test liveness probe endpoint."""
+        response = await http_client.get(f"{API_BASE_URL}health/live")
+    
+&gt;       data = assert_success_response(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+rest_api/test_health.py:56: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+response = &lt;Response [200 OK]&gt;, expected_status = 200
+
+    def assert_success_response(response: httpx.Response, expected_status: int = 200) -&gt; dict[str, Any]:
+        """Assert that response is successful and return JSON data."""
+        assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+        data = response.json()
+&gt;       assert data["status"] == "success", f"Expected success status, got: {data}"
+E       AssertionError: Expected success status, got: {'status': 'alive', 'uptime': 999.370523929596, 'uptime_formatted': '16m 39s'}
+E       assert 'alive' == 'success'
+E         
+E         #x1B[0m#x1B[91m- success#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+E         #x1B[92m+ alive#x1B[39;49;00m#x1B[90m#x1B[39;49;00m
+
+conftest.py:160: AssertionError</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_components" time="0.009"><failure message="KeyError: 'status'">self = &lt;tests.blackbox.rest_api.test_health.TestHealthEndpoints object at 0x7768e20055b0&gt;
+http_client = &lt;httpx.AsyncClient object at 0x7768e20390f0&gt;
+
+    @pytest.mark.asyncio
+    async def test_health_components(self, http_client: AsyncClient):
+        """Test that health components are properly structured."""
+        response = await http_client.get(f"{API_BASE_URL}health/detailed")
+    
+&gt;       data = assert_success_response(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+rest_api/test_health.py:66: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+response = &lt;Response [200 OK]&gt;, expected_status = 200
+
+    def assert_success_response(response: httpx.Response, expected_status: int = 200) -&gt; dict[str, Any]:
+        """Assert that response is successful and return JSON data."""
+        assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+        data = response.json()
+&gt;       assert data["status"] == "success", f"Expected success status, got: {data}"
+               ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+conftest.py:160: KeyError</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_uptime_increases" time="0.011"><failure message="KeyError: 'status'">self = &lt;tests.blackbox.rest_api.test_health.TestHealthEndpoints object at 0x7768e1fb4af0&gt;
+http_client = &lt;httpx.AsyncClient object at 0x7768e1ec4dd0&gt;
+
+    @pytest.mark.asyncio
+    async def test_health_uptime_increases(self, http_client: AsyncClient):
+        """Test that uptime increases over time."""
+        # Get initial uptime
+        response1 = await http_client.get(f"{API_BASE_URL}health/detailed")
+&gt;       data1 = assert_success_response(response1)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+rest_api/test_health.py:86: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+response = &lt;Response [200 OK]&gt;, expected_status = 200
+
+    def assert_success_response(response: httpx.Response, expected_status: int = 200) -&gt; dict[str, Any]:
+        """Assert that response is successful and return JSON data."""
+        assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+        data = response.json()
+&gt;       assert data["status"] == "success", f"Expected success status, got: {data}"
+               ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+conftest.py:160: KeyError</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_version_consistent" time="0.009"><failure message="KeyError: 'status'">self = &lt;tests.blackbox.rest_api.test_health.TestHealthEndpoints object at 0x7768e1fb4d10&gt;
+http_client = &lt;httpx.AsyncClient object at 0x7768e1fb78a0&gt;
+
+    @pytest.mark.asyncio
+    async def test_health_version_consistent(self, http_client: AsyncClient):
+        """Test that version is consistent across health endpoints."""
+        # Check detailed health
+        detailed_response = await http_client.get(f"{API_BASE_URL}health/detailed")
+&gt;       detailed_data = assert_success_response(detailed_response)
+                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+rest_api/test_health.py:106: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+response = &lt;Response [200 OK]&gt;, expected_status = 200
+
+    def assert_success_response(response: httpx.Response, expected_status: int = 200) -&gt; dict[str, Any]:
+        """Assert that response is successful and return JSON data."""
+        assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+        data = response.json()
+&gt;       assert data["status"] == "success", f"Expected success status, got: {data}"
+               ^^^^^^^^^^^^^^
+E       KeyError: 'status'
+
+conftest.py:160: KeyError</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_timestamp_format" time="0.012"><failure message="AssertionError: Expected 200, got 307: &#10;assert 307 == 200&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">self = &lt;tests.blackbox.rest_api.test_health.TestHealthEndpoints object at 0x7768e1ff0250&gt;
+http_client = &lt;httpx.AsyncClient object at 0x7768e1fb7ac0&gt;
+
+    @pytest.mark.asyncio
+    async def test_health_timestamp_format(self, http_client: AsyncClient):
+        """Test that timestamps are in correct format."""
+        response = await http_client.get(f"{API_BASE_URL}health")
+    
+&gt;       data = assert_success_response(response)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+rest_api/test_health.py:119: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+response = &lt;Response [307 Temporary Redirect]&gt;, expected_status = 200
+
+    def assert_success_response(response: httpx.Response, expected_status: int = 200) -&gt; dict[str, Any]:
+        """Assert that response is successful and return JSON data."""
+&gt;       assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+E       AssertionError: Expected 200, got 307: 
+E       assert 307 == 200
+E        +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code
+
+conftest.py:158: AssertionError</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_endpoints_accessible" time="0.012"><failure message="AssertionError: Endpoint health should be accessible&#10;assert 307 == 200&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">self = &lt;tests.blackbox.rest_api.test_health.TestHealthEndpoints object at 0x7768e1ff0450&gt;
+http_client = &lt;httpx.AsyncClient object at 0x7768e1f31450&gt;
+
+    @pytest.mark.asyncio
+    async def test_health_endpoints_accessible(self, http_client: AsyncClient):
+        """Test that all health endpoints are accessible without authentication."""
+        endpoints = [
+            "health",
+            "health/detailed",
+            "health/ready",
+            "health/live"
+        ]
+    
+        for endpoint in endpoints:
+            response = await http_client.get(f"{API_BASE_URL}{endpoint}")
+&gt;           assert response.status_code == 200, f"Endpoint {endpoint} should be accessible"
+E           AssertionError: Endpoint health should be accessible
+E           assert 307 == 200
+E            +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code
+
+rest_api/test_health.py:139: AssertionError</failure></testcase></testsuite></testsuites>
