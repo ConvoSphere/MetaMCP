@@ -8,7 +8,6 @@ This module provides test-related utilities for the MetaMCP project.
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 
 class TestUtils:
@@ -17,7 +16,7 @@ class TestUtils:
     def __init__(self, project_root: Path):
         self.project_root = project_root
 
-    def run_command(self, command: List[str], cwd: Optional[Path] = None) -> int:
+    def run_command(self, command: list[str], cwd: Path | None = None) -> int:
         """Run a shell command and return exit code."""
         try:
             result = subprocess.run(
@@ -32,7 +31,7 @@ class TestUtils:
             print(f"Error running command: {e}", file=sys.stderr)
             return 1
 
-    def check_test_dependencies(self) -> Dict[str, bool]:
+    def check_test_dependencies(self) -> dict[str, bool]:
         """Check if test dependencies are available."""
         dependencies = {}
 

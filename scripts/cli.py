@@ -8,12 +8,10 @@ This tool bundles all script functionalities in a modular way.
 
 import argparse
 import datetime
-import json
 import os
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 
 class MetaMCPCLI:
@@ -23,7 +21,7 @@ class MetaMCPCLI:
         self.project_root = Path(__file__).parent.parent
         self.scripts_dir = self.project_root / "scripts"
 
-    def run_command(self, command: List[str], cwd: Optional[Path] = None) -> int:
+    def run_command(self, command: list[str], cwd: Path | None = None) -> int:
         """Run a shell command and return exit code."""
         try:
             result = subprocess.run(
@@ -89,7 +87,7 @@ class MetaMCPCLI:
         print("🐳 Checking Docker container status...")
         return self.run_command(["docker", "compose", "ps"])
 
-    def docker_logs(self, service: Optional[str] = None) -> int:
+    def docker_logs(self, service: str | None = None) -> int:
         """Show Docker logs."""
         if service:
             print(f"📋 Showing logs for {service}...")
@@ -98,7 +96,7 @@ class MetaMCPCLI:
             print("📋 Showing all logs...")
             return self.run_command(["docker", "compose", "logs"])
 
-    def docker_restart(self, service: Optional[str] = None) -> int:
+    def docker_restart(self, service: str | None = None) -> int:
         """Restart Docker containers."""
         if service:
             print(f"🔄 Restarting {service}...")
@@ -113,7 +111,7 @@ class MetaMCPCLI:
         return self.run_command(["docker", "compose", "down"])
 
     def docker_build(
-        self, service: Optional[str] = None, no_cache: bool = False
+        self, service: str | None = None, no_cache: bool = False
     ) -> int:
         """Build Docker containers."""
         cmd = ["docker", "compose", "build"]
@@ -523,7 +521,7 @@ def main() -> int:
                 print("🔍 Showing current environment variables...")
                 env_file = cli.project_root / ".env"
                 if env_file.exists():
-                    with open(env_file, "r") as f:
+                    with open(env_file) as f:
                         print(f.read())
                 else:
                     print("❌ .env file not found.")
@@ -532,7 +530,7 @@ def main() -> int:
                 print("🖊️  Editing .env file interactively...")
                 env_file = cli.project_root / ".env"
                 if env_file.exists():
-                    with open(env_file, "r") as f:
+                    with open(env_file) as f:
                         lines = f.readlines()
                     with open(env_file, "w") as f:
                         for line in lines:

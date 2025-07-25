@@ -204,7 +204,7 @@ class TestCircuitBreakerManager:
 
     def test_remove_circuit_breaker(self, manager):
         """Test removing circuit breaker."""
-        cb = manager.get_circuit_breaker("test_circuit")
+        manager.get_circuit_breaker("test_circuit")
         assert "test_circuit" in manager.circuit_breakers
 
         result = manager.remove_circuit_breaker("test_circuit")
@@ -218,8 +218,8 @@ class TestCircuitBreakerManager:
 
     def test_get_all_states(self, manager):
         """Test getting all circuit breaker states."""
-        cb1 = manager.get_circuit_breaker("test_circuit_1")
-        cb2 = manager.get_circuit_breaker("test_circuit_2")
+        manager.get_circuit_breaker("test_circuit_1")
+        manager.get_circuit_breaker("test_circuit_2")
 
         states = manager.get_all_states()
 
@@ -230,8 +230,8 @@ class TestCircuitBreakerManager:
 
     def test_get_statistics(self, manager):
         """Test getting manager statistics."""
-        cb1 = manager.get_circuit_breaker("test_circuit_1")
-        cb2 = manager.get_circuit_breaker("test_circuit_2")
+        manager.get_circuit_breaker("test_circuit_1")
+        manager.get_circuit_breaker("test_circuit_2")
 
         stats = manager.get_statistics()
 

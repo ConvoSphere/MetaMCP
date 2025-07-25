@@ -38,7 +38,7 @@ class TestUserWorkflows:
         )
         assert register_response.status_code in [200, 201]
         register_data = register_response.json()
-        tool_id = register_data["tool_id"]
+        register_data["tool_id"]
 
         # Step 3: List tools (should include our tool)
         list_response = await http_client.get(f"{API_BASE_URL}tools")
@@ -339,7 +339,7 @@ class TestDataConsistencyWorkflows:
         assert register_response.status_code in [200, 201]
 
         # Get tool details multiple times
-        for i in range(3):
+        for _i in range(3):
             get_response = await http_client.get(
                 f"{API_BASE_URL}tools/{tool_data['name']}"
             )

@@ -69,7 +69,7 @@ class TestHealthEndpoints:
             assert component["status"] in ["healthy", "unhealthy", "degraded"]
             # Optional metrics
             if "response_time" in component:
-                assert isinstance(component["response_time"], (int, float))
+                assert isinstance(component["response_time"], int | float)
 
     @pytest.mark.asyncio
     async def test_health_uptime_increases(self, http_client: AsyncClient):

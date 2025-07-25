@@ -114,7 +114,7 @@ class TestLoadTesting:
         """Test rapid succession of health checks."""
         start_time = time.time()
 
-        for i in range(50):
+        for _i in range(50):
             response = await http_client.get(f"{API_BASE_URL}health/")
             assert response.status_code == 200
 
@@ -139,7 +139,7 @@ class TestLoadTesting:
 
         # Mix of different operations
         tasks = []
-        for i in range(10):
+        for _i in range(10):
             tasks.append(health_check())
             tasks.append(list_tools())
             tasks.append(search_tools())

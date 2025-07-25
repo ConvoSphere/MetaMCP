@@ -62,7 +62,7 @@ class VectorSearchClient:
                 host = parsed_url.hostname
                 port = parsed_url.port or (443 if parsed_url.scheme == 'https' else 80)
                 secure = parsed_url.scheme == 'https'
-                
+
                 self.client = weaviate.connect_to_custom(
                     http_host=host,
                     http_port=port,
@@ -79,7 +79,7 @@ class VectorSearchClient:
                 host = parsed_url.hostname
                 port = parsed_url.port or (443 if parsed_url.scheme == 'https' else 80)
                 secure = parsed_url.scheme == 'https'
-                
+
                 self.client = weaviate.connect_to_custom(
                     http_host=host,
                     http_port=port,
@@ -127,8 +127,8 @@ class VectorSearchClient:
                 logger.info("Tools collection already exists")
             except Exception:
                 # Collection doesn't exist, create it
-                from weaviate.classes.config import Configure, Property, DataType
-                
+                from weaviate.classes.config import Configure, DataType, Property
+
                 self.client.collections.create(
                     name="tools",
                     vectorizer_config=Configure.Vectorizer.none(),

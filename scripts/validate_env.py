@@ -8,11 +8,10 @@ It checks for required variables, validates types, and provides helpful feedback
 
 import os
 import sys
-from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
-def validate_environment() -> Dict[str, Any]:
+def validate_environment() -> dict[str, Any]:
     """
     Validate the current environment configuration.
 
@@ -125,7 +124,7 @@ def validate_environment() -> Dict[str, Any]:
     return results
 
 
-def print_validation_results(results: Dict[str, Any]) -> None:
+def print_validation_results(results: dict[str, Any]) -> None:
     """
     Print validation results in a formatted way.
 
@@ -169,7 +168,7 @@ def print_validation_results(results: Dict[str, Any]) -> None:
     print("=" * 60)
 
 
-def suggest_fixes(results: Dict[str, Any]) -> None:
+def suggest_fixes(results: dict[str, Any]) -> None:
     """
     Suggest fixes for validation issues.
 

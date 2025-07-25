@@ -5,12 +5,11 @@ Script to generate API documentation from Python docstrings.
 
 import importlib
 import inspect
-import os
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any
 
 
-def extract_module_info(module_path: str) -> Dict[str, Any]:
+def extract_module_info(module_path: str) -> dict[str, Any]:
     """Extract documentation from a Python module."""
     try:
         spec = importlib.util.spec_from_file_location("module", module_path)
@@ -65,7 +64,7 @@ def extract_module_info(module_path: str) -> Dict[str, Any]:
         return None
 
 
-def generate_markdown_for_module(module_info: Dict[str, Any]) -> str:
+def generate_markdown_for_module(module_info: dict[str, Any]) -> str:
     """Generate markdown documentation for a module."""
     if not module_info:
         return ""

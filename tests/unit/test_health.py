@@ -223,7 +223,7 @@ class TestHealthMetrics:
 
     def test_uptime_accuracy(self):
         """Test uptime calculation accuracy."""
-        start_time = time.time()
+        time.time()
         uptime1 = get_uptime()
         time.sleep(0.1)  # Small delay
         uptime2 = get_uptime()

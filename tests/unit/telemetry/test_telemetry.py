@@ -133,7 +133,7 @@ class TestTelemetryManager:
             try:
                 async with telemetry_manager.trace_operation(
                     "test_operation", attributes={"test": "value"}
-                ) as span:
+                ):
                     # In test environment, span might be None due to mock limitations
                     pass
             except Exception:

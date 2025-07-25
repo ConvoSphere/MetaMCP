@@ -12,9 +12,9 @@ from httpx import AsyncClient
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
 from tests.blackbox.conftest import API_BASE_URL
+
+sys.path.insert(0, str(project_root))
 
 
 class TestAuthenticationSecurity:
@@ -222,7 +222,7 @@ class TestRateLimitingSecurity:
         """Test rate limiting on health endpoint."""
         # Make many rapid requests
         responses = []
-        for i in range(100):
+        for _i in range(100):
             response = await http_client.get(f"{API_BASE_URL}health/")
             responses.append(response)
 
@@ -231,7 +231,7 @@ class TestRateLimitingSecurity:
                 break
 
         # Check if rate limiting was triggered
-        rate_limited = any(r.status_code == 429 for r in responses)
+        any(r.status_code == 429 for r in responses)
         # Rate limiting is optional, so we don't assert it must be present
 
     @pytest.mark.asyncio
@@ -239,7 +239,7 @@ class TestRateLimitingSecurity:
         """Test rate limiting on authentication endpoint."""
         # Make many rapid login attempts
         responses = []
-        for i in range(20):
+        for _i in range(20):
             response = await http_client.post(
                 f"{API_BASE_URL}auth/login",
                 json={"username": "test_user", "password": "wrong_password"},
@@ -251,7 +251,7 @@ class TestRateLimitingSecurity:
                 break
 
         # Check if rate limiting was triggered
-        rate_limited = any(r.status_code == 429 for r in responses)
+        any(r.status_code == 429 for r in responses)
         # Rate limiting is optional, so we don't assert it must be present
 
 

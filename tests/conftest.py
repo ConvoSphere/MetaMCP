@@ -23,8 +23,6 @@ from sqlalchemy.orm import sessionmaker
 
 # Add project root to path
 project_root = Path(__file__).parent.parent
-sys.path.insert(0, str(project_root))
-
 from metamcp.config import Settings
 from metamcp.main import create_app
 from metamcp.services.auth_service import AuthService
@@ -33,6 +31,8 @@ from metamcp.services.tool_service import ToolService
 from metamcp.utils.cache import Cache
 from metamcp.utils.circuit_breaker import CircuitBreaker
 from metamcp.utils.rate_limiter import RateLimiter
+
+sys.path.insert(0, str(project_root))
 
 
 # Test Configuration

@@ -8,7 +8,7 @@ This module provides Docker-related utilities for the MetaMCP project.
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 
 class DockerUtils:
@@ -17,7 +17,7 @@ class DockerUtils:
     def __init__(self, project_root: Path):
         self.project_root = project_root
 
-    def run_command(self, command: List[str], cwd: Optional[Path] = None) -> int:
+    def run_command(self, command: list[str], cwd: Path | None = None) -> int:
         """Run a shell command and return exit code."""
         try:
             result = subprocess.run(
@@ -52,7 +52,7 @@ class DockerUtils:
         except FileNotFoundError:
             return False
 
-    def get_container_status(self) -> Dict[str, Any]:
+    def get_container_status(self) -> dict[str, Any]:
         """Get detailed container status."""
         try:
             result = subprocess.run(
@@ -73,7 +73,7 @@ class DockerUtils:
         except Exception as e:
             return {"containers": [], "running": False, "error": str(e)}
 
-    def get_container_logs(self, service: Optional[str] = None, lines: int = 50) -> str:
+    def get_container_logs(self, service: str | None = None, lines: int = 50) -> str:
         """Get container logs."""
         cmd = ["docker", "compose", "logs", f"--tail={lines}"]
         if service:
@@ -106,7 +106,7 @@ class DockerUtils:
             return f"Error getting stats: {e}"
 
     def build_containers(
-        self, service: Optional[str] = None, no_cache: bool = False
+        self, service: str | None = None, no_cache: bool = False
     ) -> int:
         """Build Docker containers."""
         cmd = ["docker", "compose", "build"]
@@ -117,7 +117,7 @@ class DockerUtils:
 
         return self.run_command(cmd)
 
-    def start_containers(self, service: Optional[str] = None) -> int:
+    def start_containers(self, service: str | None = None) -> int:
         """Start Docker containers."""
         cmd = ["docker", "compose", "up", "-d"]
         if service:
@@ -125,7 +125,7 @@ class DockerUtils:
 
         return self.run_command(cmd)
 
-    def stop_containers(self, service: Optional[str] = None) -> int:
+    def stop_containers(self, service: str | None = None) -> int:
         """Stop Docker containers."""
         cmd = ["docker", "compose", "down"]
         if service:
@@ -133,7 +133,7 @@ class DockerUtils:
 
         return self.run_command(cmd)
 
-    def restart_containers(self, service: Optional[str] = None) -> int:
+    def restart_containers(self, service: str | None = None) -> int:
         """Restart Docker containers."""
         cmd = ["docker", "compose", "restart"]
         if service:
@@ -164,7 +164,7 @@ class DockerUtils:
         print("✅ Docker cleanup complete")
         return 0
 
-    def check_services_health(self) -> Dict[str, bool]:
+    def check_services_health(self) -> dict[str, bool]:
         """Check health of all services."""
         health_status = {}
 
