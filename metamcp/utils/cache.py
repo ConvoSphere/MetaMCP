@@ -6,12 +6,13 @@ and caching strategies for improved performance.
 """
 
 import asyncio
-import hashlib
 import json
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Any
+
+import bcrypt
 
 from .logging import get_logger
 
@@ -334,9 +335,13 @@ class Cache:
         for key, value in sorted(kwargs.items()):
             key_parts.append(f"{key}:{value}")
 
-        # Create hash of the key string
+        # Create hash of the key string using bcrypt for security
         key_string = "|".join(key_parts)
-        return hashlib.md5(key_string.encode()).hexdigest()
+        # Use bcrypt to generate a secure hash, but limit to 32 chars for cache key
+        salt = bcrypt.gensalt()
+        hash_bytes = bcrypt.hashpw(key_string.encode(), salt)
+        # Convert to hex and truncate to 32 characters for cache key
+        return hash_bytes.hex()[:32]
 
     async def get(self, key: str) -> Any | None:
         """Get value from cache."""
@@ -442,14 +447,7 @@ def cache(ttl: int | None = None, key_prefix: str = ""):
         def sync_wrapper(*args, **kwargs):
             # For sync functions, we'd need to handle differently
             # This is a simplified version
-            key_data = str(args) + str(sorted(kwargs.items()))
-            cache_key = f"{key_prefix}:{func.__name__}:{hash(key_data)}"
-
-            # Get cache instance
-            cache_instance = get_cache_instance()
-
-            # Try to get from cache (this would need to be handled differently for sync)
-            # For now, just execute the function
+            # TODO: Implement proper sync caching
             return func(*args, **kwargs)
 
         if asyncio.iscoroutinefunction(func):

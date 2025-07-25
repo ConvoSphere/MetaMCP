@@ -280,16 +280,16 @@ class ServerDiscovery:
                     response = await client.post(f"{endpoint}/tools/list")
                     if response.status_code == 200:
                         return True
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Tools list endpoint failed for {endpoint}: {e}")
 
                 # Try health endpoint
                 try:
                     response = await client.get(f"{endpoint}/health")
                     if response.status_code == 200:
                         return True
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Health endpoint failed for {endpoint}: {e}")
 
                 # Try root endpoint
                 try:
@@ -299,11 +299,11 @@ class ServerDiscovery:
                         content = response.text.lower()
                         if "mcp" in content or "tools" in content:
                             return True
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Root endpoint failed for {endpoint}: {e}")
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"HTTP endpoint test failed for {endpoint}: {e}")
 
         return False
 
@@ -328,11 +328,13 @@ class ServerDiscovery:
                     if "result" in result and "error" not in result:
                         return True
 
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(
+                        f"WebSocket tools/list request failed for {endpoint}: {e}"
+                    )
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"WebSocket connection failed for {endpoint}: {e}")
 
         return False
 

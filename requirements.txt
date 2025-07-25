@@ -8,6 +8,7 @@ fastmcp
 # --- Auth & Security ---
 python-jose[cryptography]
 passlib[bcrypt]
+bcrypt
 python-multipart
 
 # --- Config & Validation ---

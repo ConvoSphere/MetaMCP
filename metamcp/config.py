@@ -40,7 +40,7 @@ class Settings(BaseSettings):
     environment: str = Field(default="development", description="Environment")
 
     # Server Settings
-    host: str = Field(default="0.0.0.0", description="Server host")
+    host: str = Field(default="127.0.0.1", description="Server host")
     port: int = Field(default=8000, description="Server port")
     workers: int = Field(default=1, description="Number of workers")
 
@@ -72,8 +72,8 @@ class Settings(BaseSettings):
 
     # Authentication Settings
     secret_key: str = Field(
-        default="your-secret-key-change-in-production",
-        description="Secret key for JWT tokens",
+        default="",
+        description="Secret key for JWT tokens (must be set in production)",
     )
     algorithm: str = Field(default="HS256", description="JWT algorithm")
     access_token_expire_minutes: int = Field(
@@ -157,6 +157,43 @@ class Settings(BaseSettings):
     # Development Settings
     reload: bool = Field(default=False, description="Auto-reload on changes")
     docs_enabled: bool = Field(default=True, description="Enable API documentation")
+
+    # OAuth Provider URLs (configurable via environment variables)
+    google_oauth_authorization_url: str = Field(
+        default="https://accounts.google.com/oauth/authorize",
+        description="Google OAuth authorization URL",
+    )
+    google_oauth_token_url: str = Field(
+        default="https://oauth2.googleapis.com/token",
+        description="Google OAuth token URL",
+    )
+    google_oauth_userinfo_url: str = Field(
+        default="https://www.googleapis.com/oauth2/v2/userinfo",
+        description="Google OAuth userinfo URL",
+    )
+    github_oauth_authorization_url: str = Field(
+        default="https://github.com/login/oauth/authorize",
+        description="GitHub OAuth authorization URL",
+    )
+    github_oauth_token_url: str = Field(
+        default="https://github.com/login/oauth/access_token",
+        description="GitHub OAuth token URL",
+    )
+    github_oauth_userinfo_url: str = Field(
+        default="https://api.github.com/user", description="GitHub OAuth userinfo URL"
+    )
+    microsoft_oauth_authorization_url: str = Field(
+        default="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+        description="Microsoft OAuth authorization URL",
+    )
+    microsoft_oauth_token_url: str = Field(
+        default="https://login.microsoftonline.com/common/oauth2/v2.0/token",
+        description="Microsoft OAuth token URL",
+    )
+    microsoft_oauth_userinfo_url: str = Field(
+        default="https://graph.microsoft.com/v1.0/me",
+        description="Microsoft OAuth userinfo URL",
+    )
 
     @validator("environment")
     def validate_environment(cls, v):
@@ -281,10 +318,7 @@ def validate_configuration() -> bool:
 
         # Validate required settings for production
         if settings.environment == "production":
-            if (
-                not settings.secret_key
-                or settings.secret_key == "your-secret-key-change-in-production"
-            ):
+            if not settings.secret_key:
                 raise ValueError("Secret key must be set in production")
 
             if not settings.openai_api_key:

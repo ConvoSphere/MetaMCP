@@ -1,0 +1,376 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="9" failures="62" skipped="0" tests="90" time="6.055" timestamp="2025-07-25T22:50:30.357716+02:00" hostname="Laborator"><testcase classname="tests.blackbox.integration.test_workflows.TestUserWorkflows" name="test_complete_tool_lifecycle" time="0.218"><failure message="assert 307 in [200, 201]&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">tests/blackbox/integration/test_workflows.py:39: in test_complete_tool_lifecycle
+    assert register_response.status_code in [200, 201]
+E   assert 307 in [200, 201]
+E    +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.integration.test_workflows.TestUserWorkflows" name="test_authentication_workflow" time="0.194"><failure message="AssertionError: assert 'user_id' in {'display_name': None, 'email': 'admin@example.com', 'first_name': 'Admin', 'id': 'eb16c71e-21ce-4a82-a659-57cc2268c06e', ...}">tests/blackbox/integration/test_workflows.py:108: in test_authentication_workflow
+    assert "user_id" in me_data
+E   AssertionError: assert 'user_id' in {'display_name': None, 'email': 'admin@example.com', 'first_name': 'Admin', 'id': 'eb16c71e-21ce-4a82-a659-57cc2268c06e', ...}</failure></testcase><testcase classname="tests.blackbox.integration.test_workflows.TestUserWorkflows" name="test_admin_workflow" time="0.203"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/integration/test_workflows.py:149: in test_admin_workflow
+    assert dashboard_response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.integration.test_workflows.TestErrorHandlingWorkflows" name="test_authentication_failure_workflow" time="0.012"><failure message="assert 307 in [401, 403]&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">tests/blackbox/integration/test_workflows.py:169: in test_authentication_failure_workflow
+    assert response.status_code in [401, 403]
+E   assert 307 in [401, 403]
+E    +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.integration.test_workflows.TestErrorHandlingWorkflows" name="test_tool_workflow_with_errors" time="0.196"><failure message="assert 307 in [400, 422]&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">tests/blackbox/integration/test_workflows.py:201: in test_tool_workflow_with_errors
+    assert register_response.status_code in [400, 422]
+E   assert 307 in [400, 422]
+E    +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.integration.test_workflows.TestConcurrentWorkflows" name="test_concurrent_user_sessions" time="0.959"><failure message="AssertionError: Only 0/5 concurrent sessions succeeded&#10;assert 0 &gt;= 3">tests/blackbox/integration/test_workflows.py:260: in test_concurrent_user_sessions
+    assert (
+E   AssertionError: Only 0/5 concurrent sessions succeeded
+E   assert 0 &gt;= 3</failure></testcase><testcase classname="tests.blackbox.integration.test_workflows.TestConcurrentWorkflows" name="test_concurrent_tool_operations" time="0.195"><failure message="AssertionError: Only 0/3 concurrent tool operations succeeded&#10;assert 0 &gt;= 2">tests/blackbox/integration/test_workflows.py:312: in test_concurrent_tool_operations
+    assert (
+E   AssertionError: Only 0/3 concurrent tool operations succeeded
+E   assert 0 &gt;= 2</failure></testcase><testcase classname="tests.blackbox.integration.test_workflows.TestDataConsistencyWorkflows" name="test_tool_data_consistency" time="0.197"><failure message="AttributeError: module 'pytest' has no attribute 'time'">tests/blackbox/integration/test_workflows.py:334: in test_tool_data_consistency
+    tool_data["name"] = f"consistency_test_tool_{int(pytest.time.time())}"
+                                                     ^^^^^^^^^^^
+E   AttributeError: module 'pytest' has no attribute 'time'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPConnection" name="test_websocket_connection" time="0.003"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:22: in test_websocket_connection
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPConnection" name="test_mcp_initialization" time="0.001"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:30: in test_mcp_initialization
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPConnection" name="test_mcp_initialization_invalid_version" time="0.001"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:71: in test_mcp_initialization_invalid_version
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPConnection" name="test_mcp_initialization_missing_params" time="0.001"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:95: in test_mcp_initialization_missing_params
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPTools" name="test_mcp_list_tools" time="0.001"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:120: in test_mcp_list_tools
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPTools" name="test_mcp_call_tool" time="0.001"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:176: in test_mcp_call_tool
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPTools" name="test_mcp_invalid_method" time="0.000"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:218: in test_mcp_invalid_method
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPErrorHandling" name="test_mcp_malformed_json" time="0.000"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:261: in test_mcp_malformed_json
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPErrorHandling" name="test_mcp_missing_jsonrpc" time="0.000"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:277: in test_mcp_missing_jsonrpc
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.mcp_api.test_protocol.TestMCPErrorHandling" name="test_mcp_concurrent_requests" time="0.000"><failure message="TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'">tests/blackbox/mcp_api/test_protocol.py:293: in test_mcp_concurrent_requests
+    async with websockets.connect(WS_URL, timeout=30.0) as websocket:
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:587: in __aenter__
+    return await self
+           ^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:541: in __await_impl__
+    self.connection = await self.create_connection()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/websockets/asyncio/client.py:467: in create_connection
+    _, connection = await loop.create_connection(factory, **kwargs)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E   TypeError: BaseEventLoop.create_connection() got an unexpected keyword argument 'timeout'</failure></testcase><testcase classname="tests.blackbox.performance.test_load.TestPerformanceEndpoints" name="test_health_endpoint_performance" time="0.007" /><testcase classname="tests.blackbox.performance.test_load.TestPerformanceEndpoints" name="test_concurrent_health_requests" time="0.012"><failure message="AssertionError: assert 'healthy' in {'environment': 'development', 'service': 'ai-assistant-platform', 'status': 'healthy', 'version': '1.0.0'}">tests/blackbox/performance/test_load.py:44: in test_concurrent_health_requests
+    assert "healthy" in data
+E   AssertionError: assert 'healthy' in {'environment': 'development', 'service': 'ai-assistant-platform', 'status': 'healthy', 'version': '1.0.0'}</failure></testcase><testcase classname="tests.blackbox.performance.test_load.TestPerformanceEndpoints" name="test_tool_registration_performance" time="0.012"><failure message="assert 403 in [200, 201]&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/performance/test_load.py:66: in test_tool_registration_performance
+    assert response.status_code in [200, 201]
+E   assert 403 in [200, 201]
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.performance.test_load.TestPerformanceEndpoints" name="test_concurrent_tool_operations" time="0.016"><failure message="assert 403 in [200, 201]&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/performance/test_load.py:92: in test_concurrent_tool_operations
+    assert response.status_code in [200, 201]
+E   assert 403 in [200, 201]
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.performance.test_load.TestPerformanceEndpoints" name="test_search_performance" time="0.009"><failure message="assert 307 in [200, 404]&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">tests/blackbox/performance/test_load.py:104: in test_search_performance
+    assert response.status_code in [200, 404]
+E   assert 307 in [200, 404]
+E    +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.performance.test_load.TestLoadTesting" name="test_rapid_health_checks" time="0.042" /><testcase classname="tests.blackbox.performance.test_load.TestLoadTesting" name="test_mixed_workload" time="0.044"><failure message="AssertionError: Too many failures: 10/30&#10;assert 10 &gt;= (30 * 0.6)&#10; +  where 30 = len([&lt;Response [200 OK]&gt;, &lt;Response [403 Forbidden]&gt;, &lt;Response [307 Temporary Redirect]&gt;, &lt;Response [200 OK]&gt;, &lt;Response [403 Forbidden]&gt;, &lt;Response [307 Temporary Redirect]&gt;, ...])">tests/blackbox/performance/test_load.py:155: in test_mixed_workload
+    assert (
+E   AssertionError: Too many failures: 10/30
+E   assert 10 &gt;= (30 * 0.6)
+E    +  where 30 = len([&lt;Response [200 OK]&gt;, &lt;Response [403 Forbidden]&gt;, &lt;Response [307 Temporary Redirect]&gt;, &lt;Response [200 OK]&gt;, &lt;Response [403 Forbidden]&gt;, &lt;Response [307 Temporary Redirect]&gt;, ...])</failure></testcase><testcase classname="tests.blackbox.performance.test_load.TestStressTesting" name="test_large_payload_handling" time="0.008"><failure message="assert 403 in [200, 201, 400, 413]&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/performance/test_load.py:182: in test_large_payload_handling
+    assert response.status_code in [200, 201, 400, 413]
+E   assert 403 in [200, 201, 400, 413]
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.performance.test_load.TestStressTesting" name="test_concurrent_authentication" time="0.138" /><testcase classname="tests.blackbox.rest_api.test_admin.TestAdminEndpoints" name="test_get_admin_dashboard" time="0.008"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_admin.py:20: in test_get_admin_dashboard
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_admin.TestAdminEndpoints" name="test_get_admin_dashboard_unauthorized" time="0.008"><failure message="assert 404 in [401, 403]&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_admin.py:29: in test_get_admin_dashboard_unauthorized
+    assert response.status_code in [401, 403]
+E   assert 404 in [401, 403]
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthentication" name="test_login_success" time="0.207" /><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthentication" name="test_login_invalid_credentials" time="0.021" /><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthentication" name="test_login_missing_fields" time="0.010" /><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthentication" name="test_me_endpoint" time="0.010"><failure message="assert 403 == 200&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/rest_api/test_auth.py:53: in test_me_endpoint
+    assert response.status_code == 200
+E   assert 403 == 200
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthentication" name="test_me_endpoint_unauthorized" time="0.011"><failure message="assert 403 == 401&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/rest_api/test_auth.py:65: in test_me_endpoint_unauthorized
+    assert response.status_code == 401
+E   assert 403 == 401
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthentication" name="test_permissions_endpoint" time="0.010"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_auth.py:73: in test_permissions_endpoint
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthentication" name="test_logout" time="0.011" /><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthentication" name="test_refresh_token" time="0.007"><failure message="assert 422 == 200&#10; +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code">tests/blackbox/rest_api/test_auth.py:92: in test_refresh_token
+    assert response.status_code == 200
+E   assert 422 == 200
+E    +  where 422 = &lt;Response [422 Unprocessable Entity]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthorization" name="test_protected_endpoint_with_token" time="0.011"><failure message="assert 403 in [200, 404]&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/rest_api/test_auth.py:109: in test_protected_endpoint_with_token
+    assert response.status_code in [200, 404]
+E   assert 403 in [200, 404]
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthorization" name="test_protected_endpoint_without_token" time="0.007"><failure message="assert 403 == 401&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/rest_api/test_auth.py:115: in test_protected_endpoint_without_token
+    assert response.status_code == 401
+E   assert 403 == 401
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_auth.TestAuthorization" name="test_protected_endpoint_invalid_token" time="0.009" /><testcase classname="tests.blackbox.rest_api.test_composition.TestCompositionEndpoints" name="test_register_workflow" time="0.014"><failure message="assert 404 in [200, 201]&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_composition.py:32: in test_register_workflow
+    assert response.status_code in [200, 201]
+E   assert 404 in [200, 201]
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_composition.TestCompositionEndpoints" name="test_list_workflows" time="0.013"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_composition.py:44: in test_list_workflows
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_composition.TestCompositionEndpoints" name="test_register_workflow_unauthorized" time="0.008"><failure message="assert 404 in [401, 403]&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_composition.py:57: in test_register_workflow_unauthorized
+    assert response.status_code in [401, 403]
+E   assert 404 in [401, 403]
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_check" time="0.012"><failure message="AssertionError: assert 'healthy' in {'environment': 'development', 'service': 'ai-assistant-platform', 'status': 'healthy', 'version': '1.0.0'}">tests/blackbox/rest_api/test_health.py:22: in test_health_check
+    assert "healthy" in data
+E   AssertionError: assert 'healthy' in {'environment': 'development', 'service': 'ai-assistant-platform', 'status': 'healthy', 'version': '1.0.0'}</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_detailed_health" time="0.017"><failure message="AssertionError: assert 'overall_healthy' in {'components': {'cache': {'details': {'connected_clients': 2, 'keyspace_hits': 0, 'keyspace_misses': 0, 'status': 'con..., 'status': 'unhealthy'}}, 'environment': 'development', 'service': 'ai-assistant-platform', 'status': 'degraded', ...}">tests/blackbox/rest_api/test_health.py:34: in test_detailed_health
+    assert "overall_healthy" in data
+E   AssertionError: assert 'overall_healthy' in {'components': {'cache': {'details': {'connected_clients': 2, 'keyspace_hits': 0, 'keyspace_misses': 0, 'status': 'con..., 'status': 'unhealthy'}}, 'environment': 'development', 'service': 'ai-assistant-platform', 'status': 'degraded', ...}</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_ready" time="0.012"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_health.py:44: in test_health_ready
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_live" time="0.011"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_health.py:53: in test_health_live
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_components" time="0.015"><failure message="AssertionError: assert False&#10; +  where False = isinstance({'cache': {'details': {'connected_clients': 2, 'keyspace_hits': 0, 'keyspace_misses': 0, 'status': 'connected', ...}, ...: {'error': 'Weaviate client not initialized. Call init_weaviate() first.', 'status': 'error'}, 'status': 'unhealthy'}}, list)">tests/blackbox/rest_api/test_health.py:65: in test_health_components
+    assert isinstance(components, list)
+E   AssertionError: assert False
+E    +  where False = isinstance({'cache': {'details': {'connected_clients': 2, 'keyspace_hits': 0, 'keyspace_misses': 0, 'status': 'connected', ...}, ...: {'error': 'Weaviate client not initialized. Call init_weaviate() first.', 'status': 'error'}, 'status': 'unhealthy'}}, list)</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_uptime_increases" time="0.018"><failure message="KeyError: 'uptime'">tests/blackbox/rest_api/test_health.py:80: in test_health_uptime_increases
+    uptime1 = data1["uptime"]
+              ^^^^^^^^^^^^^^^
+E   KeyError: 'uptime'</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_version_consistent" time="0.013" /><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_timestamp_format" time="0.010"><failure message="KeyError: 'timestamp'">tests/blackbox/rest_api/test_health.py:107: in test_health_timestamp_format
+    timestamp = data["timestamp"]
+                ^^^^^^^^^^^^^^^^^
+E   KeyError: 'timestamp'</failure></testcase><testcase classname="tests.blackbox.rest_api.test_health.TestHealthEndpoints" name="test_health_endpoints_accessible" time="0.018"><failure message="AssertionError: Endpoint health/ready should be accessible&#10;assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_health.py:123: in test_health_endpoints_accessible
+    assert (
+E   AssertionError: Endpoint health/ready should be accessible
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_oauth.TestOAuthEndpoints" name="test_get_oauth_config" time="0.010"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_oauth.py:20: in test_get_oauth_config
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_oauth.TestOAuthEndpoints" name="test_initiate_oauth_flow" time="0.014" /><testcase classname="tests.blackbox.rest_api.test_oauth.TestOAuthEndpoints" name="test_oauth_callback_missing_params" time="0.010"><failure message="assert 404 in [400, 422]&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_oauth.py:45: in test_oauth_callback_missing_params
+    assert response.status_code in [400, 422]
+E   assert 404 in [400, 422]
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_proxy.TestProxyEndpoints" name="test_register_proxy_server" time="0.015"><failure message="assert 404 in [200, 201]&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_proxy.py:35: in test_register_proxy_server
+    assert response.status_code in [200, 201]
+E   assert 404 in [200, 201]
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_proxy.TestProxyEndpoints" name="test_list_proxy_servers" time="0.013"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_proxy.py:44: in test_list_proxy_servers
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_proxy.TestProxyEndpoints" name="test_get_proxy_server_info" time="0.011" /><testcase classname="tests.blackbox.rest_api.test_proxy.TestProxyEndpoints" name="test_discover_proxy_servers" time="0.014"><failure message="assert 404 in [200, 201]&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_proxy.py:75: in test_discover_proxy_servers
+    assert response.status_code in [200, 201]
+E   assert 404 in [200, 201]
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_proxy.TestProxyEndpoints" name="test_get_discovered_proxy_servers" time="0.010"><failure message="assert 404 == 200&#10; +  where 404 = &lt;Response [404 Not Found]&gt;.status_code">tests/blackbox/rest_api/test_proxy.py:89: in test_get_discovered_proxy_servers
+    assert response.status_code == 200
+E   assert 404 == 200
+E    +  where 404 = &lt;Response [404 Not Found]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolRegistration" name="test_register_tool_success" time="0.011"><failure message="assert 403 in [200, 201]&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/rest_api/test_tools.py:25: in test_register_tool_success
+    assert response.status_code in [200, 201]
+E   assert 403 in [200, 201]
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolRegistration" name="test_register_tool_duplicate" time="0.010"><failure message="assert 403 in [200, 201]&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/rest_api/test_tools.py:38: in test_register_tool_duplicate
+    assert response1.status_code in [200, 201]
+E   assert 403 in [200, 201]
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolRegistration" name="test_register_tool_missing_fields" time="0.007"><failure message="assert 403 in [400, 422]&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/rest_api/test_tools.py:59: in test_register_tool_missing_fields
+    assert response.status_code in [400, 422]
+E   assert 403 in [400, 422]
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolRegistration" name="test_register_tool_unauthorized" time="0.008"><failure message="assert 403 == 401&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/rest_api/test_tools.py:65: in test_register_tool_unauthorized
+    assert response.status_code == 401
+E   assert 403 == 401
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolRetrieval" name="test_get_tool_success" time="0.014"><error message="failed on setup with &quot;Failed: Failed to register test tool: {&quot;detail&quot;:&quot;errors.not_found&quot;,&quot;status_code&quot;:404}&quot;">.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:321: in _asyncgen_fixture_wrapper
+    result = event_loop.run_until_complete(setup_task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:316: in setup
+    res = await gen_obj.__anext__()  # type: ignore[union-attr]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/blackbox/conftest.py:138: in test_tool_id
+    pytest.fail(f"Failed to register test tool: {response.text}")
+E   Failed: Failed to register test tool: {"detail":"errors.not_found","status_code":404}</error></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolRetrieval" name="test_get_tool_not_found" time="0.011"><failure message="assert 403 == 404&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/rest_api/test_tools.py:94: in test_get_tool_not_found
+    assert response.status_code == 404
+E   assert 403 == 404
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolRetrieval" name="test_list_tools" time="0.009"><error message="failed on setup with &quot;Failed: Failed to register test tool: {&quot;detail&quot;:&quot;errors.not_found&quot;,&quot;status_code&quot;:404}&quot;">.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:321: in _asyncgen_fixture_wrapper
+    result = event_loop.run_until_complete(setup_task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:316: in setup
+    res = await gen_obj.__anext__()  # type: ignore[union-attr]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/blackbox/conftest.py:138: in test_tool_id
+    pytest.fail(f"Failed to register test tool: {response.text}")
+E   Failed: Failed to register test tool: {"detail":"errors.not_found","status_code":404}</error></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolRetrieval" name="test_list_tools_with_category_filter" time="0.011"><error message="failed on setup with &quot;Failed: Failed to register test tool: {&quot;detail&quot;:&quot;errors.not_found&quot;,&quot;status_code&quot;:404}&quot;">.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:321: in _asyncgen_fixture_wrapper
+    result = event_loop.run_until_complete(setup_task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:316: in setup
+    res = await gen_obj.__anext__()  # type: ignore[union-attr]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/blackbox/conftest.py:138: in test_tool_id
+    pytest.fail(f"Failed to register test tool: {response.text}")
+E   Failed: Failed to register test tool: {"detail":"errors.not_found","status_code":404}</error></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolExecution" name="test_execute_tool_success" time="0.012"><error message="failed on setup with &quot;Failed: Failed to register test tool: {&quot;detail&quot;:&quot;errors.not_found&quot;,&quot;status_code&quot;:404}&quot;">.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:321: in _asyncgen_fixture_wrapper
+    result = event_loop.run_until_complete(setup_task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:316: in setup
+    res = await gen_obj.__anext__()  # type: ignore[union-attr]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/blackbox/conftest.py:138: in test_tool_id
+    pytest.fail(f"Failed to register test tool: {response.text}")
+E   Failed: Failed to register test tool: {"detail":"errors.not_found","status_code":404}</error></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolExecution" name="test_execute_tool_not_found" time="0.010" /><testcase classname="tests.blackbox.rest_api.test_tools.TestToolExecution" name="test_execute_tool_invalid_arguments" time="0.010"><error message="failed on setup with &quot;Failed: Failed to register test tool: {&quot;detail&quot;:&quot;errors.not_found&quot;,&quot;status_code&quot;:404}&quot;">.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:321: in _asyncgen_fixture_wrapper
+    result = event_loop.run_until_complete(setup_task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:316: in setup
+    res = await gen_obj.__anext__()  # type: ignore[union-attr]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/blackbox/conftest.py:138: in test_tool_id
+    pytest.fail(f"Failed to register test tool: {response.text}")
+E   Failed: Failed to register test tool: {"detail":"errors.not_found","status_code":404}</error></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolSearch" name="test_search_tools" time="0.011"><error message="failed on setup with &quot;Failed: Failed to register test tool: {&quot;detail&quot;:&quot;errors.not_found&quot;,&quot;status_code&quot;:404}&quot;">.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:321: in _asyncgen_fixture_wrapper
+    result = event_loop.run_until_complete(setup_task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:316: in setup
+    res = await gen_obj.__anext__()  # type: ignore[union-attr]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/blackbox/conftest.py:138: in test_tool_id
+    pytest.fail(f"Failed to register test tool: {response.text}")
+E   Failed: Failed to register test tool: {"detail":"errors.not_found","status_code":404}</error></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolSearch" name="test_search_tools_with_filters" time="0.010"><error message="failed on setup with &quot;Failed: Failed to register test tool: {&quot;detail&quot;:&quot;errors.not_found&quot;,&quot;status_code&quot;:404}&quot;">.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:321: in _asyncgen_fixture_wrapper
+    result = event_loop.run_until_complete(setup_task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:316: in setup
+    res = await gen_obj.__anext__()  # type: ignore[union-attr]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/blackbox/conftest.py:138: in test_tool_id
+    pytest.fail(f"Failed to register test tool: {response.text}")
+E   Failed: Failed to register test tool: {"detail":"errors.not_found","status_code":404}</error></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolManagement" name="test_update_tool" time="0.012"><error message="failed on setup with &quot;Failed: Failed to register test tool: {&quot;detail&quot;:&quot;errors.not_found&quot;,&quot;status_code&quot;:404}&quot;">.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:321: in _asyncgen_fixture_wrapper
+    result = event_loop.run_until_complete(setup_task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:316: in setup
+    res = await gen_obj.__anext__()  # type: ignore[union-attr]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/blackbox/conftest.py:138: in test_tool_id
+    pytest.fail(f"Failed to register test tool: {response.text}")
+E   Failed: Failed to register test tool: {"detail":"errors.not_found","status_code":404}</error></testcase><testcase classname="tests.blackbox.rest_api.test_tools.TestToolManagement" name="test_delete_tool" time="0.008"><error message="failed on setup with &quot;Failed: Failed to register test tool: {&quot;detail&quot;:&quot;errors.not_found&quot;,&quot;status_code&quot;:404}&quot;">.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:321: in _asyncgen_fixture_wrapper
+    result = event_loop.run_until_complete(setup_task)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+/usr/lib/python3.13/asyncio/base_events.py:719: in run_until_complete
+    return future.result()
+           ^^^^^^^^^^^^^^^
+.venv/lib/python3.13/site-packages/pytest_asyncio/plugin.py:316: in setup
+    res = await gen_obj.__anext__()  # type: ignore[union-attr]
+          ^^^^^^^^^^^^^^^^^^^^^^^^^
+tests/blackbox/conftest.py:138: in test_tool_id
+    pytest.fail(f"Failed to register test tool: {response.text}")
+E   Failed: Failed to register test tool: {"detail":"errors.not_found","status_code":404}</error></testcase><testcase classname="tests.blackbox.security.test_security.TestAuthenticationSecurity" name="test_sql_injection_login" time="0.037" /><testcase classname="tests.blackbox.security.test_security.TestAuthenticationSecurity" name="test_brute_force_protection" time="1.843" /><testcase classname="tests.blackbox.security.test_security.TestAuthenticationSecurity" name="test_weak_password_handling" time="0.041" /><testcase classname="tests.blackbox.security.test_security.TestAuthorizationSecurity" name="test_unauthorized_access_attempts" time="0.008"><failure message="assert 307 in [401, 403]&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">tests/blackbox/security/test_security.py:78: in test_unauthorized_access_attempts
+    assert response.status_code in [401, 403]
+E   assert 307 in [401, 403]
+E    +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.security.test_security.TestAuthorizationSecurity" name="test_invalid_token_handling" time="0.008"><failure message="assert 307 in [401, 403]&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">tests/blackbox/security/test_security.py:92: in test_invalid_token_handling
+    assert response.status_code in [401, 403]
+E   assert 307 in [401, 403]
+E    +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.security.test_security.TestAuthorizationSecurity" name="test_token_tampering" time="0.016" /><testcase classname="tests.blackbox.security.test_security.TestInputValidationSecurity" name="test_xss_injection_tool_registration" time="0.010"><failure message="assert 307 in [400, 422, 201]&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">tests/blackbox/security/test_security.py:146: in test_xss_injection_tool_registration
+    assert response.status_code in [400, 422, 201]
+E   assert 307 in [400, 422, 201]
+E    +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.security.test_security.TestInputValidationSecurity" name="test_path_traversal_attempts" time="0.015"><failure message="assert 403 in [400, 404, 422]&#10; +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code">tests/blackbox/security/test_security.py:160: in test_path_traversal_attempts
+    assert response.status_code in [400, 404, 422]
+E   assert 403 in [400, 404, 422]
+E    +  where 403 = &lt;Response [403 Forbidden]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.security.test_security.TestInputValidationSecurity" name="test_command_injection_tool_execution" time="0.017" /><testcase classname="tests.blackbox.security.test_security.TestSecurityHeaders" name="test_security_headers_present" time="0.008"><failure message="AssertionError: No security headers found. Present: ['date', 'server', 'content-length', 'content-type', 'content-language']&#10;assert 0 &gt; 0&#10; +  where 0 = len([])">tests/blackbox/security/test_security.py:201: in test_security_headers_present
+    assert (
+E   AssertionError: No security headers found. Present: ['date', 'server', 'content-length', 'content-type', 'content-language']
+E   assert 0 &gt; 0
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.blackbox.security.test_security.TestSecurityHeaders" name="test_cors_headers" time="0.010"><failure message="AssertionError: No CORS headers found&#10;assert 0 &gt; 0&#10; +  where 0 = len([])">tests/blackbox/security/test_security.py:214: in test_cors_headers
+    assert len(present_cors) &gt; 0, "No CORS headers found"
+E   AssertionError: No CORS headers found
+E   assert 0 &gt; 0
+E    +  where 0 = len([])</failure></testcase><testcase classname="tests.blackbox.security.test_security.TestRateLimitingSecurity" name="test_rate_limiting_health_endpoint" time="0.073" /><testcase classname="tests.blackbox.security.test_security.TestRateLimitingSecurity" name="test_rate_limiting_auth_endpoint" time="0.151" /><testcase classname="tests.blackbox.security.test_security.TestDataValidationSecurity" name="test_oversized_payload_handling" time="0.011"><failure message="assert 307 in [400, 413, 422]&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">tests/blackbox/security/test_security.py:280: in test_oversized_payload_handling
+    assert response.status_code in [400, 413, 422]
+E   assert 307 in [400, 413, 422]
+E    +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code</failure></testcase><testcase classname="tests.blackbox.security.test_security.TestDataValidationSecurity" name="test_malformed_json_handling" time="0.011"><failure message="assert 307 in [400, 422]&#10; +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code">tests/blackbox/security/test_security.py:298: in test_malformed_json_handling
+    assert response.status_code in [400, 422]
+E   assert 307 in [400, 422]
+E    +  where 307 = &lt;Response [307 Temporary Redirect]&gt;.status_code</failure></testcase></testsuite></testsuites>

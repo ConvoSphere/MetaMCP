@@ -17,13 +17,13 @@ from websockets.exceptions import ConnectionClosed
 
 # Test Configuration
 BASE_URL = "http://localhost:8000"
+import uuid
+
 API_BASE_URL = f"{BASE_URL}/api/v1/"
 WS_URL = f"{BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://')}/mcp/ws"
 
 # Test Data
 TEST_USER = {"username": "admin", "password": "admin123"}
-
-import uuid
 
 TEST_TOOL = {
     "name": f"test_calculator_{uuid.uuid4().hex[:8]}",

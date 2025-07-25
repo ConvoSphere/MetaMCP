@@ -1,0 +1,778 @@
+<?xml version="1.0" encoding="utf-8"?><testsuites name="pytest tests"><testsuite name="pytest" errors="21" failures="0" skipped="0" tests="21" time="0.168" timestamp="2025-07-25T22:50:27.933486+02:00" hostname="Laborator"><testcase classname="tests.unit.security.test_security.TestAuthenticationSecurity" name="test_password_hashing_security" time="0.013"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestAuthenticationSecurity" name="test_token_security" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestAuthenticationSecurity" name="test_brute_force_protection" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestAuthenticationSecurity" name="test_account_lockout" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestAuthorizationSecurity" name="test_permission_based_access" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestAuthorizationSecurity" name="test_inactive_user_access" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestAuthorizationSecurity" name="test_resource_ownership" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestInputValidationSecurity" name="test_sql_injection_protection" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestInputValidationSecurity" name="test_xss_protection" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestInputValidationSecurity" name="test_path_traversal_protection" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestInputValidationSecurity" name="test_input_sanitization" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestInputValidationSecurity" name="test_parameter_validation" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestRateLimitingSecurity" name="test_rate_limiting_protection" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestRateLimitingSecurity" name="test_ddos_protection" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestTokenSecurity" name="test_token_revocation" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestTokenSecurity" name="test_token_blacklisting" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestTokenSecurity" name="test_token_expiration" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestDataSecurity" name="test_sensitive_data_encryption" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestDataSecurity" name="test_data_isolation" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestDataSecurity" name="test_cache_security" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase><testcase classname="tests.unit.security.test_security.TestDataSecurity" name="test_audit_logging" time="0.000"><error message="failed on setup with &quot;pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings&#10;vector_database_url&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;testing&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;rate_limit_requests_per_minute&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;cache_ttl_seconds&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_failure_threshold&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;circuit_breaker_recovery_timeout&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_enabled&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&#10;admin_ui_port&#10;  Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]&#10;    For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden&quot;">tests/conftest.py:42: in test_settings
+    return Settings(
+.venv/lib/python3.13/site-packages/pydantic_settings/main.py:188: in __init__
+    super().__init__(
+E   pydantic_core._pydantic_core.ValidationError: 11 validation errors for Settings
+E   vector_database_url
+E     Extra inputs are not permitted [type=extra_forbidden, input_value='http://localhost:8080', input_type=str]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   testing
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   rate_limit_requests_per_minute
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=100, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   cache_ttl_seconds
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=300, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_failure_threshold
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=5, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   circuit_breaker_recovery_timeout
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=60, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_enabled
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=True, input_type=bool]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden
+E   admin_ui_port
+E     Extra inputs are not permitted [type=extra_forbidden, input_value=8081, input_type=int]
+E       For further information visit https://errors.pydantic.dev/2.11/v/extra_forbidden</error></testcase></testsuite></testsuites>

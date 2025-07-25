@@ -52,18 +52,42 @@ class VectorSearchClient:
             logger.info("Initializing Vector Search Client...")
 
             # Create Weaviate client using v4 API
-            from weaviate.classes.config import ConnectionParams
+            import weaviate
+            from weaviate.classes.init import Auth
 
             if self.api_key:
-                connection_params = ConnectionParams.from_url(
-                    self.url,
-                    auth_credentials=weaviate.auth.Auth.api_key(self.api_key),
-                    additional_headers={"X-OpenAI-Api-Key": self.api_key},
+                # Parse URL to extract host and port
+                from urllib.parse import urlparse
+                parsed_url = urlparse(self.url)
+                host = parsed_url.hostname
+                port = parsed_url.port or (443 if parsed_url.scheme == 'https' else 80)
+                secure = parsed_url.scheme == 'https'
+                
+                self.client = weaviate.connect_to_custom(
+                    http_host=host,
+                    http_port=port,
+                    http_secure=secure,
+                    grpc_host=host,
+                    grpc_port=port,
+                    grpc_secure=secure,
+                    auth_credentials=Auth.api_key(self.api_key),
                 )
             else:
-                connection_params = ConnectionParams.from_url(self.url)
-
-            self.client = weaviate.WeaviateClient(connection_params)
+                # For local development without authentication
+                from urllib.parse import urlparse
+                parsed_url = urlparse(self.url)
+                host = parsed_url.hostname
+                port = parsed_url.port or (443 if parsed_url.scheme == 'https' else 80)
+                secure = parsed_url.scheme == 'https'
+                
+                self.client = weaviate.connect_to_custom(
+                    http_host=host,
+                    http_port=port,
+                    http_secure=secure,
+                    grpc_host=host,
+                    grpc_port=port,
+                    grpc_secure=secure,
+                )
 
             # Test connection
             await self._test_connection()
@@ -85,7 +109,7 @@ class VectorSearchClient:
         """Test connection to Weaviate."""
         try:
             # Simple health check using v4 API
-            response = self.client.get_meta()
+            self.client.get_meta()
             logger.info("Weaviate connection test successful")
         except Exception as e:
             logger.error(f"Weaviate connection test failed: {e}")
@@ -98,40 +122,27 @@ class VectorSearchClient:
         """Initialize required collections."""
         try:
             # Create tools collection if it doesn't exist
-            if not self.client.collections.exists("tools"):
+            try:
+                self.client.collections.get("tools")
+                logger.info("Tools collection already exists")
+            except Exception:
+                # Collection doesn't exist, create it
+                from weaviate.classes.config import Configure, Property, DataType
+                
                 self.client.collections.create(
                     name="tools",
-                    vectorizer_config=weaviate.config.Configure.Vectorizer.none(),
+                    vectorizer_config=Configure.Vectorizer.none(),
                     properties=[
-                        weaviate.config.Property(
-                            name="name", data_type=weaviate.config.DataType.TEXT
-                        ),
-                        weaviate.config.Property(
-                            name="description", data_type=weaviate.config.DataType.TEXT
-                        ),
-                        weaviate.config.Property(
-                            name="categories",
-                            data_type=weaviate.config.DataType.TEXT_ARRAY,
-                        ),
-                        weaviate.config.Property(
-                            name="endpoint", data_type=weaviate.config.DataType.TEXT
-                        ),
-                        weaviate.config.Property(
-                            name="security_level",
-                            data_type=weaviate.config.DataType.TEXT,
-                        ),
-                        weaviate.config.Property(
-                            name="registered_at",
-                            data_type=weaviate.config.DataType.DATE,
-                        ),
-                        weaviate.config.Property(
-                            name="status", data_type=weaviate.config.DataType.TEXT
-                        ),
+                        Property(name="name", data_type=DataType.TEXT),
+                        Property(name="description", data_type=DataType.TEXT),
+                        Property(name="categories", data_type=DataType.TEXT_ARRAY),
+                        Property(name="endpoint", data_type=DataType.TEXT),
+                        Property(name="security_level", data_type=DataType.TEXT),
+                        Property(name="registered_at", data_type=DataType.DATE),
+                        Property(name="status", data_type=DataType.TEXT),
                     ],
                 )
                 logger.info("Created tools collection")
-            else:
-                logger.info("Tools collection already exists")
 
         except Exception as e:
             logger.error(f"Failed to initialize collections: {e}")

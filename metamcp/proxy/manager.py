@@ -363,9 +363,8 @@ class ProxyManager:
                             )
                             server_id = await self.register_server(config)
                             discovered.append(server_id)
-                    except Exception:
-                        # Endpoint is not an MCP server, continue
-                        pass
+                    except Exception as e:
+                        logger.debug(f"Endpoint {endpoint} is not an MCP server: {e}")
 
         except Exception as e:
             logger.error(f"Network discovery failed: {e}")
@@ -394,8 +393,8 @@ class ProxyManager:
                         )
                         server_id = await self.register_server(config)
                         discovered.append(server_id)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.debug(f"Service endpoint {endpoint} failed: {e}")
 
         except Exception as e:
             logger.error(f"Service discovery failed: {e}")
@@ -446,8 +445,8 @@ class ProxyManager:
                 if response.status_code == 200:
                     return True
 
-        except Exception:
-            pass
+        except Exception as e:
+            logger.debug(f"MCP endpoint test failed for {endpoint}: {e}")
 
         return False
 

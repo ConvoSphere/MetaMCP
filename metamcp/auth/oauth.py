@@ -111,9 +111,21 @@ class OAuthManager:
                 name="google",
                 client_id=self.settings.google_oauth_client_id,
                 client_secret=self.settings.google_oauth_client_secret,
-                authorization_url="https://accounts.google.com/oauth/authorize",
-                token_url="https://oauth2.googleapis.com/token",
-                userinfo_url="https://www.googleapis.com/oauth2/v2/userinfo",
+                authorization_url=getattr(
+                    self.settings,
+                    "google_oauth_authorization_url",
+                    "https://accounts.google.com/oauth/authorize",
+                ),
+                token_url=getattr(
+                    self.settings,
+                    "google_oauth_token_url",
+                    "https://oauth2.googleapis.com/token",
+                ),
+                userinfo_url=getattr(
+                    self.settings,
+                    "google_oauth_userinfo_url",
+                    "https://www.googleapis.com/oauth2/v2/userinfo",
+                ),
                 scopes=["openid", "email", "profile"],
                 redirect_uri=f"{self.settings.host}:{self.settings.port}/oauth/callback/google",
             )
@@ -124,9 +136,21 @@ class OAuthManager:
                 name="github",
                 client_id=self.settings.github_oauth_client_id,
                 client_secret=self.settings.github_oauth_client_secret,
-                authorization_url="https://github.com/login/oauth/authorize",
-                token_url="https://github.com/login/oauth/access_token",
-                userinfo_url="https://api.github.com/user",
+                authorization_url=getattr(
+                    self.settings,
+                    "github_oauth_authorization_url",
+                    "https://github.com/login/oauth/authorize",
+                ),
+                token_url=getattr(
+                    self.settings,
+                    "github_oauth_token_url",
+                    "https://github.com/login/oauth/access_token",
+                ),
+                userinfo_url=getattr(
+                    self.settings,
+                    "github_oauth_userinfo_url",
+                    "https://api.github.com/user",
+                ),
                 scopes=["read:user", "user:email"],
                 redirect_uri=f"{self.settings.host}:{self.settings.port}/oauth/callback/github",
             )
@@ -137,9 +161,21 @@ class OAuthManager:
                 name="microsoft",
                 client_id=self.settings.microsoft_oauth_client_id,
                 client_secret=self.settings.microsoft_oauth_client_secret,
-                authorization_url="https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-                token_url="https://login.microsoftonline.com/common/oauth2/v2.0/token",
-                userinfo_url="https://graph.microsoft.com/v1.0/me",
+                authorization_url=getattr(
+                    self.settings,
+                    "microsoft_oauth_authorization_url",
+                    "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
+                ),
+                token_url=getattr(
+                    self.settings,
+                    "microsoft_oauth_token_url",
+                    "https://login.microsoftonline.com/common/oauth2/v2.0/token",
+                ),
+                userinfo_url=getattr(
+                    self.settings,
+                    "microsoft_oauth_userinfo_url",
+                    "https://graph.microsoft.com/v1.0/me",
+                ),
                 scopes=["openid", "profile", "email"],
                 redirect_uri=f"{self.settings.host}:{self.settings.port}/oauth/callback/microsoft",
             )

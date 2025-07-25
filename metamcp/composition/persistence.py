@@ -143,8 +143,8 @@ class WorkflowPersistence:
                 # Update existing workflow
                 await self.db.execute(
                     """
-                    UPDATE workflows 
-                    SET name = $2, description = $3, version = $4, 
+                    UPDATE workflows
+                    SET name = $2, description = $3, version = $4,
                         definition = $5, updated_at = $6
                     WHERE id = $1
                 """,
@@ -182,7 +182,7 @@ class WorkflowPersistence:
         try:
             row = await self.db.fetchrow(
                 """
-                SELECT definition FROM workflows 
+                SELECT definition FROM workflows
                 WHERE id = $1 AND is_active = TRUE
             """,
                 workflow_id,
@@ -203,8 +203,8 @@ class WorkflowPersistence:
         try:
             rows = await self.db.fetch(
                 """
-                SELECT definition FROM workflows 
-                WHERE is_active = TRUE 
+                SELECT definition FROM workflows
+                WHERE is_active = TRUE
                 ORDER BY name
             """
             )
@@ -231,7 +231,7 @@ class WorkflowPersistence:
         try:
             result = await self.db.execute(
                 """
-                UPDATE workflows 
+                UPDATE workflows
                 SET is_active = FALSE, updated_at = $2
                 WHERE id = $1 AND is_active = TRUE
             """,
@@ -286,7 +286,7 @@ class WorkflowPersistence:
                 # Update existing execution
                 await self.db.execute(
                     """
-                    UPDATE workflow_executions 
+                    UPDATE workflow_executions
                     SET status = $2, output_data = $3, error_data = $4,
                         execution_time = $5, completed_at = $6
                     WHERE id = $1
@@ -303,7 +303,7 @@ class WorkflowPersistence:
                 # Insert new execution
                 await self.db.execute(
                     """
-                    INSERT INTO workflow_executions 
+                    INSERT INTO workflow_executions
                     (id, workflow_id, status, input_data, output_data, error_data,
                      execution_time, started_at, completed_at, created_at)
                     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -351,9 +351,9 @@ class WorkflowPersistence:
         try:
             rows = await self.db.fetch(
                 """
-                SELECT * FROM workflow_executions 
-                WHERE workflow_id = $1 
-                ORDER BY created_at DESC 
+                SELECT * FROM workflow_executions
+                WHERE workflow_id = $1
+                ORDER BY created_at DESC
                 LIMIT $2
             """,
                 workflow_id,
@@ -371,9 +371,9 @@ class WorkflowPersistence:
         try:
             result = await self.db.execute(
                 """
-                DELETE FROM workflow_step_executions 
+                DELETE FROM workflow_step_executions
                 WHERE execution_id IN (
-                    SELECT id FROM workflow_executions 
+                    SELECT id FROM workflow_executions
                     WHERE created_at < NOW() - INTERVAL '%s days'
                 )
             """,
@@ -382,7 +382,7 @@ class WorkflowPersistence:
 
             result = await self.db.execute(
                 """
-                DELETE FROM workflow_executions 
+                DELETE FROM workflow_executions
                 WHERE created_at < NOW() - INTERVAL '%s days'
             """,
                 days,

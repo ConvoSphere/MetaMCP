@@ -1,0 +1,78 @@
+{
+  "timestamp": "2025-07-25T22:37:12.611351",
+  "total_execution_time": 0.12897396087646484,
+  "test_suites": {
+    "total": 9,
+    "successful": 0,
+    "failed": 9,
+    "success_rate": 0.0
+  },
+  "detailed_results": {
+    "unit_tests": {
+      "return_code": 1,
+      "stdout": "",
+      "stderr": "/usr/bin/python3: No module named pytest\n",
+      "execution_time": 0.011289119720458984,
+      "success": false
+    },
+    "integration_tests": {
+      "return_code": 1,
+      "stdout": "",
+      "stderr": "/usr/bin/python3: No module named pytest\n",
+      "execution_time": 0.014769554138183594,
+      "success": false
+    },
+    "performance_tests": {
+      "return_code": 1,
+      "stdout": "",
+      "stderr": "/usr/bin/python3: No module named pytest\n",
+      "execution_time": 0.015769243240356445,
+      "success": false
+    },
+    "security_tests": {
+      "return_code": 1,
+      "stdout": "",
+      "stderr": "/usr/bin/python3: No module named pytest\n",
+      "execution_time": 0.014916658401489258,
+      "success": false
+    },
+    "blackbox_tests": {
+      "return_code": 1,
+      "stdout": "",
+      "stderr": "/usr/bin/python3: No module named pytest\n",
+      "execution_time": 0.016728878021240234,
+      "success": false
+    },
+    "coverage_analysis": {
+      "return_code": 1,
+      "stdout": "",
+      "stderr": "/usr/bin/python3: No module named coverage\n",
+      "execution_time": 0.013670682907104492,
+      "success": false
+    },
+    "linting": {
+      "return_code": 1,
+      "stdout": "",
+      "stderr": "/usr/bin/python3: No module named flake8\n",
+      "execution_time": 0.011866331100463867,
+      "success": false
+    },
+    "type_checking": {
+      "return_code": 1,
+      "stdout": "",
+      "stderr": "/usr/bin/python3: No module named mypy\n",
+      "execution_time": 0.01625514030456543,
+      "success": false
+    },
+    "security_scanning": {
+      "return_code": 1,
+      "stdout": "",
+      "stderr": "/usr/bin/python3: No module named bandit\n",
+      "execution_time": 0.013028860092163086,
+      "success": false
+    }
+  },
+  "recommendations": [
+    "Fix failing test suites: unit_tests, integration_tests, performance_tests, security_tests, blackbox_tests, coverage_analysis, linting, type_checking, security_scanning"
+  ]
+}
