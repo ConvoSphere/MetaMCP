@@ -7,9 +7,14 @@ from setuptools import setup, find_packages
 import os
 
 # Read version from __init__.py
-version = {}
+import re
 with open(os.path.join("metamcp", "__init__.py")) as f:
-    exec(f.read(), version)
+    content = f.read()
+    version_match = re.search(r'^__version__ = ["\']([^"\']*)["\']', content, re.MULTILINE)
+    if version_match:
+        version = {"__version__": version_match.group(1)}
+    else:
+        version = {"__version__": "0.0.0"}
 
 # Read long description from README
 with open("README.md", "r", encoding="utf-8") as fh:
