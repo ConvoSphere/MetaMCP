@@ -3,20 +3,27 @@
 MCP Meta-Server Setup Configuration
 """
 
-from setuptools import setup, find_packages
 import os
 
 # Read version from __init__.py
-version = {}
+import re
+
+from setuptools import find_packages, setup
+
 with open(os.path.join("metamcp", "__init__.py")) as f:
-    exec(f.read(), version)
+    content = f.read()
+    version_match = re.search(r'^__version__ = ["\']([^"\']*)["\']', content, re.MULTILINE)
+    if version_match:
+        version = {"__version__": version_match.group(1)}
+    else:
+        version = {"__version__": "0.0.0"}
 
 # Read long description from README
-with open("README.md", "r", encoding="utf-8") as fh:
+with open("README.md", encoding="utf-8") as fh:
     long_description = fh.read()
 
 # Read requirements
-with open("requirements.txt", "r", encoding="utf-8") as fh:
+with open("requirements.txt", encoding="utf-8") as fh:
     requirements = [line.strip() for line in fh if line.strip() and not line.startswith("#")]
 
 setup(

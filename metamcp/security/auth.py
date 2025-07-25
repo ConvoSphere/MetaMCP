@@ -202,7 +202,7 @@ class AuthManager:
             return str(username)
 
         except JWTError as e:
-            raise AuthenticationError(message=f"Invalid token: {str(e)}")
+            raise AuthenticationError(message=f"Invalid token: {str(e)}") from e
 
     def get_user_permissions(self, username: str) -> list:
         """

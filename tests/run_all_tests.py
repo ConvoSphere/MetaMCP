@@ -289,7 +289,7 @@ class TestRunner:
         )
         failed_tests = total_tests - successful_tests
 
-        total_time = sum(
+        sum(
             result["execution_time"] for result in self.test_results.values()
         )
 
@@ -433,7 +433,7 @@ def main():
 
     try:
         # Run all tests
-        results = runner.run_all_tests()
+        runner.run_all_tests()
 
         # Generate and save report
         report = runner.generate_summary_report()

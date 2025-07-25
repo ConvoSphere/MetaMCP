@@ -126,7 +126,7 @@ class TestAuthenticationSecurity:
 
         # Attempt multiple failed logins
         failed_attempts = []
-        for i in range(10):
+        for _i in range(10):
             try:
                 await self.auth_service.authenticate_user(
                     "security_user", "wrong_password"
@@ -154,7 +154,7 @@ class TestAuthenticationSecurity:
 
         # For now, test that failed attempts are properly recorded
         failed_attempts = []
-        for i in range(5):
+        for _i in range(5):
             try:
                 await self.auth_service.authenticate_user(
                     "security_user", "wrong_password"
@@ -233,7 +233,7 @@ class TestAuthorizationSecurity:
             "sub": self.admin_user["username"],
             "permissions": self.admin_user["permissions"],
         }
-        admin_token = await self.auth_service.create_access_token(admin_token_data)
+        await self.auth_service.create_access_token(admin_token_data)
 
         # Admin should have all permissions
         has_admin_permission = await self.auth_service.check_permission(
@@ -246,7 +246,7 @@ class TestAuthorizationSecurity:
             "sub": self.regular_user["username"],
             "permissions": self.regular_user["permissions"],
         }
-        regular_token = await self.auth_service.create_access_token(regular_token_data)
+        await self.auth_service.create_access_token(regular_token_data)
 
         # Regular user should have limited permissions
         has_limited_permission = await self.auth_service.check_permission(
@@ -412,7 +412,7 @@ class TestInputValidationSecurity:
             "C:\\Windows\\System32\\config\\sam",
         ]
 
-        for malicious_path in malicious_paths:
+        for _malicious_path in malicious_paths:
             # Should not allow access to system files
             with pytest.raises(Exception):
                 # This would test file access validation
@@ -430,7 +430,7 @@ class TestInputValidationSecurity:
             ("../../../etc/passwd", "etc/passwd"),
         ]
 
-        for malicious_input, expected_sanitized in test_inputs:
+        for malicious_input, _expected_sanitized in test_inputs:
             # This would test the actual sanitization function
             # For now, just verify that malicious input is detected
             assert (
@@ -487,7 +487,7 @@ class TestRateLimitingSecurity:
         endpoint = "test_endpoint"
 
         # Test normal rate limiting
-        for i in range(10):
+        for _i in range(10):
             allowed = await self.rate_limiter.is_allowed(user_id, endpoint)
             assert allowed is True
 
@@ -783,10 +783,10 @@ class TestDataSecurity:
         }
 
         # Create user (should be logged)
-        user = await self.auth_service.create_user(user_data)
+        await self.auth_service.create_user(user_data)
 
         # Authenticate user (should be logged)
-        authenticated_user = await self.auth_service.authenticate_user(
+        await self.auth_service.authenticate_user(
             "audit_test_user", "AuditPass123!"
         )
 

@@ -8,7 +8,6 @@ This module provides documentation-related utilities for the MetaMCP project.
 import subprocess
 import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional
 
 
 class DocsUtils:
@@ -18,7 +17,7 @@ class DocsUtils:
         self.project_root = project_root
         self.docs_dir = project_root / "docs"
 
-    def run_command(self, command: List[str], cwd: Optional[Path] = None) -> int:
+    def run_command(self, command: list[str], cwd: Path | None = None) -> int:
         """Run a shell command and return exit code."""
         try:
             result = subprocess.run(
@@ -33,7 +32,7 @@ class DocsUtils:
             print(f"Error running command: {e}", file=sys.stderr)
             return 1
 
-    def check_docs_dependencies(self) -> Dict[str, bool]:
+    def check_docs_dependencies(self) -> dict[str, bool]:
         """Check if documentation dependencies are available."""
         dependencies = {}
 
@@ -351,7 +350,7 @@ def main():
     docs_dir = project_root / "docs"
     mkdocs_config = project_root / "mkdocs.yml"
 
-    print(f"\nDocumentation structure:")
+    print("\nDocumentation structure:")
     print(f"  {'✅' if docs_dir.exists() else '❌'} docs/ directory")
     print(f"  {'✅' if mkdocs_config.exists() else '❌'} mkdocs.yml")
 

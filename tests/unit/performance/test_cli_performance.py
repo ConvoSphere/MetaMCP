@@ -18,9 +18,9 @@ import pytest
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent.parent
-sys.path.insert(0, str(project_root))
-
 from scripts.cli import MetaMCPCLI
+
+sys.path.insert(0, str(project_root))
 
 
 class TestCLIPerformance:
@@ -72,7 +72,7 @@ class TestCLIPerformance:
             start_time = time.time()
             start_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
 
-            cli = MetaMCPCLI()
+            MetaMCPCLI()
 
             end_time = time.time()
             end_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
@@ -103,7 +103,7 @@ class TestCLIPerformance:
             start_time = time.time()
             start_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
 
-            result = cli.validate_environment()
+            cli.validate_environment()
 
             end_time = time.time()
             end_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
@@ -181,7 +181,7 @@ class TestCLIPerformance:
             start_time = time.time()
             start_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
 
-            result = cli.validate_environment()
+            cli.validate_environment()
 
             end_time = time.time()
             end_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
@@ -347,7 +347,7 @@ class TestCLIPerformance:
             start_memory = psutil.Process().memory_info().rss / 1024 / 1024  # MB
 
             # Test multiple file operations
-            for i in range(50):
+            for _i in range(50):
                 # Check if files exist
                 assert cli.project_root.exists()
                 assert (cli.project_root / "docker-compose.yml").exists()
@@ -405,7 +405,7 @@ class TestCLIResourceUsage:
 
             # Get initial CPU usage
             process = psutil.Process()
-            initial_cpu_percent = process.cpu_percent()
+            process.cpu_percent()
 
             # Perform operations
             for i in range(10):
@@ -445,7 +445,7 @@ class TestCLIResourceUsage:
             for i in range(100):
                 # Read files
                 with open(cli.project_root / ".env") as f:
-                    content = f.read()
+                    f.read()
 
                 # Write temporary files
                 temp_file = cli.project_root / f"temp_{i}.txt"

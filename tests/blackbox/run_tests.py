@@ -14,9 +14,9 @@ from httpx import AsyncClient
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
 from tests.blackbox.conftest import API_BASE_URL
+
+sys.path.insert(0, str(project_root))
 
 
 class BlackBoxTestRunner:

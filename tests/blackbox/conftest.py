@@ -7,6 +7,7 @@ Common fixtures and utilities for black box testing of MetaMCP container.
 import asyncio
 import json
 import time
+import uuid
 from collections.abc import AsyncGenerator
 from typing import Any
 
@@ -17,8 +18,6 @@ from websockets.exceptions import ConnectionClosed
 
 # Test Configuration
 BASE_URL = "http://localhost:8000"
-import uuid
-
 API_BASE_URL = f"{BASE_URL}/api/v1/"
 WS_URL = f"{BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://')}/mcp/ws"
 

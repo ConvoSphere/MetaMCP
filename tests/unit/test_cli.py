@@ -15,9 +15,9 @@ import pytest
 
 # Add the project root to the Python path
 project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
 from scripts.cli import MetaMCPCLI, create_parser, main
+
+sys.path.insert(0, str(project_root))
 
 
 class TestMetaMCPCLI:
@@ -374,7 +374,7 @@ class TestUpdateResetCommands:
                 mock_args.command = "update"
                 mock_parser.return_value.parse_args.return_value = mock_args
 
-                with patch("builtins.print") as mock_print:
+                with patch("builtins.print"):
                     result = main()
                     assert result == 0
                     # Verify that update steps were called
@@ -395,7 +395,7 @@ class TestUpdateResetCommands:
                 mock_parser.return_value.parse_args.return_value = mock_args
 
                 with patch("builtins.input", return_value="yes"):
-                    with patch("builtins.print") as mock_print:
+                    with patch("builtins.print"):
                         result = main()
                         assert result == 0
                         # Verify that reset steps were called
