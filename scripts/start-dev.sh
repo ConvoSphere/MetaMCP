@@ -135,7 +135,7 @@ start_infrastructure() {
     log_success "PostgreSQL is ready"
     
     # Wait for Weaviate
-    until curl -s http://localhost:8088/v1/meta > /dev/null 2>&1; do
+    until curl -s http://localhost:9088/v1/meta > /dev/null 2>&1; do
         echo -n "."
         sleep 1
     done
@@ -210,12 +210,12 @@ show_status() {
     log_info "Development Environment Status:"
     echo ""
     echo "Services:"
-    echo "  • MCP Meta-Server: http://localhost:8000"
-    echo "  • API Documentation: http://localhost:8000/docs"
-    echo "  • Admin UI: http://localhost:8080"
-    echo "  • Weaviate: http://localhost:8088"
+    echo "  • MCP Meta-Server: http://localhost:9000"
+echo "  • API Documentation: http://localhost:9000/docs"
+    echo "  • Admin API: http://localhost:9000/api/v1/admin"
+    echo "  • Weaviate: http://localhost:9088"
     echo "  • PostgreSQL: localhost:5432"
-    echo "  • Redis: localhost:6379"
+    echo "  • Redis: localhost:6380"
     echo "  • OPA: http://localhost:8181"
     echo "  • Prometheus: http://localhost:9090"
     echo "  • Grafana: http://localhost:3000 (admin/admin)"

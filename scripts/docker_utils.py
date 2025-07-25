@@ -171,11 +171,11 @@ class DockerUtils:
         health_status = {}
         
         services = [
-            ("metamcp-server", "http://localhost:8000/health"),
+            ("metamcp-server", "http://localhost:9000/health"),
             ("postgres", "docker compose exec postgres pg_isready -U metamcp"),
             ("redis", "docker compose exec redis redis-cli ping"),
             ("opa", "http://localhost:8181/health"),
-            ("weaviate", "http://localhost:8088/v1/meta"),
+            ("weaviate", "http://localhost:9088/v1/meta"),
             ("grafana", "http://localhost:3000/api/health"),
             ("prometheus", "http://localhost:9090/-/healthy")
         ]

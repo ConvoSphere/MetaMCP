@@ -125,7 +125,7 @@ def test_environment_validation():
             "DEBUG": "false",
             "ENVIRONMENT": "development",
             "HOST": "0.0.0.0",
-            "PORT": "8000",
+            "PORT": "9000",
             "LOG_LEVEL": "INFO",
             "SECRET_KEY": "test-key",
             "DATABASE_URL": "postgresql://test:test@localhost/test",

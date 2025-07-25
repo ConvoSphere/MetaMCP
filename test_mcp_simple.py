@@ -9,7 +9,7 @@ async def test_mcp_endpoints():
     async with httpx.AsyncClient() as client:
         # Test MCP tools endpoint
         try:
-            response = await client.get("http://localhost:8000/mcp/tools")
+            response = await client.get("http://localhost:9000/mcp/tools")
             print(f"MCP tools endpoint: {response.status_code}")
             if response.status_code == 200:
                 print(f"Response: {response.json()}")
@@ -18,7 +18,7 @@ async def test_mcp_endpoints():
         
         # Test MCP root endpoint
         try:
-            response = await client.get("http://localhost:8000/mcp/")
+            response = await client.get("http://localhost:9000/mcp/")
             print(f"MCP root endpoint: {response.status_code}")
         except Exception as e:
             print(f"MCP root endpoint error: {e}")

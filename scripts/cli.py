@@ -616,7 +616,7 @@ def main() -> int:
         elif args.command == "monitoring":
             if args.monitoring_command == "open":
                 print("🌐 Opening monitoring URLs in browser...")
-                return cli.run_command(["xdg-open", "http://localhost:8000"]) # Assuming a default port for monitoring
+                return cli.run_command(["xdg-open", "http://localhost:9000"]) # Assuming a default port for monitoring
             elif args.monitoring_command == "test":
                 print("🧪 Testing monitoring endpoints...")
                 return cli.run_command([sys.executable, "scripts/test_monitoring.py"])
@@ -662,7 +662,7 @@ def main() -> int:
                 return cli.run_command([sys.executable, "-m", "mkdocs", "gh-deploy"])
             elif args.docs_command == "open":
                 print("📖 Opening documentation in browser...")
-                return cli.run_command(["xdg-open", "http://localhost:8000"]) # Assuming a default port for docs
+                return cli.run_command(["xdg-open", "http://localhost:9000"]) # Assuming a default port for docs
             elif args.docs_command == "api":
                 print("📚 Generating API documentation...")
                 return cli.run_command([sys.executable, "-m", "mkdocs", "json", "-o", "site/api.json"])

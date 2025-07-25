@@ -7,7 +7,7 @@ services:
       context: .
       dockerfile: Dockerfile
     ports:
-      - "8000:8000"
+      - "9000:8000"
     environment:
       # Application Settings
       - APP_NAME=MetaMCP
@@ -82,7 +82,7 @@ services:
       
       # Admin Settings
       - ADMIN_ENABLED=true
-      - ADMIN_PORT=8501
+      - ADMIN_PORT=9501
       
       # Development Settings
       - RELOAD=true
@@ -123,7 +123,7 @@ services:
   weaviate:
     image: semitechnologies/weaviate:1.22.4
     ports:
-      - "8088:8080"
+      - "9088:8080"
     environment:
       QUERY_DEFAULTS_LIMIT: 25
       AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
@@ -147,7 +147,7 @@ services:
   redis:
     image: redis:7-alpine
     ports:
-      - "6379:6379"
+      - "6380:6379"
     volumes:
       - redis_data:/data
     networks:
@@ -199,6 +199,8 @@ services:
       - GF_SECURITY_ADMIN_PASSWORD=admin
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
     depends_on:
       - prometheus
     networks:
