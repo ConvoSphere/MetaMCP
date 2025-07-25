@@ -11,7 +11,9 @@ from typing import Any
 # Try to import OpenTelemetry packages, but provide fallbacks if not available
 try:
     from opentelemetry import metrics, trace
-    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import OTLPMetricExporter
+    from opentelemetry.exporter.otlp.proto.grpc.metric_exporter import (
+        OTLPMetricExporter,
+    )
     from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
     from opentelemetry.exporter.prometheus import PrometheusMetricReader
     from opentelemetry.instrumentation.fastapi import FastAPIInstrumentor
@@ -21,31 +23,44 @@ try:
     from opentelemetry.sdk.metrics.export import PeriodicExportingMetricReader
     from opentelemetry.sdk.trace import TracerProvider
     from opentelemetry.sdk.trace.export import BatchSpanProcessor
+
     OPENTELEMETRY_AVAILABLE = True
 except ImportError:
     OPENTELEMETRY_AVAILABLE = False
+
     # Create dummy classes for fallback
     class DummyTracer:
         def start_span(self, name, attributes=None):
             return DummySpan()
-    
+
     class DummySpan:
-        def __enter__(self): return self
-        def __exit__(self, *args): pass
-        def set_attribute(self, key, value): pass
-        def set_status(self, status): pass
-    
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+        def set_attribute(self, key, value):
+            pass
+
+        def set_status(self, status):
+            pass
+
     class DummyMeter:
         def create_counter(self, name, description=None, unit=None):
             return DummyCounter()
+
         def create_histogram(self, name, description=None, unit=None):
             return DummyHistogram()
-    
+
     class DummyCounter:
-        def add(self, value, attributes=None): pass
-    
+        def add(self, value, attributes=None):
+            pass
+
     class DummyHistogram:
-        def record(self, value, attributes=None): pass
+        def record(self, value, attributes=None):
+            pass
+
 
 from ..config import get_settings
 from ..utils.logging import get_logger
@@ -57,7 +72,7 @@ settings = get_settings()
 class TelemetryManager:
     """
     OpenTelemetry Telemetry Manager.
-    
+
     This class manages OpenTelemetry instrumentation for tracing,
     metrics, and logging across the MetaMCP application.
     """
@@ -87,7 +102,9 @@ class TelemetryManager:
 
         try:
             if not OPENTELEMETRY_AVAILABLE:
-                logger.warning("OpenTelemetry packages not available, using fallback telemetry")
+                logger.warning(
+                    "OpenTelemetry packages not available, using fallback telemetry"
+                )
                 self._initialized = True
                 return
 
@@ -125,7 +142,7 @@ class TelemetryManager:
                 # OTLP exporter for distributed tracing
                 otlp_exporter = OTLPSpanExporter(
                     endpoint=self.settings.otlp_endpoint,
-                    insecure=self.settings.otlp_insecure
+                    insecure=self.settings.otlp_insecure,
                 )
                 span_processor = BatchSpanProcessor(otlp_exporter)
                 self.tracer_provider.add_span_processor(span_processor)
@@ -160,7 +177,7 @@ class TelemetryManager:
             if self.settings.otlp_endpoint:
                 otlp_metric_exporter = OTLPMetricExporter(
                     endpoint=self.settings.otlp_endpoint,
-                    insecure=self.settings.otlp_insecure
+                    insecure=self.settings.otlp_insecure,
                 )
                 otlp_reader = PeriodicExportingMetricReader(otlp_metric_exporter)
                 metric_readers.append(otlp_reader)
@@ -190,39 +207,39 @@ class TelemetryManager:
             self.request_counter = self.meter.create_counter(
                 name="metamcp_requests_total",
                 description="Total number of requests",
-                unit="1"
+                unit="1",
             )
 
             self.request_duration = self.meter.create_histogram(
                 name="metamcp_request_duration_seconds",
                 description="Request duration in seconds",
-                unit="s"
+                unit="s",
             )
 
             # Tool execution metrics
             self.tool_execution_counter = self.meter.create_counter(
                 name="metamcp_tool_executions_total",
                 description="Total number of tool executions",
-                unit="1"
+                unit="1",
             )
 
             self.tool_execution_duration = self.meter.create_histogram(
                 name="metamcp_tool_execution_duration_seconds",
                 description="Tool execution duration in seconds",
-                unit="s"
+                unit="s",
             )
 
             # Vector search metrics
             self.vector_search_counter = self.meter.create_counter(
                 name="metamcp_vector_searches_total",
                 description="Total number of vector searches",
-                unit="1"
+                unit="1",
             )
 
             self.vector_search_duration = self.meter.create_histogram(
                 name="metamcp_vector_search_duration_seconds",
                 description="Vector search duration in seconds",
-                unit="s"
+                unit="s",
             )
 
             logger.info("Metric instruments created")
@@ -234,18 +251,22 @@ class TelemetryManager:
         """Instrument FastAPI application."""
         try:
             if not self._initialized:
-                logger.warning("Telemetry not initialized, skipping FastAPI instrumentation")
+                logger.warning(
+                    "Telemetry not initialized, skipping FastAPI instrumentation"
+                )
                 return
 
             if not OPENTELEMETRY_AVAILABLE:
-                logger.warning("OpenTelemetry not available, skipping FastAPI instrumentation")
+                logger.warning(
+                    "OpenTelemetry not available, skipping FastAPI instrumentation"
+                )
                 return
 
             # Instrument FastAPI
             FastAPIInstrumentor.instrument_app(
                 app,
                 tracer_provider=self.tracer_provider,
-                meter_provider=self.meter_provider
+                meter_provider=self.meter_provider,
             )
 
             logger.info("FastAPI instrumented with OpenTelemetry")
@@ -281,7 +302,9 @@ class TelemetryManager:
         except Exception as e:
             logger.error(f"Failed to instrument SQLAlchemy: {e}")
 
-    def record_request(self, method: str, path: str, status_code: int, duration: float) -> None:
+    def record_request(
+        self, method: str, path: str, status_code: int, duration: float
+    ) -> None:
         """Record request metrics."""
         try:
             if self.request_counter:
@@ -290,8 +313,8 @@ class TelemetryManager:
                     attributes={
                         "method": method,
                         "path": path,
-                        "status_code": status_code
-                    }
+                        "status_code": status_code,
+                    },
                 )
 
             if self.request_duration:
@@ -300,38 +323,34 @@ class TelemetryManager:
                     attributes={
                         "method": method,
                         "path": path,
-                        "status_code": status_code
-                    }
+                        "status_code": status_code,
+                    },
                 )
 
         except Exception as e:
             logger.error(f"Failed to record request metrics: {e}")
 
-    def record_tool_execution(self, tool_name: str, success: bool, duration: float) -> None:
+    def record_tool_execution(
+        self, tool_name: str, success: bool, duration: float
+    ) -> None:
         """Record tool execution metrics."""
         try:
             if self.tool_execution_counter:
                 self.tool_execution_counter.add(
-                    1,
-                    attributes={
-                        "tool_name": tool_name,
-                        "success": success
-                    }
+                    1, attributes={"tool_name": tool_name, "success": success}
                 )
 
             if self.tool_execution_duration:
                 self.tool_execution_duration.record(
-                    duration,
-                    attributes={
-                        "tool_name": tool_name,
-                        "success": success
-                    }
+                    duration, attributes={"tool_name": tool_name, "success": success}
                 )
 
         except Exception as e:
             logger.error(f"Failed to record tool execution metrics: {e}")
 
-    def record_vector_search(self, query_length: int, result_count: int, duration: float) -> None:
+    def record_vector_search(
+        self, query_length: int, result_count: int, duration: float
+    ) -> None:
         """Record vector search metrics."""
         try:
             if self.vector_search_counter:
@@ -339,8 +358,8 @@ class TelemetryManager:
                     1,
                     attributes={
                         "query_length": query_length,
-                        "result_count": result_count
-                    }
+                        "result_count": result_count,
+                    },
                 )
 
             if self.vector_search_duration:
@@ -348,22 +367,26 @@ class TelemetryManager:
                     duration,
                     attributes={
                         "query_length": query_length,
-                        "result_count": result_count
-                    }
+                        "result_count": result_count,
+                    },
                 )
 
         except Exception as e:
             logger.error(f"Failed to record vector search metrics: {e}")
 
     @asynccontextmanager
-    async def trace_operation(self, operation_name: str, attributes: dict[str, Any] | None = None):
+    async def trace_operation(
+        self, operation_name: str, attributes: dict[str, Any] | None = None
+    ):
         """Context manager for tracing operations."""
         if not self.tracer:
             yield
             return
 
         try:
-            with self.tracer.start_span(operation_name, attributes=attributes or {}) as span:
+            with self.tracer.start_span(
+                operation_name, attributes=attributes or {}
+            ) as span:
                 yield span
         except Exception as e:
             logger.error(f"Failed to trace operation {operation_name}: {e}")

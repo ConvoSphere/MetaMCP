@@ -28,7 +28,7 @@ logger = get_logger(__name__)
 class MetaMCPClient:
     """
     Client for interacting with MCP Meta-Server.
-    
+
     Provides both REST API and MCP WebSocket interfaces for:
     - Tool registration and management
     - Semantic tool search
@@ -41,11 +41,11 @@ class MetaMCPClient:
         base_url: str = "http://localhost:8000",
         websocket_url: str | None = None,
         api_key: str | None = None,
-        timeout: int = 30
+        timeout: int = 30,
     ):
         """
         Initialize MCP Meta-Server client.
-        
+
         Args:
             base_url: Base URL of the MCP Meta-Server
             websocket_url: WebSocket URL for MCP protocol (auto-generated if not provided)
@@ -59,8 +59,7 @@ class MetaMCPClient:
 
         # HTTP client
         self.http_client = httpx.AsyncClient(
-            timeout=timeout,
-            headers=self._get_headers()
+            timeout=timeout, headers=self._get_headers()
         )
 
         # WebSocket connection
@@ -72,14 +71,16 @@ class MetaMCPClient:
 
     def _generate_ws_url(self) -> str:
         """Generate WebSocket URL from base URL."""
-        ws_base = self.base_url.replace("http://", "ws://").replace("https://", "wss://")
+        ws_base = self.base_url.replace("http://", "ws://").replace(
+            "https://", "wss://"
+        )
         return f"{ws_base}/mcp/ws"
 
     def _get_headers(self) -> dict[str, str]:
         """Get HTTP headers for requests."""
         headers = {
             "Content-Type": "application/json",
-            "User-Agent": "MetaMCP-Client/1.0.0"
+            "User-Agent": "MetaMCP-Client/1.0.0",
         }
 
         if self.api_key:
@@ -90,7 +91,7 @@ class MetaMCPClient:
     async def connect(self) -> None:
         """
         Connect to MCP Meta-Server via WebSocket.
-        
+
         Raises:
             MCPProtocolError: If connection fails
         """
@@ -98,8 +99,7 @@ class MetaMCPClient:
             logger.info(f"Connecting to MCP server at {self.websocket_url}")
 
             self.websocket = await websockets.connect(
-                self.websocket_url,
-                timeout=self.timeout
+                self.websocket_url, timeout=self.timeout
             )
 
             # Initialize MCP session
@@ -110,10 +110,7 @@ class MetaMCPClient:
 
         except Exception as e:
             logger.error(f"Failed to connect to MCP server: {e}")
-            raise MCPProtocolError(
-                operation="connect",
-                reason=str(e)
-            )
+            raise MCPProtocolError(operation="connect", reason=str(e))
 
     async def disconnect(self) -> None:
         """Disconnect from MCP Meta-Server."""
@@ -133,11 +130,8 @@ class MetaMCPClient:
             "method": "initialize",
             "params": {
                 "protocolVersion": "1.0.0",
-                "clientInfo": {
-                    "name": "MetaMCP-Client",
-                    "version": "1.0.0"
-                }
-            }
+                "clientInfo": {"name": "MetaMCP-Client", "version": "1.0.0"},
+            },
         }
 
         await self._send_mcp_message(init_message)
@@ -145,8 +139,7 @@ class MetaMCPClient:
 
         if "error" in response:
             raise MCPProtocolError(
-                operation="initialize",
-                reason=response["error"]["message"]
+                operation="initialize", reason=response["error"]["message"]
             )
 
         self.mcp_session_id = response.get("result", {}).get("sessionId")
@@ -155,8 +148,7 @@ class MetaMCPClient:
         """Send MCP message via WebSocket."""
         if not self.websocket:
             raise MCPProtocolError(
-                operation="send_message",
-                reason="Not connected to MCP server"
+                operation="send_message", reason="Not connected to MCP server"
             )
 
         try:
@@ -164,16 +156,14 @@ class MetaMCPClient:
         except ConnectionClosed:
             self._connected = False
             raise MCPProtocolError(
-                operation="send_message",
-                reason="Connection to MCP server lost"
+                operation="send_message", reason="Connection to MCP server lost"
             )
 
     async def _receive_mcp_message(self) -> dict[str, Any]:
         """Receive MCP message via WebSocket."""
         if not self.websocket:
             raise MCPProtocolError(
-                operation="receive_message",
-                reason="Not connected to MCP server"
+                operation="receive_message", reason="Not connected to MCP server"
             )
 
         try:
@@ -182,8 +172,7 @@ class MetaMCPClient:
         except ConnectionClosed:
             self._connected = False
             raise MCPProtocolError(
-                operation="receive_message",
-                reason="Connection to MCP server lost"
+                operation="receive_message", reason="Connection to MCP server lost"
             )
 
     # =============================================================================
@@ -191,22 +180,19 @@ class MetaMCPClient:
     # =============================================================================
 
     async def search_tools(
-        self,
-        query: str,
-        max_results: int = 10,
-        similarity_threshold: float = 0.7
+        self, query: str, max_results: int = 10, similarity_threshold: float = 0.7
     ) -> list[dict[str, Any]]:
         """
         Search for tools using semantic search.
-        
+
         Args:
             query: Natural language query describing desired functionality
             max_results: Maximum number of results to return
             similarity_threshold: Minimum similarity threshold
-            
+
         Returns:
             List of matching tools
-            
+
         Raises:
             MetaMCPError: If search fails
         """
@@ -216,7 +202,7 @@ class MetaMCPClient:
             payload = {
                 "query": query,
                 "max_results": max_results,
-                "similarity_threshold": similarity_threshold
+                "similarity_threshold": similarity_threshold,
             }
 
             response = await self.http_client.post(url, json=payload)
@@ -230,20 +216,19 @@ class MetaMCPClient:
         except Exception as e:
             logger.error(f"Tool search failed: {e}")
             raise MetaMCPError(
-                message=f"Tool search failed: {str(e)}",
-                error_code="search_failed"
+                message=f"Tool search failed: {str(e)}", error_code="search_failed"
             )
 
     async def get_tool(self, tool_name: str) -> dict[str, Any]:
         """
         Get tool details by name.
-        
+
         Args:
             tool_name: Name of the tool
-            
+
         Returns:
             Tool details
-            
+
         Raises:
             ToolNotFoundError: If tool is not found
         """
@@ -265,34 +250,27 @@ class MetaMCPClient:
         except Exception as e:
             logger.error(f"Failed to get tool {tool_name}: {e}")
             raise MetaMCPError(
-                message=f"Failed to get tool: {str(e)}",
-                error_code="get_tool_failed"
+                message=f"Failed to get tool: {str(e)}", error_code="get_tool_failed"
             )
 
     async def list_tools(
-        self,
-        category: str | None = None,
-        limit: int = 100,
-        offset: int = 0
+        self, category: str | None = None, limit: int = 100, offset: int = 0
     ) -> dict[str, Any]:
         """
         List available tools.
-        
+
         Args:
             category: Filter by tool category
             limit: Maximum number of tools to return
             offset: Offset for pagination
-            
+
         Returns:
             Dictionary with tools list and pagination info
         """
         try:
             url = urljoin(self.base_url, "/api/v1/tools")
 
-            params = {
-                "limit": limit,
-                "offset": offset
-            }
+            params = {"limit": limit, "offset": offset}
 
             if category:
                 params["category"] = category
@@ -308,19 +286,19 @@ class MetaMCPClient:
             logger.error(f"Failed to list tools: {e}")
             raise MetaMCPError(
                 message=f"Failed to list tools: {str(e)}",
-                error_code="list_tools_failed"
+                error_code="list_tools_failed",
             )
 
     async def register_tool(self, tool_data: dict[str, Any]) -> str:
         """
         Register a new tool.
-        
+
         Args:
             tool_data: Tool registration data
-            
+
         Returns:
             Tool ID
-            
+
         Raises:
             MetaMCPError: If registration fails
         """
@@ -339,21 +317,19 @@ class MetaMCPClient:
             logger.error(f"Tool registration failed: {e}")
             raise MetaMCPError(
                 message=f"Tool registration failed: {str(e)}",
-                error_code="registration_failed"
+                error_code="registration_failed",
             )
 
     async def update_tool(
-        self,
-        tool_name: str,
-        tool_data: dict[str, Any]
+        self, tool_name: str, tool_data: dict[str, Any]
     ) -> dict[str, Any]:
         """
         Update an existing tool.
-        
+
         Args:
             tool_name: Name of the tool to update
             tool_data: Updated tool data
-            
+
         Returns:
             Updated tool data
         """
@@ -370,17 +346,16 @@ class MetaMCPClient:
         except Exception as e:
             logger.error(f"Tool update failed: {e}")
             raise MetaMCPError(
-                message=f"Tool update failed: {str(e)}",
-                error_code="update_failed"
+                message=f"Tool update failed: {str(e)}", error_code="update_failed"
             )
 
     async def delete_tool(self, tool_name: str) -> bool:
         """
         Delete a tool.
-        
+
         Args:
             tool_name: Name of the tool to delete
-            
+
         Returns:
             True if successful
         """
@@ -397,8 +372,7 @@ class MetaMCPClient:
         except Exception as e:
             logger.error(f"Tool deletion failed: {e}")
             raise MetaMCPError(
-                message=f"Tool deletion failed: {str(e)}",
-                error_code="deletion_failed"
+                message=f"Tool deletion failed: {str(e)}", error_code="deletion_failed"
             )
 
     # =============================================================================
@@ -408,43 +382,35 @@ class MetaMCPClient:
     async def mcp_list_tools(self) -> list[dict[str, Any]]:
         """
         List tools using MCP protocol.
-        
+
         Returns:
             List of available tools
         """
         if not self._connected:
             await self.connect()
 
-        message = {
-            "jsonrpc": "2.0",
-            "id": 2,
-            "method": "tools/list",
-            "params": {}
-        }
+        message = {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}}
 
         await self._send_mcp_message(message)
         response = await self._receive_mcp_message()
 
         if "error" in response:
             raise MCPProtocolError(
-                operation="list_tools",
-                reason=response["error"]["message"]
+                operation="list_tools", reason=response["error"]["message"]
             )
 
         return response.get("result", {}).get("tools", [])
 
     async def mcp_call_tool(
-        self,
-        tool_name: str,
-        arguments: dict[str, Any]
+        self, tool_name: str, arguments: dict[str, Any]
     ) -> dict[str, Any]:
         """
         Call a tool using MCP protocol.
-        
+
         Args:
             tool_name: Name of the tool to call
             arguments: Tool arguments
-            
+
         Returns:
             Tool execution result
         """
@@ -455,10 +421,7 @@ class MetaMCPClient:
             "jsonrpc": "2.0",
             "id": 3,
             "method": "tools/call",
-            "params": {
-                "name": tool_name,
-                "arguments": arguments
-            }
+            "params": {"name": tool_name, "arguments": arguments},
         }
 
         await self._send_mcp_message(message)
@@ -466,8 +429,7 @@ class MetaMCPClient:
 
         if "error" in response:
             raise MCPProtocolError(
-                operation="call_tool",
-                reason=response["error"]["message"]
+                operation="call_tool", reason=response["error"]["message"]
             )
 
         return response.get("result", {})
@@ -479,7 +441,7 @@ class MetaMCPClient:
     async def get_health(self) -> dict[str, Any]:
         """
         Get server health status.
-        
+
         Returns:
             Health status information
         """
@@ -495,13 +457,13 @@ class MetaMCPClient:
             logger.error(f"Health check failed: {e}")
             raise MetaMCPError(
                 message=f"Health check failed: {str(e)}",
-                error_code="health_check_failed"
+                error_code="health_check_failed",
             )
 
     async def get_server_info(self) -> dict[str, Any]:
         """
         Get server information.
-        
+
         Returns:
             Server information
         """
@@ -517,7 +479,7 @@ class MetaMCPClient:
             logger.error(f"Failed to get server info: {e}")
             raise MetaMCPError(
                 message=f"Failed to get server info: {str(e)}",
-                error_code="server_info_failed"
+                error_code="server_info_failed",
             )
 
     # =============================================================================
@@ -541,14 +503,14 @@ class MetaMCPClient:
                 raise MetaMCPError(
                     message=message,
                     error_code=error_code,
-                    status_code=error.response.status_code
+                    status_code=error.response.status_code,
                 )
 
         except json.JSONDecodeError:
             raise MetaMCPError(
                 message=f"HTTP {error.response.status_code}: {error.response.text}",
                 error_code="http_error",
-                status_code=error.response.status_code
+                status_code=error.response.status_code,
             )
 
     @property

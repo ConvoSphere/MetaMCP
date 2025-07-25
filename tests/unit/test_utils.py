@@ -35,9 +35,7 @@ class TestCircuitBreaker:
     def circuit_breaker(self):
         """Create CircuitBreaker instance."""
         config = CircuitBreakerConfig(
-            failure_threshold=3,
-            recovery_timeout=10.0,
-            monitor_interval=5.0
+            failure_threshold=3, recovery_timeout=10.0, monitor_interval=5.0
         )
         return CircuitBreaker("test_circuit", config)
 
@@ -53,6 +51,7 @@ class TestCircuitBreaker:
 
     async def test_successful_call(self, circuit_breaker):
         """Test successful function call."""
+
         async def success_func():
             return "success"
 
@@ -66,6 +65,7 @@ class TestCircuitBreaker:
 
     async def test_failed_call(self, circuit_breaker):
         """Test failed function call."""
+
         async def failure_func():
             raise Exception("Test failure")
 
@@ -79,6 +79,7 @@ class TestCircuitBreaker:
 
     async def test_circuit_opens_after_threshold(self, circuit_breaker):
         """Test circuit opens after failure threshold."""
+
         async def failure_func():
             raise Exception("Test failure")
 
@@ -102,6 +103,7 @@ class TestCircuitBreaker:
 
     async def test_circuit_half_open_after_timeout(self, circuit_breaker):
         """Test circuit transitions to half-open after timeout."""
+
         # Open the circuit
         async def failure_func():
             raise Exception("Test failure")
@@ -127,6 +129,7 @@ class TestCircuitBreaker:
 
     async def test_circuit_remains_open_on_failure(self, circuit_breaker):
         """Test circuit remains open on failure in half-open state."""
+
         # Open the circuit
         async def failure_func():
             raise Exception("Test failure")
@@ -353,7 +356,7 @@ class TestMemoryCacheBackend:
         assert stats["max_size"] == 100
         assert stats["hits"] == 2
         assert stats["misses"] == 1
-        assert stats["hit_rate"] == 2/3
+        assert stats["hit_rate"] == 2 / 3
         assert stats["ttl"] == 60
 
 
@@ -378,6 +381,7 @@ class TestCache:
 
     async def test_get_or_set_async_function(self, cache):
         """Test get_or_set with async function."""
+
         async def async_func():
             return "async_value"
 
@@ -407,11 +411,13 @@ class TestCacheDecorator:
     def cache_instance(self):
         """Create cache instance for testing."""
         from metamcp.utils.cache import create_memory_cache
+
         return create_memory_cache()
 
     def test_cache_decorator_sync(self, cache_instance):
         """Test cache decorator with sync function."""
-        from metamcp.utils.cache import set_cache_instance, cache
+        from metamcp.utils.cache import cache, set_cache_instance
+
         set_cache_instance(cache_instance)
 
         call_count = 0
@@ -472,7 +478,7 @@ class TestCircuitBreakerDecorator:
         # Note: The circuit breaker might not be open yet due to timing
         # Let's just verify the function was called the expected number of times
         assert call_count >= 3
-        
+
         # Test that the function can still be called (circuit breaker might not be open)
         try:
             await test_function()
@@ -500,7 +506,7 @@ class TestCacheFactory:
         assert cache.config.ttl == 120
         assert cache.config.max_size == 200
 
-    @patch('metamcp.utils.cache.RedisCacheBackend')
+    @patch("metamcp.utils.cache.RedisCacheBackend")
     def test_create_redis_cache(self, mock_redis_backend):
         """Test creating Redis cache."""
         mock_backend = Mock()

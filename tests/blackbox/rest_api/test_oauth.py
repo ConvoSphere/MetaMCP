@@ -9,6 +9,7 @@ from httpx import AsyncClient
 
 from ..conftest import API_BASE_URL
 
+
 class TestOAuthEndpoints:
     """Test OAuth configuration, initiation, and callback endpoints."""
 
@@ -27,17 +28,20 @@ class TestOAuthEndpoints:
         """Test initiating OAuth flow (should fail for unknown provider)."""
         request_data = {"provider": "unknown", "is_agent": False}
         response = await authenticated_client.post(
-            f"{API_BASE_URL}oauth/initiate",
-            json=request_data
+            f"{API_BASE_URL}oauth/initiate", json=request_data
         )
         assert response.status_code in [400, 404]
         data = response.json()
         assert "error" in data or "detail" in data
 
     @pytest.mark.asyncio
-    async def test_oauth_callback_missing_params(self, authenticated_client: AsyncClient):
+    async def test_oauth_callback_missing_params(
+        self, authenticated_client: AsyncClient
+    ):
         """Test OAuth callback with missing parameters (should fail)."""
-        response = await authenticated_client.get(f"{API_BASE_URL}oauth/callback/google")
+        response = await authenticated_client.get(
+            f"{API_BASE_URL}oauth/callback/google"
+        )
         assert response.status_code in [400, 422]
         data = response.json()
-        assert "error" in data or "detail" in data 
+        assert "error" in data or "detail" in data

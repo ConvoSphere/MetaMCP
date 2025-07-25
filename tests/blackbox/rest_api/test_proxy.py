@@ -19,8 +19,9 @@ PROXY_SERVER = {
     "security_level": "medium",
     "categories": ["test"],
     "description": "Test proxy server",
-    "metadata": {"env": "test"}
+    "metadata": {"env": "test"},
 }
+
 
 class TestProxyEndpoints:
     """Test proxy server registration, listing, and discovery endpoints."""
@@ -29,8 +30,7 @@ class TestProxyEndpoints:
     async def test_register_proxy_server(self, authenticated_client: AsyncClient):
         """Test registering a new proxy server."""
         response = await authenticated_client.post(
-            f"{API_BASE_URL}proxy/servers",
-            json=PROXY_SERVER
+            f"{API_BASE_URL}proxy/servers", json=PROXY_SERVER
         )
         assert response.status_code in [200, 201]
         data = response.json()
@@ -48,7 +48,9 @@ class TestProxyEndpoints:
     @pytest.mark.asyncio
     async def test_get_proxy_server_info(self, authenticated_client: AsyncClient):
         """Test getting info for a specific proxy server (should fail if not registered)."""
-        response = await authenticated_client.get(f"{API_BASE_URL}proxy/servers/nonexistent_id")
+        response = await authenticated_client.get(
+            f"{API_BASE_URL}proxy/servers/nonexistent_id"
+        )
         assert response.status_code in [404, 400]
         data = response.json()
         assert "error" in data or "detail" in data
@@ -65,11 +67,10 @@ class TestProxyEndpoints:
             "config_paths": [],
             "service_endpoints": [],
             "timeout": 2,
-            "max_concurrent": 2
+            "max_concurrent": 2,
         }
         response = await authenticated_client.post(
-            f"{API_BASE_URL}proxy/discovery",
-            json=discovery_config
+            f"{API_BASE_URL}proxy/discovery", json=discovery_config
         )
         assert response.status_code in [200, 201]
         data = response.json()
@@ -78,9 +79,13 @@ class TestProxyEndpoints:
         assert isinstance(data["servers"], list)
 
     @pytest.mark.asyncio
-    async def test_get_discovered_proxy_servers(self, authenticated_client: AsyncClient):
+    async def test_get_discovered_proxy_servers(
+        self, authenticated_client: AsyncClient
+    ):
         """Test getting all discovered proxy servers."""
-        response = await authenticated_client.get(f"{API_BASE_URL}proxy/discovery/servers")
+        response = await authenticated_client.get(
+            f"{API_BASE_URL}proxy/discovery/servers"
+        )
         assert response.status_code == 200
         data = response.json()
-        assert isinstance(data, list) 
+        assert isinstance(data, list)

@@ -9,6 +9,7 @@ from httpx import AsyncClient
 
 from ..conftest import API_BASE_URL
 
+
 class TestAdminEndpoints:
     """Test admin dashboard and management endpoints."""
 
@@ -27,4 +28,4 @@ class TestAdminEndpoints:
         response = await http_client.get(f"{API_BASE_URL}admin/dashboard")
         assert response.status_code in [401, 403]
         data = response.json()
-        assert "error" in data or "detail" in data 
+        assert "error" in data or "detail" in data

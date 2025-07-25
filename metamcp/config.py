@@ -15,6 +15,7 @@ from pydantic_settings import BaseSettings
 
 class LLMProvider(str, Enum):
     """LLM Provider enumeration."""
+
     OPENAI = "openai"
     FALLBACK = "fallback"
 
@@ -27,7 +28,7 @@ class PolicyEngineType(Enum):
 class Settings(BaseSettings):
     """
     Application Settings
-    
+
     Centralized configuration management using Pydantic Settings
     with environment variable support and validation.
     """
@@ -46,95 +47,108 @@ class Settings(BaseSettings):
     # Database Settings
     database_url: str = Field(
         default="postgresql://user:password@localhost/metamcp",
-        description="Database connection URL"
+        description="Database connection URL",
     )
     database_pool_size: int = Field(default=10, description="Database pool size")
     database_max_overflow: int = Field(default=20, description="Database max overflow")
 
     # Vector Database Settings
     weaviate_url: str = Field(
-        default="http://localhost:8080",
-        description="Weaviate vector database URL"
+        default="http://localhost:8080", description="Weaviate vector database URL"
     )
     weaviate_api_key: str | None = Field(default=None, description="Weaviate API key")
     vector_dimension: int = Field(default=1536, description="Vector dimension")
 
     # LLM Settings
-    llm_provider: LLMProvider = Field(default=LLMProvider.OPENAI, description="LLM provider")
+    llm_provider: LLMProvider = Field(
+        default=LLMProvider.OPENAI, description="LLM provider"
+    )
     openai_api_key: str | None = Field(default=None, description="OpenAI API key")
     openai_model: str = Field(default="gpt-4", description="OpenAI model")
     openai_base_url: str | None = Field(default=None, description="OpenAI base URL")
-    openai_embedding_model: str = Field(default="text-embedding-ada-002", description="OpenAI embedding model")
+    openai_embedding_model: str = Field(
+        default="text-embedding-ada-002", description="OpenAI embedding model"
+    )
 
     # Authentication Settings
     secret_key: str = Field(
         default="your-secret-key-change-in-production",
-        description="Secret key for JWT tokens"
+        description="Secret key for JWT tokens",
     )
     algorithm: str = Field(default="HS256", description="JWT algorithm")
-    access_token_expire_minutes: int = Field(default=30, description="Access token expiry")
+    access_token_expire_minutes: int = Field(
+        default=30, description="Access token expiry"
+    )
 
     # Security Settings
     opa_url: str = Field(
-        default="http://localhost:8181",
-        description="Open Policy Agent URL"
+        default="http://localhost:8181", description="Open Policy Agent URL"
     )
     opa_timeout: int = Field(default=5, description="OPA request timeout")
 
     # Logging Settings
     log_level: str = Field(default="INFO", description="Logging level")
-    log_format: str = Field(
-        default="json",
-        description="Log format (json, text)"
-    )
+    log_format: str = Field(default="json", description="Log format (json, text)")
 
     # Monitoring Settings
     prometheus_metrics_port: int = Field(
-        default=9090,
-        description="Prometheus metrics port"
+        default=9090, description="Prometheus metrics port"
     )
 
     # OpenTelemetry Settings
     otlp_endpoint: str | None = Field(
-        default=None,
-        description="OTLP endpoint for telemetry"
+        default=None, description="OTLP endpoint for telemetry"
     )
     otlp_insecure: bool = Field(
-        default=True,
-        description="Use insecure connection for OTLP"
+        default=True, description="Use insecure connection for OTLP"
     )
     telemetry_enabled: bool = Field(
-        default=True,
-        description="Enable OpenTelemetry telemetry"
+        default=True, description="Enable OpenTelemetry telemetry"
     )
 
     # CORS Settings
-    cors_origins: list[str] = Field(
-        default=["*"],
-        description="CORS allowed origins"
+    cors_origins: list[str] = Field(default=["*"], description="CORS allowed origins")
+    cors_allow_credentials: bool = Field(
+        default=True, description="Allow CORS credentials"
     )
-    cors_allow_credentials: bool = Field(default=True, description="Allow CORS credentials")
 
     # Rate Limiting
-    rate_limit_requests: int = Field(default=100, description="Rate limit requests per minute")
-    rate_limit_window: int = Field(default=60, description="Rate limit window in seconds")
+    rate_limit_requests: int = Field(
+        default=100, description="Rate limit requests per minute"
+    )
+    rate_limit_window: int = Field(
+        default=60, description="Rate limit window in seconds"
+    )
 
     # Tool Registry Settings
-    tool_registry_enabled: bool = Field(default=True, description="Enable tool registry")
-    tool_registry_auto_discovery: bool = Field(default=True, description="Auto-discover tools")
-    tool_registry_cache_ttl: int = Field(default=300, description="Tool registry cache TTL")
+    tool_registry_enabled: bool = Field(
+        default=True, description="Enable tool registry"
+    )
+    tool_registry_auto_discovery: bool = Field(
+        default=True, description="Auto-discover tools"
+    )
+    tool_registry_cache_ttl: int = Field(
+        default=300, description="Tool registry cache TTL"
+    )
 
     # Vector Search Settings
-    vector_search_enabled: bool = Field(default=True, description="Enable vector search")
-    vector_search_similarity_threshold: float = Field(
-        default=0.7,
-        description="Vector search similarity threshold"
+    vector_search_enabled: bool = Field(
+        default=True, description="Enable vector search"
     )
-    vector_search_max_results: int = Field(default=10, description="Max vector search results")
+    vector_search_similarity_threshold: float = Field(
+        default=0.7, description="Vector search similarity threshold"
+    )
+    vector_search_max_results: int = Field(
+        default=10, description="Max vector search results"
+    )
 
     # Policy Settings
-    policy_enforcement_enabled: bool = Field(default=True, description="Enable policy enforcement")
-    policy_default_allow: bool = Field(default=False, description="Default policy allow")
+    policy_enforcement_enabled: bool = Field(
+        default=True, description="Enable policy enforcement"
+    )
+    policy_default_allow: bool = Field(
+        default=False, description="Default policy allow"
+    )
 
     # Admin Settings
     admin_enabled: bool = Field(default=True, description="Enable admin interface")
@@ -170,6 +184,7 @@ class Settings(BaseSettings):
 
     class Config:
         """Pydantic configuration."""
+
         env_file = ".env"
         env_file_encoding = "utf-8"
         case_sensitive = False
@@ -182,10 +197,10 @@ _settings: Settings | None = None
 def get_settings() -> Settings:
     """
     Get application settings.
-    
+
     Returns:
         Settings: Application settings instance
-        
+
     Note:
         Uses singleton pattern to ensure consistent settings across the application.
     """
@@ -200,10 +215,10 @@ def get_settings() -> Settings:
 def reload_settings() -> Settings:
     """
     Reload application settings.
-    
+
     Returns:
         Settings: Fresh settings instance
-        
+
     Note:
         Useful for testing or when settings need to be refreshed.
     """
@@ -216,7 +231,7 @@ def reload_settings() -> Settings:
 def get_environment_settings() -> dict[str, Any]:
     """
     Get environment-specific settings.
-    
+
     Returns:
         Dict[str, Any]: Environment-specific configuration
     """
@@ -254,10 +269,10 @@ def get_environment_settings() -> dict[str, Any]:
 def validate_configuration() -> bool:
     """
     Validate application configuration.
-    
+
     Returns:
         bool: True if configuration is valid
-        
+
     Raises:
         ValueError: If configuration is invalid
     """
@@ -266,7 +281,10 @@ def validate_configuration() -> bool:
 
         # Validate required settings for production
         if settings.environment == "production":
-            if not settings.secret_key or settings.secret_key == "your-secret-key-change-in-production":
+            if (
+                not settings.secret_key
+                or settings.secret_key == "your-secret-key-change-in-production"
+            ):
                 raise ValueError("Secret key must be set in production")
 
             if not settings.openai_api_key:
@@ -290,7 +308,7 @@ def validate_configuration() -> bool:
 def get_config_path() -> Path:
     """
     Get configuration file path.
-    
+
     Returns:
         Path: Path to configuration file
     """
@@ -300,7 +318,7 @@ def get_config_path() -> Path:
 def create_env_template() -> str:
     """
     Create environment template.
-    
+
     Returns:
         str: Environment template content
     """

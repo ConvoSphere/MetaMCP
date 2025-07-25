@@ -23,6 +23,7 @@ logger = get_logger(__name__)
 @dataclass
 class DiscoveryConfig:
     """Configuration for server discovery."""
+
     network_discovery: bool = True
     service_discovery: bool = False
     file_discovery: bool = True
@@ -47,6 +48,7 @@ class DiscoveryConfig:
 @dataclass
 class DiscoveredServer:
     """Information about a discovered server."""
+
     endpoint: str
     transport: str
     name: str
@@ -68,7 +70,7 @@ class DiscoveredServer:
 class ServerDiscovery:
     """
     Automatic discovery of MCP servers.
-    
+
     This class provides various mechanisms for discovering
     MCP servers including network scanning, service discovery,
     and configuration file parsing.
@@ -96,10 +98,10 @@ class ServerDiscovery:
     async def discover_servers(self, config: DiscoveryConfig) -> list[DiscoveredServer]:
         """
         Discover MCP servers using the provided configuration.
-        
+
         Args:
             config: Discovery configuration
-            
+
         Returns:
             List of discovered servers
         """
@@ -132,7 +134,9 @@ class ServerDiscovery:
 
         return discovered
 
-    async def _discover_network_servers(self, config: DiscoveryConfig) -> list[DiscoveredServer]:
+    async def _discover_network_servers(
+        self, config: DiscoveryConfig
+    ) -> list[DiscoveredServer]:
         """Discover servers on the network."""
         discovered = []
 
@@ -148,12 +152,16 @@ class ServerDiscovery:
             # Execute tasks with concurrency limit
             semaphore = asyncio.Semaphore(config.max_concurrent)
 
-            async def limited_test(endpoint: str, task: asyncio.Task) -> DiscoveredServer | None:
+            async def limited_test(
+                endpoint: str, task: asyncio.Task
+            ) -> DiscoveredServer | None:
                 async with semaphore:
                     try:
                         is_mcp = await task
                         if is_mcp:
-                            return await self._create_discovered_server(endpoint, "http")
+                            return await self._create_discovered_server(
+                                endpoint, "http"
+                            )
                     except Exception as e:
                         logger.debug(f"Failed to test {endpoint}: {e}")
                     return None
@@ -161,7 +169,7 @@ class ServerDiscovery:
             # Run all tests concurrently
             results = await asyncio.gather(
                 *[limited_test(endpoint, task) for endpoint, task in tasks],
-                return_exceptions=True
+                return_exceptions=True,
             )
 
             # Collect successful discoveries
@@ -174,7 +182,9 @@ class ServerDiscovery:
 
         return discovered
 
-    async def _discover_service_servers(self, config: DiscoveryConfig) -> list[DiscoveredServer]:
+    async def _discover_service_servers(
+        self, config: DiscoveryConfig
+    ) -> list[DiscoveredServer]:
         """Discover servers via service discovery."""
         discovered = []
 
@@ -193,7 +203,9 @@ class ServerDiscovery:
 
         return discovered
 
-    async def _discover_file_servers(self, config: DiscoveryConfig) -> list[DiscoveredServer]:
+    async def _discover_file_servers(
+        self, config: DiscoveryConfig
+    ) -> list[DiscoveredServer]:
         """Discover servers from configuration files."""
         discovered = []
 
@@ -208,18 +220,26 @@ class ServerDiscovery:
                             try:
                                 # Validate required fields
                                 if "endpoint" not in server_config:
-                                    logger.warning(f"Missing endpoint in server config: {server_config}")
+                                    logger.warning(
+                                        f"Missing endpoint in server config: {server_config}"
+                                    )
                                     continue
 
                                 # Create discovered server from config
                                 server = DiscoveredServer(
                                     endpoint=server_config["endpoint"],
                                     transport=server_config.get("transport", "http"),
-                                    name=server_config.get("name", f"file-{len(discovered)}"),
+                                    name=server_config.get(
+                                        "name", f"file-{len(discovered)}"
+                                    ),
                                     description=server_config.get("description", ""),
-                                    categories=server_config.get("categories", ["file"]),
-                                    security_level=server_config.get("security_level", "unknown"),
-                                    metadata=server_config.get("metadata", {})
+                                    categories=server_config.get(
+                                        "categories", ["file"]
+                                    ),
+                                    security_level=server_config.get(
+                                        "security_level", "unknown"
+                                    ),
+                                    metadata=server_config.get("metadata", {}),
                                 )
                                 discovered.append(server)
 
@@ -299,7 +319,7 @@ class ServerDiscovery:
                         "jsonrpc": "2.0",
                         "id": 1,
                         "method": "tools/list",
-                        "params": {}
+                        "params": {},
                     }
                     await websocket.send(json.dumps(request))
                     response = await websocket.recv()
@@ -316,7 +336,9 @@ class ServerDiscovery:
 
         return False
 
-    async def _create_discovered_server(self, endpoint: str, transport: str) -> DiscoveredServer:
+    async def _create_discovered_server(
+        self, endpoint: str, transport: str
+    ) -> DiscoveredServer:
         """Create a discovered server from endpoint information."""
         # Extract name from endpoint
         name = self._extract_name_from_endpoint(endpoint)
@@ -330,7 +352,7 @@ class ServerDiscovery:
             name=name,
             description=f"Discovered MCP server at {endpoint}",
             categories=categories,
-            security_level="unknown"
+            security_level="unknown",
         )
 
     def _extract_name_from_endpoint(self, endpoint: str) -> str:
@@ -383,7 +405,7 @@ class ServerDiscovery:
     async def get_discovered_servers(self) -> list[DiscoveredServer]:
         """
         Get all discovered servers.
-        
+
         Returns:
             List of discovered servers
         """
@@ -393,13 +415,15 @@ class ServerDiscovery:
         """Clear the list of discovered servers."""
         self.discovered_servers.clear()
 
-    async def convert_to_wrapped_config(self, discovered: DiscoveredServer) -> WrappedServerConfig:
+    async def convert_to_wrapped_config(
+        self, discovered: DiscoveredServer
+    ) -> WrappedServerConfig:
         """
         Convert a discovered server to a wrapped server configuration.
-        
+
         Args:
             discovered: Discovered server information
-            
+
         Returns:
             Wrapped server configuration
         """
@@ -410,7 +434,7 @@ class ServerDiscovery:
             categories=discovered.categories,
             description=discovered.description,
             security_level=discovered.security_level,
-            metadata=discovered.metadata
+            metadata=discovered.metadata,
         )
 
     async def shutdown(self) -> None:

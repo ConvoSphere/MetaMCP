@@ -37,7 +37,7 @@ class TestToolService:
             "metadata": {"version": "1.0.0"},
             "version": "1.0.0",
             "author": "test_author",
-            "tags": ["test", "api"]
+            "tags": ["test", "api"],
         }
 
     async def test_register_tool_success(self, tool_service, sample_tool_data):
@@ -114,7 +114,9 @@ class TestToolService:
         assert result["total"] == 2
         assert len(result["tools"]) == 2
 
-    async def test_list_tools_with_category_filter(self, tool_service, sample_tool_data):
+    async def test_list_tools_with_category_filter(
+        self, tool_service, sample_tool_data
+    ):
         """Test listing tools with category filter."""
         user_id = "test_user"
         await tool_service.register_tool(sample_tool_data, user_id)
@@ -144,7 +146,7 @@ class TestToolService:
             "description": "Updated description",
             "category": "updated_category",
             "capabilities": ["read", "write", "execute"],
-            "security_level": 3
+            "security_level": 3,
         }
 
         updated_tool = await tool_service.update_tool("test_tool", update_data, user_id)
@@ -203,8 +205,10 @@ class TestToolService:
         results = await tool_service.search_tools("nonexistent")
         assert len(results) == 0
 
-    @patch('httpx.AsyncClient')
-    async def test_execute_tool_success(self, mock_httpx_client, tool_service, sample_tool_data):
+    @patch("httpx.AsyncClient")
+    async def test_execute_tool_success(
+        self, mock_httpx_client, tool_service, sample_tool_data
+    ):
         """Test successful tool execution."""
         user_id = "test_user"
         await tool_service.register_tool(sample_tool_data, user_id)
@@ -242,7 +246,7 @@ class TestToolService:
         # Add some execution history
         tool_service.execution_history = [
             {"tool_name": "test_tool", "timestamp": "2023-01-01T00:00:00Z"},
-            {"tool_name": "test_tool", "timestamp": "2023-01-02T00:00:00Z"}
+            {"tool_name": "test_tool", "timestamp": "2023-01-02T00:00:00Z"},
         ]
 
         history = tool_service.get_execution_history()
@@ -254,7 +258,7 @@ class TestToolService:
         tool_service.tools = {
             "tool1": {"name": "tool1", "category": "database", "is_active": True},
             "tool2": {"name": "tool2", "category": "api", "is_active": True},
-            "tool3": {"name": "tool3", "category": "database", "is_active": False}
+            "tool3": {"name": "tool3", "category": "database", "is_active": False},
         }
 
         stats = tool_service.get_tool_statistics()
@@ -371,19 +375,27 @@ class TestAuthService:
     async def test_check_permission_admin(self, auth_service):
         """Test permission checking for admin user."""
         # Admin users should have all permissions
-        has_permission = await auth_service.check_permission("admin_user", "tools", "read")
+        has_permission = await auth_service.check_permission(
+            "admin_user", "tools", "read"
+        )
         assert has_permission is True
 
-        has_permission = await auth_service.check_permission("admin_user", "admin", "manage")
+        has_permission = await auth_service.check_permission(
+            "admin_user", "admin", "manage"
+        )
         assert has_permission is True
 
     async def test_check_permission_regular_user(self, auth_service):
         """Test permission checking for regular user."""
         # Regular users have limited permissions
-        has_permission = await auth_service.check_permission("regular_user", "tools", "read")
+        has_permission = await auth_service.check_permission(
+            "regular_user", "tools", "read"
+        )
         assert has_permission is True
 
-        has_permission = await auth_service.check_permission("regular_user", "admin", "manage")
+        has_permission = await auth_service.check_permission(
+            "regular_user", "admin", "manage"
+        )
         assert has_permission is False
 
     async def test_create_user(self, auth_service):
@@ -392,10 +404,7 @@ class TestAuthService:
             "username": "new_user",
             "password": "newpassword123",
             "roles": ["user"],
-            "permissions": {
-                "tools": ["read", "execute"],
-                "admin": []
-            }
+            "permissions": {"tools": ["read", "execute"], "admin": []},
         }
 
         user_id = await auth_service.create_user(user_data, "admin_user")
@@ -411,10 +420,7 @@ class TestAuthService:
 
     async def test_create_user_duplicate_username(self, auth_service):
         """Test user creation with duplicate username."""
-        user_data = {
-            "username": "admin",  # Already exists
-            "password": "password123"
-        }
+        user_data = {"username": "admin", "password": "password123"}  # Already exists
 
         with pytest.raises(ValidationError, match="already exists"):
             await auth_service.create_user(user_data, "admin_user")
@@ -426,11 +432,13 @@ class TestAuthService:
             "roles": ["admin", "superuser"],
             "permissions": {
                 "tools": ["read", "write", "execute"],
-                "admin": ["manage", "configure"]
-            }
+                "admin": ["manage", "configure"],
+            },
         }
 
-        updated_user = await auth_service.update_user(user_id, update_data, "admin_user")
+        updated_user = await auth_service.update_user(
+            user_id, update_data, "admin_user"
+        )
 
         assert "superuser" in updated_user["roles"]
         assert "configure" in updated_user["permissions"]["admin"]
@@ -456,8 +464,16 @@ class TestAuthService:
         """Test getting login history."""
         # Add some login history
         auth_service.login_history = [
-            {"username": "admin", "successful": True, "timestamp": "2023-01-01T00:00:00Z"},
-            {"username": "user", "successful": False, "timestamp": "2023-01-02T00:00:00Z"}
+            {
+                "username": "admin",
+                "successful": True,
+                "timestamp": "2023-01-01T00:00:00Z",
+            },
+            {
+                "username": "user",
+                "successful": False,
+                "timestamp": "2023-01-02T00:00:00Z",
+            },
         ]
 
         history = auth_service.get_login_history()
@@ -493,7 +509,7 @@ class TestSearchService:
             query=query,
             max_results=max_results,
             similarity_threshold=similarity_threshold,
-            search_type="semantic"
+            search_type="semantic",
         )
 
         assert "search_id" in results
@@ -510,9 +526,7 @@ class TestSearchService:
         max_results = 3
 
         results = await search_service.search_tools(
-            query=query,
-            max_results=max_results,
-            search_type="keyword"
+            query=query, max_results=max_results, search_type="keyword"
         )
 
         assert results["search_type"] == "keyword"
@@ -528,7 +542,7 @@ class TestSearchService:
             query=query,
             max_results=max_results,
             similarity_threshold=similarity_threshold,
-            search_type="hybrid"
+            search_type="hybrid",
         )
 
         assert results["search_type"] == "hybrid"
@@ -537,10 +551,7 @@ class TestSearchService:
     async def test_search_tools_invalid_type(self, search_service):
         """Test search with invalid search type."""
         with pytest.raises(Exception, match="Unsupported search type"):
-            await search_service.search_tools(
-                query="test",
-                search_type="invalid_type"
-            )
+            await search_service.search_tools(query="test", search_type="invalid_type")
 
     def test_calculate_similarity(self, search_service):
         """Test similarity calculation."""
@@ -548,7 +559,7 @@ class TestSearchService:
         tool = {
             "name": "database_query",
             "description": "Query database with SQL",
-            "tags": ["database", "sql"]
+            "tags": ["database", "sql"],
         }
 
         similarity = search_service._calculate_similarity(query, tool)
@@ -562,7 +573,7 @@ class TestSearchService:
         tool = {
             "name": "database_query",
             "description": "Query database with SQL",
-            "tags": ["database", "sql"]
+            "tags": ["database", "sql"],
         }
 
         similarity = search_service._calculate_similarity(query, tool)
@@ -597,8 +608,14 @@ class TestSearchService:
         # Update metrics with successful search
         search_service._update_search_metrics(0.5, True)
 
-        assert search_service.search_metrics["total_searches"] == initial_metrics["total_searches"] + 1
-        assert search_service.search_metrics["successful_searches"] == initial_metrics["successful_searches"] + 1
+        assert (
+            search_service.search_metrics["total_searches"]
+            == initial_metrics["total_searches"] + 1
+        )
+        assert (
+            search_service.search_metrics["successful_searches"]
+            == initial_metrics["successful_searches"] + 1
+        )
         assert search_service.search_metrics["average_response_time"] > 0.0
 
     def test_get_search_history(self, search_service):
@@ -606,7 +623,7 @@ class TestSearchService:
         # Add some search history
         search_service.search_history = [
             {"search_id": "search1", "query": "database", "status": "completed"},
-            {"search_id": "search2", "query": "api", "status": "completed"}
+            {"search_id": "search2", "query": "api", "status": "completed"},
         ]
 
         history = search_service.get_search_history()
@@ -625,9 +642,24 @@ class TestSearchService:
         """Test getting search statistics."""
         # Add some search history
         search_service.search_history = [
-            {"search_id": "search1", "query": "database", "status": "completed", "duration": 0.1},
-            {"search_id": "search2", "query": "api", "status": "completed", "duration": 0.2},
-            {"search_id": "search3", "query": "file", "status": "failed", "duration": 0.0}
+            {
+                "search_id": "search1",
+                "query": "database",
+                "status": "completed",
+                "duration": 0.1,
+            },
+            {
+                "search_id": "search2",
+                "query": "api",
+                "status": "completed",
+                "duration": 0.2,
+            },
+            {
+                "search_id": "search3",
+                "query": "file",
+                "status": "failed",
+                "duration": 0.0,
+            },
         ]
 
         stats = search_service.get_search_statistics()
@@ -635,6 +667,6 @@ class TestSearchService:
         assert stats["total_searches"] == 3
         assert stats["successful_searches"] == 2
         assert stats["failed_searches"] == 1
-        assert stats["success_rate"] == 2/3
+        assert stats["success_rate"] == 2 / 3
         assert "search_types" in stats
         assert "recent_queries" in stats

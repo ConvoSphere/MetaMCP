@@ -15,8 +15,9 @@ WORKFLOW = {
     "description": "A test workflow for blackbox testing.",
     "steps": [
         {"tool": "test_calculator", "input": {"operation": "add", "a": 1, "b": 2}}
-    ]
+    ],
 }
+
 
 class TestCompositionEndpoints:
     """Test workflow registration and listing endpoints."""
@@ -26,8 +27,7 @@ class TestCompositionEndpoints:
         """Test registering a new workflow."""
         request_data = {"workflow": WORKFLOW}
         response = await authenticated_client.post(
-            f"{API_BASE_URL}composition/workflows",
-            json=request_data
+            f"{API_BASE_URL}composition/workflows", json=request_data
         )
         assert response.status_code in [200, 201]
         data = response.json()
@@ -38,7 +38,9 @@ class TestCompositionEndpoints:
     @pytest.mark.asyncio
     async def test_list_workflows(self, authenticated_client: AsyncClient):
         """Test listing all registered workflows."""
-        response = await authenticated_client.get(f"{API_BASE_URL}composition/workflows")
+        response = await authenticated_client.get(
+            f"{API_BASE_URL}composition/workflows"
+        )
         assert response.status_code == 200
         data = response.json()
         assert "workflows" in data
@@ -50,9 +52,8 @@ class TestCompositionEndpoints:
         """Test registering a workflow without authentication (should fail)."""
         request_data = {"workflow": WORKFLOW}
         response = await http_client.post(
-            f"{API_BASE_URL}composition/workflows",
-            json=request_data
+            f"{API_BASE_URL}composition/workflows", json=request_data
         )
         assert response.status_code in [401, 403]
         data = response.json()
-        assert "error" in data or "detail" in data 
+        assert "error" in data or "detail" in data

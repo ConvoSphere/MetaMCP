@@ -25,6 +25,7 @@ settings = get_settings()
 @dataclass
 class WrappedServerConfig:
     """Configuration for a wrapped MCP server."""
+
     name: str
     endpoint: str
     transport: str = "http"  # http, websocket, stdio
@@ -41,7 +42,7 @@ class WrappedServerConfig:
 class MCPProxyWrapper:
     """
     Proxy wrapper for arbitrary MCP servers.
-    
+
     This class wraps existing MCP servers and adds MetaMCP's enhanced
     features like semantic search, security, and monitoring.
     """
@@ -76,10 +77,7 @@ class MCPProxyWrapper:
                 await self.telemetry_manager.initialize()
 
             # Initialize FastMCP
-            self.fastmcp = FastMCP(
-                name="metamcp-proxy",
-                version="1.0.0"
-            )
+            self.fastmcp = FastMCP(name="metamcp-proxy", version="1.0.0")
 
             # Register handlers
             self.fastmcp.list_tools = self._handle_list_tools
@@ -97,10 +95,10 @@ class MCPProxyWrapper:
     async def register_server(self, config: WrappedServerConfig) -> str:
         """
         Register a new MCP server to be wrapped.
-        
+
         Args:
             config: Server configuration
-            
+
         Returns:
             Server ID
         """
@@ -145,7 +143,9 @@ class MCPProxyWrapper:
             try:
                 response = await client.get(f"{config.endpoint}/health")
                 if response.status_code != 200:
-                    raise ProxyError(f"Server health check failed: {response.status_code}")
+                    raise ProxyError(
+                        f"Server health check failed: {response.status_code}"
+                    )
             except Exception as e:
                 raise ProxyError(f"HTTP connection failed: {str(e)}")
 
@@ -159,7 +159,9 @@ class MCPProxyWrapper:
         except Exception as e:
             raise ProxyError(f"WebSocket connection failed: {str(e)}")
 
-    async def _register_server_tools(self, server_id: str, config: WrappedServerConfig) -> None:
+    async def _register_server_tools(
+        self, server_id: str, config: WrappedServerConfig
+    ) -> None:
         """Register tools from the wrapped server."""
         try:
             # Get tools from the wrapped server
@@ -172,14 +174,16 @@ class MCPProxyWrapper:
                 self.fastmcp.tool(
                     wrapped_tool["name"],
                     wrapped_tool["input_schema"],
-                    wrapped_tool["handler"]
+                    wrapped_tool["handler"],
                 )
 
         except Exception as e:
             logger.error(f"Failed to register tools from server {server_id}: {e}")
             raise ProxyError(f"Tool registration failed: {str(e)}")
 
-    async def _get_server_tools(self, config: WrappedServerConfig) -> list[dict[str, Any]]:
+    async def _get_server_tools(
+        self, config: WrappedServerConfig
+    ) -> list[dict[str, Any]]:
         """Get tools from the wrapped server."""
         try:
             if config.transport == "http":
@@ -187,13 +191,17 @@ class MCPProxyWrapper:
             elif config.transport == "websocket":
                 return await self._get_websocket_server_tools(config)
             else:
-                raise ProxyError(f"Unsupported transport for tool discovery: {config.transport}")
+                raise ProxyError(
+                    f"Unsupported transport for tool discovery: {config.transport}"
+                )
 
         except Exception as e:
             logger.error(f"Failed to get tools from server {config.name}: {e}")
             raise ProxyError(f"Tool discovery failed: {str(e)}")
 
-    async def _get_http_server_tools(self, config: WrappedServerConfig) -> list[dict[str, Any]]:
+    async def _get_http_server_tools(
+        self, config: WrappedServerConfig
+    ) -> list[dict[str, Any]]:
         """Get tools from HTTP MCP server."""
         import httpx
 
@@ -203,8 +211,7 @@ class MCPProxyWrapper:
                 headers["Authorization"] = f"Bearer {config.auth_token}"
 
             response = await client.post(
-                f"{config.endpoint}/tools/list",
-                headers=headers
+                f"{config.endpoint}/tools/list", headers=headers
             )
 
             if response.status_code != 200:
@@ -212,20 +219,19 @@ class MCPProxyWrapper:
 
             return response.json().get("tools", [])
 
-    async def _get_websocket_server_tools(self, config: WrappedServerConfig) -> list[dict[str, Any]]:
+    async def _get_websocket_server_tools(
+        self, config: WrappedServerConfig
+    ) -> list[dict[str, Any]]:
         """Get tools from WebSocket MCP server."""
         import json
 
         import websockets
 
-        async with websockets.connect(config.endpoint, timeout=config.timeout) as websocket:
+        async with websockets.connect(
+            config.endpoint, timeout=config.timeout
+        ) as websocket:
             # Send tools/list request
-            request = {
-                "jsonrpc": "2.0",
-                "id": 1,
-                "method": "tools/list",
-                "params": {}
-            }
+            request = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
 
             await websocket.send(json.dumps(request))
             response = await websocket.recv()
@@ -236,7 +242,9 @@ class MCPProxyWrapper:
 
             return result.get("result", {}).get("tools", [])
 
-    def _wrap_tool(self, tool: dict[str, Any], server_id: str, config: WrappedServerConfig) -> dict[str, Any]:
+    def _wrap_tool(
+        self, tool: dict[str, Any], server_id: str, config: WrappedServerConfig
+    ) -> dict[str, Any]:
         """Wrap a tool with proxy functionality."""
         original_name = tool.get("name", "unknown")
         wrapped_name = f"{server_id}.{original_name}"
@@ -249,18 +257,23 @@ class MCPProxyWrapper:
             "categories": config.categories or [],
             "security_level": config.security_level,
             "server_id": server_id,
-            "original_tool": tool
+            "original_tool": tool,
         }
 
-    def _create_wrapped_handler(self, tool_name: str, server_id: str, config: WrappedServerConfig):
+    def _create_wrapped_handler(
+        self, tool_name: str, server_id: str, config: WrappedServerConfig
+    ):
         """Create a wrapped handler for tool execution."""
+
         async def wrapped_handler(args: dict[str, Any]) -> list[TextContent]:
             try:
                 # Pre-execution hooks
                 await self._before_tool_call(tool_name, server_id, args)
 
                 # Execute tool on wrapped server
-                result = await self._execute_wrapped_tool(tool_name, server_id, config, args)
+                result = await self._execute_wrapped_tool(
+                    tool_name, server_id, config, args
+                )
 
                 # Post-execution hooks
                 result = await self._after_tool_call(tool_name, server_id, result)
@@ -273,7 +286,9 @@ class MCPProxyWrapper:
 
         return wrapped_handler
 
-    async def _before_tool_call(self, tool_name: str, server_id: str, args: dict[str, Any]) -> None:
+    async def _before_tool_call(
+        self, tool_name: str, server_id: str, args: dict[str, Any]
+    ) -> None:
         """Pre-execution hooks."""
         # Security validation
         if self.policy_engine:
@@ -283,7 +298,9 @@ class MCPProxyWrapper:
         if self.telemetry_manager:
             self.telemetry_manager.record_tool_call_start(tool_name, server_id)
 
-    async def _after_tool_call(self, tool_name: str, server_id: str, result: Any) -> Any:
+    async def _after_tool_call(
+        self, tool_name: str, server_id: str, result: Any
+    ) -> Any:
         """Post-execution hooks."""
         # Telemetry
         if self.telemetry_manager:
@@ -291,7 +308,13 @@ class MCPProxyWrapper:
 
         return result
 
-    async def _execute_wrapped_tool(self, tool_name: str, server_id: str, config: WrappedServerConfig, args: dict[str, Any]) -> Any:
+    async def _execute_wrapped_tool(
+        self,
+        tool_name: str,
+        server_id: str,
+        config: WrappedServerConfig,
+        args: dict[str, Any],
+    ) -> Any:
         """Execute tool on the wrapped server."""
         try:
             if config.transport == "http":
@@ -299,13 +322,17 @@ class MCPProxyWrapper:
             elif config.transport == "websocket":
                 return await self._execute_websocket_tool(tool_name, config, args)
             else:
-                raise ProxyError(f"Unsupported transport for tool execution: {config.transport}")
+                raise ProxyError(
+                    f"Unsupported transport for tool execution: {config.transport}"
+                )
 
         except Exception as e:
             logger.error(f"Wrapped tool execution failed: {e}")
             raise ToolExecutionError(f"Wrapped tool execution failed: {str(e)}")
 
-    async def _execute_http_tool(self, tool_name: str, config: WrappedServerConfig, args: dict[str, Any]) -> Any:
+    async def _execute_http_tool(
+        self, tool_name: str, config: WrappedServerConfig, args: dict[str, Any]
+    ) -> Any:
         """Execute tool via HTTP."""
         import httpx
 
@@ -317,32 +344,32 @@ class MCPProxyWrapper:
             response = await client.post(
                 f"{config.endpoint}/tools/call",
                 headers=headers,
-                json={
-                    "name": tool_name,
-                    "arguments": args
-                }
+                json={"name": tool_name, "arguments": args},
             )
 
             if response.status_code != 200:
-                raise ToolExecutionError(f"HTTP tool execution failed: {response.status_code}")
+                raise ToolExecutionError(
+                    f"HTTP tool execution failed: {response.status_code}"
+                )
 
             return response.json().get("result")
 
-    async def _execute_websocket_tool(self, tool_name: str, config: WrappedServerConfig, args: dict[str, Any]) -> Any:
+    async def _execute_websocket_tool(
+        self, tool_name: str, config: WrappedServerConfig, args: dict[str, Any]
+    ) -> Any:
         """Execute tool via WebSocket."""
         import json
 
         import websockets
 
-        async with websockets.connect(config.endpoint, timeout=config.timeout) as websocket:
+        async with websockets.connect(
+            config.endpoint, timeout=config.timeout
+        ) as websocket:
             request = {
                 "jsonrpc": "2.0",
                 "id": 1,
                 "method": "tools/call",
-                "params": {
-                    "name": tool_name,
-                    "arguments": args
-                }
+                "params": {"name": tool_name, "arguments": args},
             }
 
             await websocket.send(json.dumps(request))
@@ -350,7 +377,9 @@ class MCPProxyWrapper:
             result = json.loads(response)
 
             if "error" in result:
-                raise ToolExecutionError(f"WebSocket tool execution failed: {result['error']}")
+                raise ToolExecutionError(
+                    f"WebSocket tool execution failed: {result['error']}"
+                )
 
             return result.get("result")
 
@@ -362,17 +391,21 @@ class MCPProxyWrapper:
                 server_tools = await self._get_server_tools(config)
                 for tool in server_tools:
                     wrapped_tool = self._wrap_tool(tool, server_id, config)
-                    tools.append(Tool(
-                        name=wrapped_tool["name"],
-                        description=wrapped_tool["description"],
-                        inputSchema=wrapped_tool["input_schema"]
-                    ))
+                    tools.append(
+                        Tool(
+                            name=wrapped_tool["name"],
+                            description=wrapped_tool["description"],
+                            inputSchema=wrapped_tool["input_schema"],
+                        )
+                    )
             except Exception as e:
                 logger.error(f"Failed to get tools from server {server_id}: {e}")
 
         return tools
 
-    async def _handle_call_tool(self, name: str, arguments: dict[str, Any]) -> list[TextContent]:
+    async def _handle_call_tool(
+        self, name: str, arguments: dict[str, Any]
+    ) -> list[TextContent]:
         """Handle tool call request."""
         try:
             # Parse server_id and tool_name from wrapped name
@@ -385,7 +418,9 @@ class MCPProxyWrapper:
                 raise ToolExecutionError(f"Unknown server: {server_id}")
 
             config = self.wrapped_servers[server_id]
-            result = await self._execute_wrapped_tool(tool_name, server_id, config, arguments)
+            result = await self._execute_wrapped_tool(
+                tool_name, server_id, config, arguments
+            )
 
             return [TextContent(type="text", text=str(result))]
 

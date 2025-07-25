@@ -9,6 +9,7 @@ from httpx import AsyncClient
 
 from ..conftest import API_BASE_URL
 
+
 class TestHealthEndpoints:
     """Test health monitoring endpoints for actual API response format."""
 
@@ -78,6 +79,7 @@ class TestHealthEndpoints:
         data1 = response1.json()
         uptime1 = data1["uptime"]
         import asyncio
+
         await asyncio.sleep(1)
         response2 = await http_client.get(f"{API_BASE_URL}health/detailed")
         assert response2.status_code == 200
@@ -104,20 +106,24 @@ class TestHealthEndpoints:
         data = response.json()
         timestamp = data["timestamp"]
         import re
-        iso_pattern = r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?([+-]\d{2}:\d{2}|Z)?$'
-        assert re.match(iso_pattern, timestamp), f"Invalid timestamp format: {timestamp}"
+
+        iso_pattern = (
+            r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?([+-]\d{2}:\d{2}|Z)?$"
+        )
+        assert re.match(
+            iso_pattern, timestamp
+        ), f"Invalid timestamp format: {timestamp}"
 
     @pytest.mark.asyncio
     async def test_health_endpoints_accessible(self, http_client: AsyncClient):
         """Test that all health endpoints are accessible without authentication."""
-        endpoints = [
-            "health/",
-            "health/detailed",
-            "health/ready",
-            "health/live"
-        ]
+        endpoints = ["health/", "health/detailed", "health/ready", "health/live"]
         for endpoint in endpoints:
             response = await http_client.get(f"{API_BASE_URL}{endpoint}")
-            assert response.status_code == 200, f"Endpoint {endpoint} should be accessible"
+            assert (
+                response.status_code == 200
+            ), f"Endpoint {endpoint} should be accessible"
             data = response.json()
-            assert any(k in data for k in ["healthy", "status", "overall_healthy"]), f"Endpoint {endpoint} should return health data"
+            assert any(
+                k in data for k in ["healthy", "status", "overall_healthy"]
+            ), f"Endpoint {endpoint} should return health data"

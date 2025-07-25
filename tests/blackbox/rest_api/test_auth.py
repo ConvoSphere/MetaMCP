@@ -12,16 +12,14 @@ from ..conftest import (
     TEST_USER,
 )
 
+
 class TestAuthentication:
     """Test authentication endpoints with actual API response format."""
 
     @pytest.mark.asyncio
     async def test_login_success(self, http_client: AsyncClient):
         """Test successful login."""
-        response = await http_client.post(
-            f"{API_BASE_URL}auth/login",
-            json=TEST_USER
-        )
+        response = await http_client.post(f"{API_BASE_URL}auth/login", json=TEST_USER)
         assert response.status_code == 200
         data = response.json()
         assert "access_token" in data
@@ -34,10 +32,7 @@ class TestAuthentication:
         """Test login with invalid credentials."""
         response = await http_client.post(
             f"{API_BASE_URL}auth/login",
-            json={
-                "username": "invalid_user",
-                "password": "wrong_password"
-            }
+            json={"username": "invalid_user", "password": "wrong_password"},
         )
         assert response.status_code == 401
         data = response.json()
@@ -47,8 +42,7 @@ class TestAuthentication:
     async def test_login_missing_fields(self, http_client: AsyncClient):
         """Test login with missing required fields."""
         response = await http_client.post(
-            f"{API_BASE_URL}auth/login",
-            json={"username": "test_user"}
+            f"{API_BASE_URL}auth/login", json={"username": "test_user"}
         )
         assert response.status_code in [400, 422]
 
@@ -102,11 +96,14 @@ class TestAuthentication:
         assert "expires_in" in data
         assert data["token_type"] == "bearer"
 
+
 class TestAuthorization:
     """Test authorization and access control."""
 
     @pytest.mark.asyncio
-    async def test_protected_endpoint_with_token(self, authenticated_client: AsyncClient):
+    async def test_protected_endpoint_with_token(
+        self, authenticated_client: AsyncClient
+    ):
         """Test accessing protected endpoint with valid token."""
         response = await authenticated_client.get(f"{API_BASE_URL}tools/")
         assert response.status_code in [200, 404]

@@ -19,6 +19,7 @@ logger = get_logger(__name__)
 @dataclass
 class InterceptorContext:
     """Context for tool call interception."""
+
     tool_name: str
     server_id: str
     arguments: dict[str, Any]
@@ -38,6 +39,7 @@ class InterceptorContext:
 @dataclass
 class InterceptorResult:
     """Result from tool call interception."""
+
     success: bool
     result: Any = None
     error: str | None = None
@@ -52,7 +54,7 @@ class InterceptorResult:
 class ToolCallInterceptor:
     """
     Interceptor for tool calls with pre/post processing hooks.
-    
+
     This class provides a framework for intercepting tool calls
     and adding middleware functionality like validation, transformation,
     logging, and security checks.
@@ -101,7 +103,7 @@ class ToolCallInterceptor:
     def add_pre_hook(self, hook: Callable) -> None:
         """
         Add a pre-execution hook.
-        
+
         Args:
             hook: Hook function to call before tool execution
         """
@@ -110,7 +112,7 @@ class ToolCallInterceptor:
     def add_post_hook(self, hook: Callable) -> None:
         """
         Add a post-execution hook.
-        
+
         Args:
             hook: Hook function to call after tool execution
         """
@@ -119,24 +121,22 @@ class ToolCallInterceptor:
     def add_error_hook(self, hook: Callable) -> None:
         """
         Add an error handling hook.
-        
+
         Args:
             hook: Hook function to call on error
         """
         self.error_hooks.append(hook)
 
     async def intercept_tool_call(
-        self,
-        context: InterceptorContext,
-        tool_executor: Callable
+        self, context: InterceptorContext, tool_executor: Callable
     ) -> InterceptorResult:
         """
         Intercept a tool call with pre/post processing.
-        
+
         Args:
             context: Interception context
             tool_executor: Function to execute the tool
-            
+
         Returns:
             Interception result
         """
@@ -151,9 +151,7 @@ class ToolCallInterceptor:
             final_result = await self._run_post_hooks(modified_context, result)
 
             return InterceptorResult(
-                success=True,
-                result=final_result,
-                metadata={"intercepted": True}
+                success=True, result=final_result, metadata={"intercepted": True}
             )
 
         except Exception as e:
@@ -163,7 +161,7 @@ class ToolCallInterceptor:
             return InterceptorResult(
                 success=False,
                 error=str(e),
-                metadata={"intercepted": True, "error": True}
+                metadata={"intercepted": True, "error": True},
             )
 
     async def _run_pre_hooks(self, context: InterceptorContext) -> InterceptorContext:
@@ -180,11 +178,7 @@ class ToolCallInterceptor:
 
         return modified_context
 
-    async def _run_post_hooks(
-        self,
-        context: InterceptorContext,
-        result: Any
-    ) -> Any:
+    async def _run_post_hooks(self, context: InterceptorContext, result: Any) -> Any:
         """Run post-execution hooks."""
         modified_result = result
 
@@ -199,9 +193,7 @@ class ToolCallInterceptor:
         return modified_result
 
     async def _run_error_hooks(
-        self,
-        context: InterceptorContext,
-        error: Exception
+        self, context: InterceptorContext, error: Exception
     ) -> None:
         """Run error handling hooks."""
         for hook in self.error_hooks:
@@ -217,7 +209,9 @@ class ToolCallInterceptor:
             f"by user {context.user_id} at {context.timestamp}"
         )
 
-    async def _validate_arguments(self, context: InterceptorContext) -> InterceptorContext:
+    async def _validate_arguments(
+        self, context: InterceptorContext
+    ) -> InterceptorContext:
         """Validate tool arguments."""
         # Basic validation - can be extended with schema validation
         if not isinstance(context.arguments, dict):
@@ -236,37 +230,29 @@ class ToolCallInterceptor:
         # This would be tool-specific - for now return empty list
         return []
 
-    async def _rate_limit_check(self, context: InterceptorContext) -> InterceptorContext:
+    async def _rate_limit_check(
+        self, context: InterceptorContext
+    ) -> InterceptorContext:
         """Check rate limits for tool calls."""
         # This would integrate with a rate limiting system
         # For now, just log the check
         logger.debug(f"Rate limit check for {context.tool_name}")
         return context
 
-    async def _log_tool_result(
-        self,
-        context: InterceptorContext,
-        result: Any
-    ) -> None:
+    async def _log_tool_result(self, context: InterceptorContext, result: Any) -> None:
         """Log tool execution result."""
         logger.info(
             f"Tool completed: {context.tool_name} on server {context.server_id} "
             f"with result type: {type(result).__name__}"
         )
 
-    async def _transform_result(
-        self,
-        context: InterceptorContext,
-        result: Any
-    ) -> Any:
+    async def _transform_result(self, context: InterceptorContext, result: Any) -> Any:
         """Transform tool result if needed."""
         # This could format results, add metadata, etc.
         return result
 
     async def _log_tool_error(
-        self,
-        context: InterceptorContext,
-        error: Exception
+        self, context: InterceptorContext, error: Exception
     ) -> None:
         """Log tool execution error."""
         logger.error(
@@ -275,9 +261,7 @@ class ToolCallInterceptor:
         )
 
     async def _handle_error(
-        self,
-        context: InterceptorContext,
-        error: Exception
+        self, context: InterceptorContext, error: Exception
     ) -> None:
         """Handle tool execution errors."""
         # This could trigger alerts, retry logic, etc.
@@ -291,11 +275,11 @@ class ToolCallInterceptor:
         user_id: str | None = None,
         session_id: str | None = None,
         request_id: str | None = None,
-        metadata: dict[str, Any] | None = None
+        metadata: dict[str, Any] | None = None,
     ) -> InterceptorContext:
         """
         Create an interception context.
-        
+
         Args:
             tool_name: Name of the tool being called
             server_id: ID of the server hosting the tool
@@ -304,7 +288,7 @@ class ToolCallInterceptor:
             session_id: Session ID
             request_id: Request ID for tracing
             metadata: Additional metadata
-            
+
         Returns:
             Interception context
         """
@@ -315,7 +299,7 @@ class ToolCallInterceptor:
             user_id=user_id,
             session_id=session_id,
             request_id=request_id,
-            metadata=metadata or {}
+            metadata=metadata or {},
         )
 
     async def shutdown(self) -> None:

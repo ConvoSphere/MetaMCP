@@ -9,8 +9,4 @@ from .auth_service import AuthService
 from .search_service import SearchService
 from .tool_service import ToolService
 
-__all__ = [
-    "ToolService",
-    "AuthService",
-    "SearchService"
-]
+__all__ = ["ToolService", "AuthService", "SearchService"]

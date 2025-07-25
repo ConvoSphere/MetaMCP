@@ -28,6 +28,7 @@ server_discovery: ServerDiscovery | None = None
 # Pydantic models for API
 class ServerConfigRequest(BaseModel):
     """Request model for server configuration."""
+
     name: str = Field(..., description="Server name")
     endpoint: str = Field(..., description="Server endpoint")
     transport: str = Field(default="http", description="Transport protocol")
@@ -38,24 +39,43 @@ class ServerConfigRequest(BaseModel):
     security_level: str = Field(default="medium", description="Security level")
     categories: list[str] = Field(default_factory=list, description="Tool categories")
     description: str = Field(default="", description="Server description")
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
+    metadata: dict[str, Any] = Field(
+        default_factory=dict, description="Additional metadata"
+    )
 
 
 class DiscoveryConfigRequest(BaseModel):
     """Request model for discovery configuration."""
-    network_discovery: bool = Field(default=True, description="Enable network discovery")
-    service_discovery: bool = Field(default=False, description="Enable service discovery")
+
+    network_discovery: bool = Field(
+        default=True, description="Enable network discovery"
+    )
+    service_discovery: bool = Field(
+        default=False, description="Enable service discovery"
+    )
     file_discovery: bool = Field(default=True, description="Enable file discovery")
-    ports: list[int] = Field(default_factory=lambda: [8001, 8002, 8003, 8004, 8005], description="Ports to scan")
-    base_urls: list[str] = Field(default_factory=lambda: ["http://localhost", "http://127.0.0.1"], description="Base URLs to scan")
-    config_paths: list[str] = Field(default_factory=lambda: ["./mcp-servers.json", "./config/mcp-servers.json"], description="Config file paths")
-    service_endpoints: list[str] = Field(default_factory=list, description="Service discovery endpoints")
+    ports: list[int] = Field(
+        default_factory=lambda: [8001, 8002, 8003, 8004, 8005],
+        description="Ports to scan",
+    )
+    base_urls: list[str] = Field(
+        default_factory=lambda: ["http://localhost", "http://127.0.0.1"],
+        description="Base URLs to scan",
+    )
+    config_paths: list[str] = Field(
+        default_factory=lambda: ["./mcp-servers.json", "./config/mcp-servers.json"],
+        description="Config file paths",
+    )
+    service_endpoints: list[str] = Field(
+        default_factory=list, description="Service discovery endpoints"
+    )
     timeout: int = Field(default=5, description="Discovery timeout")
     max_concurrent: int = Field(default=10, description="Maximum concurrent scans")
 
 
 class ServerInfoResponse(BaseModel):
     """Response model for server information."""
+
     server_id: str
     name: str
     endpoint: str
@@ -69,6 +89,7 @@ class ServerInfoResponse(BaseModel):
 
 class HealthCheckResponse(BaseModel):
     """Response model for health check."""
+
     server_id: str
     status: str
     last_seen: str
@@ -78,6 +99,7 @@ class HealthCheckResponse(BaseModel):
 
 class DiscoveryResultResponse(BaseModel):
     """Response model for discovery results."""
+
     discovered_count: int
     servers: list[dict[str, Any]]
 
@@ -105,14 +127,14 @@ async def get_server_discovery() -> ServerDiscovery:
 @router.post("/servers", response_model=dict[str, str])
 async def register_server(
     config: ServerConfigRequest,
-    proxy_manager: ProxyManager = Depends(get_proxy_manager)
+    proxy_manager: ProxyManager = Depends(get_proxy_manager),
 ) -> dict[str, str]:
     """
     Register a new MCP server for wrapping.
-    
+
     Args:
         config: Server configuration
-        
+
     Returns:
         Server ID
     """
@@ -129,7 +151,7 @@ async def register_server(
             security_level=config.security_level,
             categories=config.categories,
             description=config.description,
-            metadata=config.metadata
+            metadata=config.metadata,
         )
 
         server_id = await proxy_manager.register_server(wrapped_config)
@@ -147,11 +169,11 @@ async def register_server(
 
 @router.get("/servers", response_model=list[ServerInfoResponse])
 async def list_servers(
-    proxy_manager: ProxyManager = Depends(get_proxy_manager)
+    proxy_manager: ProxyManager = Depends(get_proxy_manager),
 ) -> list[ServerInfoResponse]:
     """
     List all registered servers.
-    
+
     Returns:
         List of server information
     """
@@ -168,7 +190,7 @@ async def list_servers(
                 last_seen=server.last_seen.isoformat(),
                 tool_count=server.tool_count,
                 categories=server.categories,
-                security_level=server.security_level
+                security_level=server.security_level,
             )
             for server in servers
         ]
@@ -180,15 +202,14 @@ async def list_servers(
 
 @router.get("/servers/{server_id}", response_model=ServerInfoResponse)
 async def get_server_info(
-    server_id: str,
-    proxy_manager: ProxyManager = Depends(get_proxy_manager)
+    server_id: str, proxy_manager: ProxyManager = Depends(get_proxy_manager)
 ) -> ServerInfoResponse:
     """
     Get information about a specific server.
-    
+
     Args:
         server_id: Server ID
-        
+
     Returns:
         Server information
     """
@@ -207,7 +228,7 @@ async def get_server_info(
             last_seen=server_info.last_seen.isoformat(),
             tool_count=server_info.tool_count,
             categories=server_info.categories,
-            security_level=server_info.security_level
+            security_level=server_info.security_level,
         )
 
     except HTTPException:
@@ -219,15 +240,14 @@ async def get_server_info(
 
 @router.delete("/servers/{server_id}")
 async def unregister_server(
-    server_id: str,
-    proxy_manager: ProxyManager = Depends(get_proxy_manager)
+    server_id: str, proxy_manager: ProxyManager = Depends(get_proxy_manager)
 ) -> dict[str, str]:
     """
     Unregister a server.
-    
+
     Args:
         server_id: Server ID to unregister
-        
+
     Returns:
         Success message
     """
@@ -250,15 +270,15 @@ async def discover_servers(
     config: DiscoveryConfigRequest,
     background_tasks: BackgroundTasks,
     server_discovery: ServerDiscovery = Depends(get_server_discovery),
-    proxy_manager: ProxyManager = Depends(get_proxy_manager)
+    proxy_manager: ProxyManager = Depends(get_proxy_manager),
 ) -> DiscoveryResultResponse:
     """
     Discover MCP servers automatically.
-    
+
     Args:
         config: Discovery configuration
         background_tasks: FastAPI background tasks
-        
+
     Returns:
         Discovery results
     """
@@ -273,33 +293,36 @@ async def discover_servers(
             config_paths=config.config_paths,
             service_endpoints=config.service_endpoints,
             timeout=config.timeout,
-            max_concurrent=config.max_concurrent
+            max_concurrent=config.max_concurrent,
         )
 
         # Discover servers
         discovered = await server_discovery.discover_servers(discovery_config)
 
         # Register discovered servers in background
-        background_tasks.add_task(_register_discovered_servers, discovered, proxy_manager)
+        background_tasks.add_task(
+            _register_discovered_servers, discovered, proxy_manager
+        )
 
         # Convert to response format
         servers = []
         for server in discovered:
-            servers.append({
-                "endpoint": server.endpoint,
-                "transport": server.transport,
-                "name": server.name,
-                "description": server.description,
-                "categories": server.categories,
-                "security_level": server.security_level,
-                "discovered_at": server.discovered_at.isoformat()
-            })
+            servers.append(
+                {
+                    "endpoint": server.endpoint,
+                    "transport": server.transport,
+                    "name": server.name,
+                    "description": server.description,
+                    "categories": server.categories,
+                    "security_level": server.security_level,
+                    "discovered_at": server.discovered_at.isoformat(),
+                }
+            )
 
         logger.info(f"Discovered {len(discovered)} servers")
 
         return DiscoveryResultResponse(
-            discovered_count=len(discovered),
-            servers=servers
+            discovered_count=len(discovered), servers=servers
         )
 
     except ServerDiscoveryError as e:
@@ -312,11 +335,11 @@ async def discover_servers(
 
 @router.get("/health", response_model=dict[str, HealthCheckResponse])
 async def health_check(
-    proxy_manager: ProxyManager = Depends(get_proxy_manager)
+    proxy_manager: ProxyManager = Depends(get_proxy_manager),
 ) -> dict[str, HealthCheckResponse]:
     """
     Perform health check on all registered servers.
-    
+
     Returns:
         Health check results
     """
@@ -331,7 +354,7 @@ async def health_check(
                 status=result["status"],
                 last_seen=result.get("last_seen", ""),
                 healthy=result.get("healthy", False),
-                error=result.get("error")
+                error=result.get("error"),
             )
 
         return health_results
@@ -343,11 +366,11 @@ async def health_check(
 
 @router.get("/discovery/servers", response_model=list[dict[str, Any]])
 async def get_discovered_servers(
-    server_discovery: ServerDiscovery = Depends(get_server_discovery)
+    server_discovery: ServerDiscovery = Depends(get_server_discovery),
 ) -> list[dict[str, Any]]:
     """
     Get all discovered servers.
-    
+
     Returns:
         List of discovered servers
     """
@@ -357,16 +380,18 @@ async def get_discovered_servers(
         # Convert to response format
         result = []
         for server in servers:
-            result.append({
-                "endpoint": server.endpoint,
-                "transport": server.transport,
-                "name": server.name,
-                "description": server.description,
-                "categories": server.categories,
-                "security_level": server.security_level,
-                "discovered_at": server.discovered_at.isoformat(),
-                "metadata": server.metadata
-            })
+            result.append(
+                {
+                    "endpoint": server.endpoint,
+                    "transport": server.transport,
+                    "name": server.name,
+                    "description": server.description,
+                    "categories": server.categories,
+                    "security_level": server.security_level,
+                    "discovered_at": server.discovered_at.isoformat(),
+                    "metadata": server.metadata,
+                }
+            )
 
         return result
 
@@ -377,11 +402,11 @@ async def get_discovered_servers(
 
 @router.delete("/discovery/servers")
 async def clear_discovered_servers(
-    server_discovery: ServerDiscovery = Depends(get_server_discovery)
+    server_discovery: ServerDiscovery = Depends(get_server_discovery),
 ) -> dict[str, str]:
     """
     Clear the list of discovered servers.
-    
+
     Returns:
         Success message
     """
@@ -398,8 +423,7 @@ async def clear_discovered_servers(
 
 # Background task
 async def _register_discovered_servers(
-    discovered: list,
-    proxy_manager: ProxyManager
+    discovered: list, proxy_manager: ProxyManager
 ) -> None:
     """Register discovered servers in the background."""
     try:
@@ -414,7 +438,9 @@ async def _register_discovered_servers(
                 logger.info(f"Registered discovered server: {server.name}")
 
             except Exception as e:
-                logger.warning(f"Failed to register discovered server {server.name}: {e}")
+                logger.warning(
+                    f"Failed to register discovered server {server.name}: {e}"
+                )
 
     except Exception as e:
         logger.error(f"Background server registration failed: {e}")

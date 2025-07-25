@@ -34,7 +34,7 @@ settings = get_settings()
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """
     Application lifespan manager.
-    
+
     Handles startup and shutdown of the MCP Meta-Server components.
     """
     logger.info("Starting MCP Meta-Server...")
@@ -42,6 +42,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     try:
         # Initialize database connection pool
         from .utils.database import initialize_database
+
         await initialize_database()
         logger.info("Database connection pool initialized")
 
@@ -75,6 +76,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
         # Close database connection pool
         from .utils.database import close_database
+
         await close_database()
         logger.info("Database connection pool closed")
 
@@ -84,7 +86,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 def create_app() -> FastAPI:
     """
     Create and configure the FastAPI application.
-    
+
     Returns:
         FastAPI: Configured application instance
     """
@@ -115,7 +117,7 @@ def create_app() -> FastAPI:
 def setup_middleware(app: FastAPI) -> None:
     """
     Setup FastAPI middleware.
-    
+
     Args:
         app: FastAPI application instance
     """
@@ -133,21 +135,24 @@ def setup_middleware(app: FastAPI) -> None:
     if not settings.debug and settings.environment == "production":
         app.add_middleware(
             TrustedHostMiddleware,
-            allowed_hosts=["localhost", "127.0.0.1", settings.host]
+            allowed_hosts=["localhost", "127.0.0.1", settings.host],
         )
 
 
 def setup_exception_handlers(app: FastAPI) -> None:
     """
     Setup global exception handlers.
-    
+
     Args:
         app: FastAPI application instance
     """
+
     @app.exception_handler(MetaMCPError)
     async def metamcp_exception_handler(request: Request, exc: MetaMCPError):
         """Handle MetaMCP specific exceptions."""
-        logger.warning(f"MetaMCP error: {exc.message}", extra={"error_code": exc.error_code})
+        logger.warning(
+            f"MetaMCP error: {exc.message}", extra={"error_code": exc.error_code}
+        )
         return JSONResponse(
             status_code=exc.status_code,
             content={
@@ -156,7 +161,7 @@ def setup_exception_handlers(app: FastAPI) -> None:
                     "message": exc.message,
                     "details": exc.details,
                 }
-            }
+            },
         )
 
     @app.exception_handler(Exception)
@@ -171,12 +176,13 @@ def setup_exception_handlers(app: FastAPI) -> None:
                     "message": "An internal server error occurred",
                     "details": str(exc) if settings.debug else None,
                 }
-            }
+            },
         )
 
 
 def setup_signal_handlers() -> None:
     """Setup signal handlers for graceful shutdown."""
+
     def signal_handler(signum, frame):
         logger.info(f"Received signal {signum}, shutting down...")
         sys.exit(0)
@@ -188,7 +194,7 @@ def setup_signal_handlers() -> None:
 async def run_server() -> None:
     """
     Run the MCP Meta-Server.
-    
+
     This is the main async entry point for running the server.
     """
     # Setup logging
@@ -224,7 +230,7 @@ async def run_server() -> None:
 def main() -> None:
     """
     Main entry point for the MCP Meta-Server.
-    
+
     This function is called when running the server from the command line.
     """
     try:

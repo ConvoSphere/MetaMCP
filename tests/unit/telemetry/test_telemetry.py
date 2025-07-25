@@ -22,7 +22,7 @@ class TestTelemetryManager:
     @pytest.mark.asyncio
     async def test_initialization(self, telemetry_manager):
         """Test telemetry manager initialization."""
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = None
             mock_settings.prometheus_metrics_port = 9090
@@ -36,7 +36,7 @@ class TestTelemetryManager:
     @pytest.mark.asyncio
     async def test_initialization_disabled(self, telemetry_manager):
         """Test telemetry manager initialization when disabled."""
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = False
 
             await telemetry_manager.initialize()
@@ -48,7 +48,7 @@ class TestTelemetryManager:
     @pytest.mark.asyncio
     async def test_record_request(self, telemetry_manager):
         """Test recording request metrics."""
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = None
             mock_settings.prometheus_metrics_port = 9090
@@ -61,10 +61,7 @@ class TestTelemetryManager:
 
             # Record request
             telemetry_manager.record_request(
-                method="GET",
-                path="/api/tools",
-                status_code=200,
-                duration=0.123
+                method="GET", path="/api/tools", status_code=200, duration=0.123
             )
 
             # Verify metrics were recorded
@@ -74,7 +71,7 @@ class TestTelemetryManager:
     @pytest.mark.asyncio
     async def test_record_tool_execution(self, telemetry_manager):
         """Test recording tool execution metrics."""
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = None
             mock_settings.prometheus_metrics_port = 9090
@@ -87,9 +84,7 @@ class TestTelemetryManager:
 
             # Record tool execution
             telemetry_manager.record_tool_execution(
-                tool_name="calculator",
-                success=True,
-                duration=0.5
+                tool_name="calculator", success=True, duration=0.5
             )
 
             # Verify metrics were recorded
@@ -99,7 +94,7 @@ class TestTelemetryManager:
     @pytest.mark.asyncio
     async def test_record_vector_search(self, telemetry_manager):
         """Test recording vector search metrics."""
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = None
             mock_settings.prometheus_metrics_port = 9090
@@ -112,9 +107,7 @@ class TestTelemetryManager:
 
             # Record vector search
             telemetry_manager.record_vector_search(
-                query_length=50,
-                result_count=10,
-                duration=0.1
+                query_length=50, result_count=10, duration=0.1
             )
 
             # Verify metrics were recorded
@@ -124,7 +117,7 @@ class TestTelemetryManager:
     @pytest.mark.asyncio
     async def test_trace_operation(self, telemetry_manager):
         """Test operation tracing."""
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = None
             mock_settings.prometheus_metrics_port = 9090
@@ -139,8 +132,7 @@ class TestTelemetryManager:
             # Test tracing (should handle mock gracefully)
             try:
                 async with telemetry_manager.trace_operation(
-                    "test_operation",
-                    attributes={"test": "value"}
+                    "test_operation", attributes={"test": "value"}
                 ) as span:
                     # In test environment, span might be None due to mock limitations
                     pass
@@ -150,8 +142,7 @@ class TestTelemetryManager:
 
             # Verify span was created
             telemetry_manager.tracer.start_as_current_span.assert_called_once_with(
-                "test_operation",
-                attributes={"test": "value"}
+                "test_operation", attributes={"test": "value"}
             )
 
     @pytest.mark.asyncio
@@ -167,7 +158,7 @@ class TestTelemetryManager:
     @pytest.mark.asyncio
     async def test_instrument_fastapi(self, telemetry_manager):
         """Test FastAPI instrumentation."""
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = None
             mock_settings.prometheus_metrics_port = 9090
@@ -198,7 +189,7 @@ class TestTelemetryManager:
     @pytest.mark.asyncio
     async def test_shutdown(self, telemetry_manager):
         """Test telemetry shutdown."""
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = None
             mock_settings.prometheus_metrics_port = 9090
@@ -249,7 +240,7 @@ class TestTelemetryIntegration:
         from metamcp.server import MetaMCPServer
 
         # Mock settings
-        with patch('metamcp.config.get_settings') as mock_get_settings:
+        with patch("metamcp.config.get_settings") as mock_get_settings:
             mock_settings = Mock()
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = None
@@ -268,7 +259,7 @@ class TestTelemetryIntegration:
             await server.initialize()
 
             # Verify telemetry was initialized
-            assert hasattr(server, 'telemetry_manager')
+            assert hasattr(server, "telemetry_manager")
 
     @pytest.mark.asyncio
     async def test_telemetry_with_mcp_server(self):
@@ -276,7 +267,7 @@ class TestTelemetryIntegration:
         from metamcp.mcp.server import MCPServer
 
         # Mock settings
-        with patch('metamcp.config.get_settings') as mock_get_settings:
+        with patch("metamcp.config.get_settings") as mock_get_settings:
             mock_settings = Mock()
             mock_settings.telemetry_enabled = True
             mock_settings.vector_search_enabled = False
@@ -290,7 +281,7 @@ class TestTelemetryIntegration:
             await mcp_server.initialize()
 
             # Verify telemetry was initialized
-            assert hasattr(mcp_server, 'telemetry_manager')
+            assert hasattr(mcp_server, "telemetry_manager")
 
 
 class TestTelemetryErrorHandling:
@@ -302,7 +293,7 @@ class TestTelemetryErrorHandling:
         telemetry_manager = TelemetryManager()
 
         # Mock settings to cause error
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = "invalid://endpoint"
             mock_settings.prometheus_metrics_port = 9090
@@ -320,7 +311,7 @@ class TestTelemetryErrorHandling:
         """Test handling of metric recording errors."""
         telemetry_manager = TelemetryManager()
 
-        with patch('metamcp.monitoring.telemetry.settings') as mock_settings:
+        with patch("metamcp.monitoring.telemetry.settings") as mock_settings:
             mock_settings.telemetry_enabled = True
             mock_settings.otlp_endpoint = None
             mock_settings.prometheus_metrics_port = 9090
@@ -329,14 +320,13 @@ class TestTelemetryErrorHandling:
 
             # Mock metric instruments to raise error
             telemetry_manager.request_counter = Mock()
-            telemetry_manager.request_counter.add.side_effect = Exception("Metric error")
+            telemetry_manager.request_counter.add.side_effect = Exception(
+                "Metric error"
+            )
 
             # Should handle error gracefully
             telemetry_manager.record_request(
-                method="GET",
-                path="/test",
-                status_code=200,
-                duration=0.1
+                method="GET", path="/test", status_code=200, duration=0.1
             )
 
             # Should not raise exception

@@ -15,5 +15,5 @@ __all__ = [
     "ProxyManager",
     "ToolCallInterceptor",
     "ServerDiscovery",
-    "WrappedServerConfig"
+    "WrappedServerConfig",
 ]

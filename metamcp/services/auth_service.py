@@ -18,7 +18,7 @@ logger = get_logger(__name__)
 class AuthService:
     """
     Service for authentication operations.
-    
+
     This service handles all business logic related to authentication
     including user management, token handling, and permission validation.
     """
@@ -48,10 +48,10 @@ class AuthService:
                     "tools": ["read", "write", "execute"],
                     "admin": ["manage"],
                     "users": ["read", "write"],
-                    "system": ["monitor", "configure"]
+                    "system": ["monitor", "configure"],
                 },
                 "is_active": True,
-                "created_at": datetime.now(UTC).isoformat()
+                "created_at": datetime.now(UTC).isoformat(),
             },
             "user": {
                 "username": "user",
@@ -62,23 +62,25 @@ class AuthService:
                     "tools": ["read", "execute"],
                     "admin": [],
                     "users": ["read"],
-                    "system": []
+                    "system": [],
                 },
                 "is_active": True,
-                "created_at": datetime.now(UTC).isoformat()
-            }
+                "created_at": datetime.now(UTC).isoformat(),
+            },
         }
 
         self.users = default_users
 
-    async def authenticate_user(self, username: str, password: str) -> dict[str, Any] | None:
+    async def authenticate_user(
+        self, username: str, password: str
+    ) -> dict[str, Any] | None:
         """
         Authenticate a user with username and password.
-        
+
         Args:
             username: Username
             password: Plain text password
-            
+
         Returns:
             User data if authentication successful, None otherwise
         """
@@ -97,7 +99,9 @@ class AuthService:
                 return None
 
             if not pwd_context.verify(password, user["hashed_password"]):
-                logger.warning(f"Authentication failed: invalid password for user '{username}'")
+                logger.warning(
+                    f"Authentication failed: invalid password for user '{username}'"
+                )
                 return None
 
             # Record successful login
@@ -111,14 +115,16 @@ class AuthService:
             self._record_login(username, False)
             return None
 
-    async def create_access_token(self, data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
+    async def create_access_token(
+        self, data: dict[str, Any], expires_delta: timedelta | None = None
+    ) -> str:
         """
         Create a JWT access token.
-        
+
         Args:
             data: Token payload data
             expires_delta: Optional custom expiration time
-            
+
         Returns:
             JWT token string
         """
@@ -133,10 +139,14 @@ class AuthService:
             if expires_delta:
                 expire = datetime.now(UTC) + expires_delta
             else:
-                expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
+                expire = datetime.now(UTC) + timedelta(
+                    minutes=settings.access_token_expire_minutes
+                )
 
             to_encode.update({"exp": expire})
-            encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+            encoded_jwt = jwt.encode(
+                to_encode, settings.secret_key, algorithm=settings.algorithm
+            )
 
             return encoded_jwt
 
@@ -144,19 +154,19 @@ class AuthService:
             logger.error(f"Token creation failed: {e}")
             raise AuthenticationError(
                 message=f"Token creation failed: {str(e)}",
-                error_code="token_creation_failed"
+                error_code="token_creation_failed",
             ) from e
 
     async def verify_token(self, token: str) -> dict[str, Any]:
         """
         Verify and decode a JWT token.
-        
+
         Args:
             token: JWT token string
-            
+
         Returns:
             Token payload
-            
+
         Raises:
             AuthenticationError: If token is invalid or expired
         """
@@ -169,25 +179,21 @@ class AuthService:
 
             # Check if token is blacklisted
             if token in self.token_blacklist:
-                raise AuthenticationError(
-                    message="Token has been revoked"
-                )
+                raise AuthenticationError(message="Token has been revoked")
 
-            payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+            payload = jwt.decode(
+                token, settings.secret_key, algorithms=[settings.algorithm]
+            )
             username: str = payload.get("sub")
 
             if username is None:
-                raise AuthenticationError(
-                    message="Invalid token payload"
-                )
+                raise AuthenticationError(message="Invalid token payload")
 
             return payload
 
         except JWTError as e:
             logger.warning(f"Token verification failed: {e}")
-            raise AuthenticationError(
-                message="Invalid token"
-            ) from e
+            raise AuthenticationError(message="Invalid token") from e
         except Exception as e:
             logger.error(f"Token verification error: {e}")
             raise AuthenticationError(
@@ -197,13 +203,13 @@ class AuthService:
     async def get_current_user(self, token: str) -> dict[str, Any]:
         """
         Get current user from token.
-        
+
         Args:
             token: JWT token string
-            
+
         Returns:
             User data
-            
+
         Raises:
             AuthenticationError: If token is invalid or user not found
         """
@@ -212,20 +218,14 @@ class AuthService:
             username = payload.get("sub")
 
             if username is None:
-                raise AuthenticationError(
-                    message="Invalid token payload"
-                )
+                raise AuthenticationError(message="Invalid token payload")
 
             user = self.users.get(username)
             if user is None:
-                raise AuthenticationError(
-                    message="User not found"
-                )
+                raise AuthenticationError(message="User not found")
 
             if not user.get("is_active", True):
-                raise AuthenticationError(
-                    message="User is inactive"
-                )
+                raise AuthenticationError(message="User is inactive")
 
             return user
 
@@ -233,14 +233,12 @@ class AuthService:
             raise
         except Exception as e:
             logger.error(f"Get current user failed: {e}")
-            raise AuthenticationError(
-                message=f"Authentication failed: {str(e)}"
-            ) from e
+            raise AuthenticationError(message=f"Authentication failed: {str(e)}") from e
 
     async def revoke_token(self, token: str) -> None:
         """
         Revoke a token by adding it to the blacklist.
-        
+
         Args:
             token: JWT token string
         """
@@ -250,18 +248,17 @@ class AuthService:
     async def get_user_permissions(self, user_id: str) -> dict[str, Any]:
         """
         Get user permissions.
-        
+
         Args:
             user_id: User ID
-            
+
         Returns:
             User permissions data
         """
         user = self._get_user_by_id(user_id)
         if not user:
             raise AuthenticationError(
-                message="User not found",
-                error_code="user_not_found"
+                message="User not found", error_code="user_not_found"
             )
 
         return {
@@ -269,18 +266,18 @@ class AuthService:
             "username": user["username"],
             "roles": user.get("roles", []),
             "permissions": user.get("permissions", {}),
-            "is_active": user.get("is_active", True)
+            "is_active": user.get("is_active", True),
         }
 
     async def check_permission(self, user_id: str, resource: str, action: str) -> bool:
         """
         Check if user has permission for a specific action on a resource.
-        
+
         Args:
             user_id: User ID
             resource: Resource name (e.g., "tools", "admin")
             action: Action name (e.g., "read", "write", "execute")
-            
+
         Returns:
             True if user has permission, False otherwise
         """
@@ -300,14 +297,14 @@ class AuthService:
     async def create_user(self, user_data: dict[str, Any], created_by: str) -> str:
         """
         Create a new user.
-        
+
         Args:
             user_data: User data
             created_by: ID of the user creating this user
-            
+
         Returns:
             User ID
-            
+
         Raises:
             ValidationError: If user data is invalid
         """
@@ -320,9 +317,7 @@ class AuthService:
             required_fields = ["username", "password"]
             for field in required_fields:
                 if field not in user_data or not user_data[field]:
-                    raise ValidationError(
-                        message=f"Missing required field: {field}"
-                    )
+                    raise ValidationError(message=f"Missing required field: {field}")
 
             # Check for duplicate username
             if user_data["username"] in self.users:
@@ -339,15 +334,18 @@ class AuthService:
                 "hashed_password": pwd_context.hash(user_data["password"]),
                 "user_id": user_id,
                 "roles": user_data.get("roles", ["user"]),
-                "permissions": user_data.get("permissions", {
-                    "tools": ["read", "execute"],
-                    "admin": [],
-                    "users": ["read"],
-                    "system": []
-                }),
+                "permissions": user_data.get(
+                    "permissions",
+                    {
+                        "tools": ["read", "execute"],
+                        "admin": [],
+                        "users": ["read"],
+                        "system": [],
+                    },
+                ),
                 "is_active": True,
                 "created_at": now,
-                "created_by": created_by
+                "created_by": created_by,
             }
 
             self.users[user_data["username"]] = user_entry
@@ -360,40 +358,43 @@ class AuthService:
         except Exception as e:
             logger.error(f"User creation failed: {e}")
             raise ValidationError(
-                message=f"User creation failed: {str(e)}",
-                error_code="creation_failed"
+                message=f"User creation failed: {str(e)}", error_code="creation_failed"
             ) from e
 
-    async def update_user(self, user_id: str, update_data: dict[str, Any], updated_by: str) -> dict[str, Any]:
+    async def update_user(
+        self, user_id: str, update_data: dict[str, Any], updated_by: str
+    ) -> dict[str, Any]:
         """
         Update an existing user.
-        
+
         Args:
             user_id: User ID
             update_data: Updated user data
             updated_by: ID of the user making the update
-            
+
         Returns:
             Updated user data
-            
+
         Raises:
             AuthenticationError: If user not found
         """
         user = self._get_user_by_id(user_id)
         if not user:
             raise AuthenticationError(
-                message="User not found",
-                error_code="user_not_found"
+                message="User not found", error_code="user_not_found"
             )
 
         # Update user fields
         for key, value in update_data.items():
-            if value is not None and key != "hashed_password":  # Don't allow direct password updates
+            if (
+                value is not None and key != "hashed_password"
+            ):  # Don't allow direct password updates
                 user[key] = value
 
         # Update password if provided
         if "password" in update_data and update_data["password"]:
             from passlib.context import CryptContext
+
             pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
             user["hashed_password"] = pwd_context.hash(update_data["password"])
 
@@ -407,19 +408,18 @@ class AuthService:
     async def deactivate_user(self, user_id: str, deactivated_by: str) -> None:
         """
         Deactivate a user.
-        
+
         Args:
             user_id: User ID
             deactivated_by: ID of the user deactivating this user
-            
+
         Raises:
             AuthenticationError: If user not found
         """
         user = self._get_user_by_id(user_id)
         if not user:
             raise AuthenticationError(
-                message="User not found",
-                error_code="user_not_found"
+                message="User not found", error_code="user_not_found"
             )
 
         user["is_active"] = False
@@ -442,17 +442,17 @@ class AuthService:
             "successful": successful,
             "timestamp": datetime.now(UTC).isoformat(),
             "ip_address": "unknown",  # Would be set from request context
-            "user_agent": "unknown"   # Would be set from request context
+            "user_agent": "unknown",  # Would be set from request context
         }
         self.login_history.append(login_record)
 
     def get_login_history(self, limit: int = 100) -> list[dict[str, Any]]:
         """
         Get login history.
-        
+
         Args:
             limit: Maximum number of history entries to return
-            
+
         Returns:
             List of login history entries
         """
@@ -461,19 +461,25 @@ class AuthService:
     def get_user_statistics(self) -> dict[str, Any]:
         """
         Get user statistics.
-        
+
         Returns:
             Dictionary with user statistics
         """
-        active_users = [user for user in self.users.values() if user.get("is_active", True)]
+        active_users = [
+            user for user in self.users.values() if user.get("is_active", True)
+        ]
 
         roles = {}
         for user in active_users:
             for role in user.get("roles", []):
                 roles[role] = roles.get(role, 0) + 1
 
-        successful_logins = len([login for login in self.login_history if login["successful"]])
-        failed_logins = len([login for login in self.login_history if not login["successful"]])
+        successful_logins = len(
+            [login for login in self.login_history if login["successful"]]
+        )
+        failed_logins = len(
+            [login for login in self.login_history if not login["successful"]]
+        )
 
         return {
             "total_users": len(self.users),
@@ -481,5 +487,5 @@ class AuthService:
             "roles": roles,
             "total_logins": len(self.login_history),
             "successful_logins": successful_logins,
-            "failed_logins": failed_logins
+            "failed_logins": failed_logins,
         }

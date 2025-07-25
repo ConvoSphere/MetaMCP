@@ -39,15 +39,15 @@ users_db = {
         "hashed_password": pwd_context.hash("admin123"),
         "user_id": "admin_user",
         "roles": ["admin"],
-        "permissions": ["tools:read", "tools:write", "tools:execute", "admin:manage"]
+        "permissions": ["tools:read", "tools:write", "tools:execute", "admin:manage"],
     },
     "user": {
         "username": "user",
         "hashed_password": pwd_context.hash("user123"),
         "user_id": "regular_user",
         "roles": ["user"],
-        "permissions": ["tools:read", "tools:execute"]
-    }
+        "permissions": ["tools:read", "tools:execute"],
+    },
 }
 
 
@@ -55,14 +55,17 @@ users_db = {
 # Pydantic Models
 # =============================================================================
 
+
 class LoginRequest(BaseModel):
     """Login request model."""
+
     username: str
     password: str
 
 
 class TokenResponse(BaseModel):
     """Token response model."""
+
     access_token: str
     token_type: str = "bearer"
     expires_in: int
@@ -70,6 +73,7 @@ class TokenResponse(BaseModel):
 
 class UserInfo(BaseModel):
     """User information model."""
+
     user_id: str
     username: str
     roles: list[str]
@@ -80,14 +84,15 @@ class UserInfo(BaseModel):
 # JWT Token Functions
 # =============================================================================
 
+
 def create_access_token(data: dict, expires_delta: timedelta | None = None) -> str:
     """
     Create JWT access token.
-    
+
     Args:
         data: Token payload data
         expires_delta: Optional expiration delta
-        
+
     Returns:
         JWT token string
     """
@@ -95,23 +100,27 @@ def create_access_token(data: dict, expires_delta: timedelta | None = None) -> s
     if expires_delta:
         expire = datetime.now(UTC) + expires_delta
     else:
-        expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(UTC) + timedelta(
+            minutes=settings.access_token_expire_minutes
+        )
 
     to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
+    encoded_jwt = jwt.encode(
+        to_encode, settings.secret_key, algorithm=settings.algorithm
+    )
     return encoded_jwt
 
 
 def verify_token(token: str) -> dict:
     """
     Verify JWT token.
-    
+
     Args:
         token: JWT token to verify
-        
+
     Returns:
         Token payload
-        
+
     Raises:
         AuthenticationError: If token is invalid
     """
@@ -120,7 +129,9 @@ def verify_token(token: str) -> dict:
         if token in token_blacklist:
             raise AuthenticationError("Token has been revoked")
 
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
         username: str = payload.get("sub")
         if username is None:
             raise AuthenticationError("Invalid token payload")
@@ -133,11 +144,11 @@ def verify_token(token: str) -> dict:
 def authenticate_user(username: str, password: str) -> dict | None:
     """
     Authenticate user with username and password.
-    
+
     Args:
         username: Username
         password: Plain text password
-        
+
     Returns:
         User data if authentication successful, None otherwise
     """
@@ -155,18 +166,19 @@ def authenticate_user(username: str, password: str) -> dict | None:
 # Dependencies
 # =============================================================================
 
+
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
     """
     Get current user from JWT token.
-    
+
     Args:
         credentials: HTTP authorization credentials
-        
+
     Returns:
         User ID
-        
+
     Raises:
         HTTPException: If authentication fails
     """
@@ -203,18 +215,15 @@ async def get_mcp_server():
 # API Endpoints
 # =============================================================================
 
-@auth_router.post(
-    "/login",
-    response_model=TokenResponse,
-    summary="User login"
-)
+
+@auth_router.post("/login", response_model=TokenResponse, summary="User login")
 async def login(login_request: LoginRequest):
     """
     Authenticate user and return access token.
-    
+
     Args:
         login_request: Login credentials
-        
+
     Returns:
         Access token and token information
     """
@@ -229,45 +238,36 @@ async def login(login_request: LoginRequest):
         # Create access token
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         access_token = create_access_token(
-            data={"sub": user["username"]},
-            expires_delta=access_token_expires
+            data={"sub": user["username"]}, expires_delta=access_token_expires
         )
 
         return TokenResponse(
             access_token=access_token,
             token_type="bearer",
-            expires_in=settings.access_token_expire_minutes * 60
+            expires_in=settings.access_token_expire_minutes * 60,
         )
 
     except AuthenticationError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": e.error_code,
-                    "message": e.message
-                }
-            }
+            detail={"error": {"code": e.error_code, "message": e.message}},
         )
     except Exception as e:
         logger.error(f"Login failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error during login"
+            detail="Internal server error during login",
         )
 
 
-@auth_router.post(
-    "/logout",
-    summary="User logout"
-)
+@auth_router.post("/logout", summary="User logout")
 async def logout(current_user: str = Depends(get_current_user)):
     """
     Logout current user and invalidate token.
-    
+
     Args:
         current_user: Current authenticated user
-        
+
     Returns:
         Logout confirmation
     """
@@ -282,22 +282,18 @@ async def logout(current_user: str = Depends(get_current_user)):
         logger.error(f"Logout failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error during logout"
+            detail="Internal server error during logout",
         )
 
 
-@auth_router.get(
-    "/me",
-    response_model=UserInfo,
-    summary="Get current user info"
-)
+@auth_router.get("/me", response_model=UserInfo, summary="Get current user info")
 async def get_current_user_info(current_user: str = Depends(get_current_user)):
     """
     Get information about the current authenticated user.
-    
+
     Args:
         current_user: Current authenticated user
-        
+
     Returns:
         User information
     """
@@ -316,38 +312,30 @@ async def get_current_user_info(current_user: str = Depends(get_current_user)):
             user_id=user["user_id"],
             username=user["username"],
             roles=user["roles"],
-            permissions=user["permissions"]
+            permissions=user["permissions"],
         )
 
     except AuthenticationError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": e.error_code,
-                    "message": e.message
-                }
-            }
+            detail={"error": {"code": e.error_code, "message": e.message}},
         )
     except Exception as e:
         logger.error(f"Failed to get user info: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            detail="Internal server error",
         )
 
 
-@auth_router.get(
-    "/permissions",
-    summary="Get user permissions"
-)
+@auth_router.get("/permissions", summary="Get user permissions")
 async def get_user_permissions(current_user: str = Depends(get_current_user)):
     """
     Get permissions for the current user.
-    
+
     Args:
         current_user: Current authenticated user
-        
+
     Returns:
         User permissions
     """
@@ -365,42 +353,41 @@ async def get_user_permissions(current_user: str = Depends(get_current_user)):
         return {
             "user_id": user["user_id"],
             "permissions": {
-                "tools": [perm for perm in user["permissions"] if perm.startswith("tools:")],
-                "admin": [perm for perm in user["permissions"] if perm.startswith("admin:")],
-                "registry": [perm for perm in user["permissions"] if perm.startswith("registry:")]
-            }
+                "tools": [
+                    perm for perm in user["permissions"] if perm.startswith("tools:")
+                ],
+                "admin": [
+                    perm for perm in user["permissions"] if perm.startswith("admin:")
+                ],
+                "registry": [
+                    perm for perm in user["permissions"] if perm.startswith("registry:")
+                ],
+            },
         }
 
     except AuthenticationError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": e.error_code,
-                    "message": e.message
-                }
-            }
+            detail={"error": {"code": e.error_code, "message": e.message}},
         )
     except Exception as e:
         logger.error(f"Failed to get user permissions: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error"
+            detail="Internal server error",
         )
 
 
 @auth_router.post(
-    "/refresh",
-    response_model=TokenResponse,
-    summary="Refresh access token"
+    "/refresh", response_model=TokenResponse, summary="Refresh access token"
 )
 async def refresh_token(current_user: str = Depends(get_current_user)):
     """
     Refresh the access token for the current user.
-    
+
     Args:
         current_user: Current authenticated user
-        
+
     Returns:
         New access token
     """
@@ -418,29 +405,23 @@ async def refresh_token(current_user: str = Depends(get_current_user)):
         # Create new access token
         access_token_expires = timedelta(minutes=settings.access_token_expire_minutes)
         new_token = create_access_token(
-            data={"sub": user["username"]},
-            expires_delta=access_token_expires
+            data={"sub": user["username"]}, expires_delta=access_token_expires
         )
 
         return TokenResponse(
             access_token=new_token,
             token_type="bearer",
-            expires_in=settings.access_token_expire_minutes * 60
+            expires_in=settings.access_token_expire_minutes * 60,
         )
 
     except AuthenticationError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail={
-                "error": {
-                    "code": e.error_code,
-                    "message": e.message
-                }
-            }
+            detail={"error": {"code": e.error_code, "message": e.message}},
         )
     except Exception as e:
         logger.error(f"Token refresh failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Internal server error during token refresh"
+            detail="Internal server error during token refresh",
         )

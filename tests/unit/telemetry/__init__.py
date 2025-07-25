@@ -9,5 +9,5 @@ from .test_telemetry import *
 __all__ = [
     "TestTelemetryManager",
     "TestTelemetryIntegration",
-    "TestTelemetryErrorHandling"
-] 
+    "TestTelemetryErrorHandling",
+]

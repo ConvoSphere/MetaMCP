@@ -4,8 +4,8 @@ Health Monitoring
 This module provides health monitoring and status checking functionality.
 """
 
-from datetime import datetime, timezone
-from typing import Any, Dict
+from datetime import UTC, datetime
+from typing import Any
 
 from ..config import get_settings
 from ..utils.logging import get_logger
@@ -19,7 +19,7 @@ class HealthMonitor:
 
     def __init__(self):
         """Initialize health monitor."""
-        self.start_time = datetime.now(timezone.utc)
+        self.start_time = datetime.now(UTC)
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -38,7 +38,7 @@ class HealthMonitor:
 
     def get_uptime(self) -> float:
         """Get application uptime in seconds."""
-        return (datetime.now(timezone.utc) - self.start_time).total_seconds()
+        return (datetime.now(UTC) - self.start_time).total_seconds()
 
     def format_uptime(self, seconds: float) -> str:
         """Format uptime in human-readable format."""
@@ -56,18 +56,18 @@ class HealthMonitor:
         else:
             return f"{secs}s"
 
-    async def check_health(self) -> Dict[str, Any]:
+    async def check_health(self) -> dict[str, Any]:
         """Perform basic health check."""
         try:
             uptime = self.get_uptime()
-            
+
             return {
                 "status": "healthy",
                 "uptime": uptime,
                 "uptime_formatted": self.format_uptime(uptime),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version": settings.app_version,
-                "environment": settings.environment
+                "environment": settings.environment,
             }
 
         except Exception as e:
@@ -75,27 +75,27 @@ class HealthMonitor:
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "version": settings.app_version,
-                "environment": settings.environment
+                "environment": settings.environment,
             }
 
-    async def check_readiness(self) -> Dict[str, Any]:
+    async def check_readiness(self) -> dict[str, Any]:
         """Check if the service is ready to handle requests."""
         try:
             # Basic readiness check
             health_status = await self.check_health()
-            
+
             if health_status["status"] == "healthy":
                 return {
                     "status": "ready",
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
             else:
                 return {
                     "status": "not_ready",
                     "reason": "Health check failed",
-                    "timestamp": datetime.now(timezone.utc).isoformat()
+                    "timestamp": datetime.now(UTC).isoformat(),
                 }
 
         except Exception as e:
@@ -103,15 +103,15 @@ class HealthMonitor:
             return {
                 "status": "not_ready",
                 "reason": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
-    async def check_liveness(self) -> Dict[str, Any]:
+    async def check_liveness(self) -> dict[str, Any]:
         """Check if the service is alive."""
         try:
             return {
                 "status": "alive",
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
         except Exception as e:
@@ -119,10 +119,10 @@ class HealthMonitor:
             return {
                 "status": "dead",
                 "reason": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat()
+                "timestamp": datetime.now(UTC).isoformat(),
             }
 
-    async def get_detailed_health(self) -> Dict[str, Any]:
+    async def get_detailed_health(self) -> dict[str, Any]:
         """Get detailed health information."""
         try:
             basic_health = await self.check_health()
@@ -136,8 +136,8 @@ class HealthMonitor:
                 "components": {
                     "health_monitor": "healthy",
                     "settings": "healthy",
-                    "logging": "healthy"
-                }
+                    "logging": "healthy",
+                },
             }
 
         except Exception as e:
@@ -145,12 +145,12 @@ class HealthMonitor:
             return {
                 "status": "unhealthy",
                 "error": str(e),
-                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "timestamp": datetime.now(UTC).isoformat(),
                 "components": {
                     "health_monitor": "unhealthy",
                     "settings": "unknown",
-                    "logging": "unknown"
-                }
+                    "logging": "unknown",
+                },
             }
 
     async def shutdown(self) -> None:
@@ -172,49 +172,49 @@ _health_monitor: HealthMonitor | None = None
 def get_health_monitor() -> HealthMonitor:
     """Get global health monitor instance."""
     global _health_monitor
-    
+
     if _health_monitor is None:
         _health_monitor = HealthMonitor()
-    
+
     return _health_monitor
 
 
 def setup_health_checks(app, mcp_server=None) -> None:
     """
     Setup health check endpoints for the FastAPI application.
-    
+
     Args:
         app: FastAPI application instance
         mcp_server: Optional MCP server instance for health checks
     """
     from fastapi import APIRouter
-    
+
     # Create health router
     health_router = APIRouter(prefix="/health", tags=["health"])
-    
+
     @health_router.get("/")
     async def health_check():
         """Basic health check endpoint."""
         monitor = get_health_monitor()
         return await monitor.check_health()
-    
+
     @health_router.get("/ready")
     async def readiness_check():
         """Readiness probe endpoint."""
         monitor = get_health_monitor()
         return await monitor.check_readiness()
-    
+
     @health_router.get("/live")
     async def liveness_check():
         """Liveness probe endpoint."""
         monitor = get_health_monitor()
         return await monitor.check_liveness()
-    
+
     @health_router.get("/detailed")
     async def detailed_health_check():
         """Detailed health check endpoint."""
         monitor = get_health_monitor()
         return await monitor.get_detailed_health()
-    
+
     # Include health router in app
-    app.include_router(health_router) 
+    app.include_router(health_router)

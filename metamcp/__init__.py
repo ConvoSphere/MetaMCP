@@ -37,7 +37,6 @@ from .exceptions import (
 from .security.auth import AuthManager
 from .security.policies import PolicyEngine
 from .server import MetaMCPServer
-# from .tools.models import Tool, ToolCapability, ToolCategory
 
 # Tool-related exports
 from .tools.registry import ToolRegistry
@@ -48,6 +47,10 @@ from .utils.logging import get_logger
 
 # Vector search exports
 from .vector.client import VectorSearchClient
+
+# from .tools.models import Tool, ToolCapability, ToolCategory
+
+
 # from .vector.models import EmbeddingModel, SearchResult
 
 __all__ = [
@@ -56,34 +59,28 @@ __all__ = [
     "MetaMCPClient",
     "Settings",
     "get_settings",
-
     # Exceptions
     "MetaMCPError",
     "ToolNotFoundError",
     "PolicyViolationError",
     "VectorSearchError",
     "MCPProtocolError",
-
     # Tools
     "ToolRegistry",
     # "Tool",
     # "ToolCategory",
     # "ToolCapability",
-
     # Vector Search
     "VectorSearchClient",
     # "SearchResult",
     # "EmbeddingModel",
-
     # Security
     "AuthManager",
     "PolicyEngine",
-
     # Utilities
     "get_logger",
     "create_tool_embedding",
     "validate_tool_schema",
-
     # Metadata
     "__version__",
     "__author__",
@@ -97,9 +94,11 @@ import logging
 
 _logger = logging.getLogger(__name__)
 
+
 def get_version() -> str:
     """Get the current version of MetaMCP."""
     return __version__
+
 
 def get_info() -> dict:
     """Get package information."""

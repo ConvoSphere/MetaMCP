@@ -8,8 +8,7 @@ from typing import Any
 
 import httpx
 
-from ..config import PolicyEngineType
-from ..config import get_settings
+from ..config import PolicyEngineType, get_settings
 from ..exceptions import PolicyViolationError
 from ..utils.logging import get_logger
 
@@ -20,19 +19,15 @@ settings = get_settings()
 class PolicyEngine:
     """
     Policy Engine for access control using OPA.
-    
+
     This class provides policy evaluation and access control
     functionality using Open Policy Agent.
     """
 
-    def __init__(
-        self,
-        engine_type: PolicyEngineType,
-        opa_url: str | None = None
-    ):
+    def __init__(self, engine_type: PolicyEngineType, opa_url: str | None = None):
         """
         Initialize Policy Engine.
-        
+
         Args:
             engine_type: Type of policy engine to use
             opa_url: OPA server URL (for OPA engine type)
@@ -45,18 +40,9 @@ class PolicyEngine:
 
         # Simple policy rules (fallback)
         self.policy_rules = {
-            "admin": {
-                "resources": ["*"],
-                "actions": ["*"]
-            },
-            "user": {
-                "resources": ["tool:*"],
-                "actions": ["read", "execute"]
-            },
-            "anonymous": {
-                "resources": ["tool:public"],
-                "actions": ["read"]
-            }
+            "admin": {"resources": ["*"], "actions": ["*"]},
+            "user": {"resources": ["tool:*"], "actions": ["read", "execute"]},
+            "anonymous": {"resources": ["tool:public"], "actions": ["read"]},
         }
 
         self._initialized = False
@@ -84,15 +70,14 @@ class PolicyEngine:
             logger.error(f"Failed to initialize Policy Engine: {e}")
             raise PolicyViolationError(
                 message=f"Failed to initialize policy engine: {str(e)}",
-                error_code="policy_init_failed"
+                error_code="policy_init_failed",
             ) from e
 
     async def _initialize_opa(self) -> None:
         """Initialize OPA policy engine."""
         if not self.opa_url:
             raise PolicyViolationError(
-                message="OPA URL not configured",
-                error_code="missing_opa_url"
+                message="OPA URL not configured", error_code="missing_opa_url"
             )
 
         try:
@@ -100,8 +85,7 @@ class PolicyEngine:
             response = await self.http_client.get(f"{self.opa_url}/health")
             if response.status_code != 200:
                 raise PolicyViolationError(
-                    message="OPA server not accessible",
-                    error_code="opa_unavailable"
+                    message="OPA server not accessible", error_code="opa_unavailable"
                 )
 
             logger.info("OPA policy engine initialized")
@@ -110,27 +94,22 @@ class PolicyEngine:
             logger.error(f"Failed to initialize OPA: {e}")
             raise PolicyViolationError(
                 message=f"Failed to initialize OPA: {str(e)}",
-                error_code="opa_init_failed"
+                error_code="opa_init_failed",
             ) from e
 
     async def _initialize_internal(self) -> None:
         """Initialize internal policy engine."""
         logger.info("Internal policy engine initialized")
 
-    async def check_access(
-        self,
-        user_id: str,
-        resource: str,
-        action: str
-    ) -> bool:
+    async def check_access(self, user_id: str, resource: str, action: str) -> bool:
         """
         Check if user has access to resource.
-        
+
         Args:
             user_id: User ID
             resource: Resource to access
             action: Action to perform
-            
+
         Returns:
             True if access is allowed, False otherwise
         """
@@ -153,16 +132,11 @@ class PolicyEngine:
         try:
             # Prepare query for OPA
             query_data = {
-                "input": {
-                    "user": user_id,
-                    "resource": resource,
-                    "action": action
-                }
+                "input": {"user": user_id, "resource": resource, "action": action}
             }
 
             response = await self.http_client.post(
-                f"{self.opa_url}/v1/data/metamcp/allow",
-                json=query_data
+                f"{self.opa_url}/v1/data/metamcp/allow", json=query_data
             )
 
             if response.status_code != 200:
@@ -176,7 +150,9 @@ class PolicyEngine:
             logger.error(f"OPA access check failed: {e}")
             return False
 
-    async def _check_access_internal(self, user_id: str, resource: str, action: str) -> bool:
+    async def _check_access_internal(
+        self, user_id: str, resource: str, action: str
+    ) -> bool:
         """Check access using internal policy rules."""
         try:
             # Get user role (simplified)
@@ -212,25 +188,21 @@ class PolicyEngine:
             return "anonymous"
 
     async def evaluate_policy(
-        self,
-        policy_name: str,
-        input_data: dict[str, Any]
+        self, policy_name: str, input_data: dict[str, Any]
     ) -> dict[str, Any]:
         """
         Evaluate a policy with input data.
-        
+
         Args:
             policy_name: Name of the policy to evaluate
             input_data: Input data for policy evaluation
-            
+
         Returns:
             Policy evaluation result
         """
         try:
             if not self._initialized:
-                raise PolicyViolationError(
-                    message="Policy engine not initialized"
-                )
+                raise PolicyViolationError(message="Policy engine not initialized")
 
             if self.engine_type == PolicyEngineType.OPA:
                 return await self._evaluate_policy_opa(policy_name, input_data)
@@ -243,14 +215,16 @@ class PolicyEngine:
                 message=f"Policy evaluation failed: {str(e)}"
             ) from e
 
-    async def evaluate(self, policy_name: str, input_data: dict[str, Any]) -> dict[str, Any]:
+    async def evaluate(
+        self, policy_name: str, input_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """
         Evaluate a policy (alias for evaluate_policy).
-        
+
         Args:
             policy_name: Name of the policy to evaluate
             input_data: Input data for policy evaluation
-            
+
         Returns:
             Policy evaluation result
         """
@@ -259,11 +233,11 @@ class PolicyEngine:
     async def check_permission(self, user_id: str, permission: str) -> bool:
         """
         Check if user has a specific permission.
-        
+
         Args:
             user_id: User ID
             permission: Permission to check
-            
+
         Returns:
             True if user has permission, False otherwise
         """
@@ -286,22 +260,21 @@ class PolicyEngine:
             logger.error(f"Permission check failed: {e}")
             return False
 
-    async def _evaluate_policy_opa(self, policy_name: str, input_data: dict[str, Any]) -> dict[str, Any]:
+    async def _evaluate_policy_opa(
+        self, policy_name: str, input_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Evaluate policy using OPA."""
         try:
-            query_data = {
-                "input": input_data
-            }
+            query_data = {"input": input_data}
 
             response = await self.http_client.post(
-                f"{self.opa_url}/v1/data/{policy_name}",
-                json=query_data
+                f"{self.opa_url}/v1/data/{policy_name}", json=query_data
             )
 
             if response.status_code != 200:
-                            raise PolicyViolationError(
-                message=f"OPA policy evaluation failed: {response.text}"
-            )
+                raise PolicyViolationError(
+                    message=f"OPA policy evaluation failed: {response.text}"
+                )
 
             return response.json()
 
@@ -311,13 +284,15 @@ class PolicyEngine:
                 message=f"OPA policy evaluation failed: {str(e)}"
             ) from e
 
-    async def _evaluate_policy_internal(self, policy_name: str, input_data: dict[str, Any]) -> dict[str, Any]:
+    async def _evaluate_policy_internal(
+        self, policy_name: str, input_data: dict[str, Any]
+    ) -> dict[str, Any]:
         """Evaluate policy using internal rules."""
         # Simplified internal policy evaluation
         return {
             "result": True,
             "reason": "Internal policy evaluation",
-            "policy": policy_name
+            "policy": policy_name,
         }
 
     async def shutdown(self) -> None:

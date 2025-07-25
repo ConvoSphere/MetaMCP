@@ -6,7 +6,7 @@ as a black box, testing only through public interfaces (REST API and MCP protoco
 
 Test Categories:
 - rest_api: REST API endpoint tests
-- mcp_api: MCP WebSocket protocol tests  
+- mcp_api: MCP WebSocket protocol tests
 - integration: Cross-component integration tests
 - performance: Load and stress tests
 """

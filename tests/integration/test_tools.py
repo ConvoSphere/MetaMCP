@@ -54,7 +54,7 @@ class TestToolRegistryFunctions:
             "tags": ["test"],
             "created_at": datetime.now(UTC).isoformat(),
             "updated_at": datetime.now(UTC).isoformat(),
-            "is_active": True
+            "is_active": True,
         }
         mock_tools["test-id"] = test_tool
 
@@ -73,7 +73,7 @@ class TestToolRegistryFunctions:
             {"name": "tool1", "category": "database"},
             {"name": "tool2", "category": "api"},
             {"name": "tool3", "category": "database"},
-            {"name": "tool4", "category": None}
+            {"name": "tool4", "category": None},
         ]
 
         # Filter by database category
@@ -97,7 +97,7 @@ class TestToolRegistryFunctions:
             {"name": "tool2"},
             {"name": "tool3"},
             {"name": "tool4"},
-            {"name": "tool5"}
+            {"name": "tool5"},
         ]
 
         # Test first page
@@ -124,9 +124,21 @@ class TestToolRegistryFunctions:
     def test_search_tools_simple(self):
         """Test simple tool search."""
         tools = [
-            {"name": "database_query", "description": "Query database", "tags": ["db", "sql"]},
-            {"name": "api_client", "description": "Make API calls", "tags": ["http", "rest"]},
-            {"name": "file_processor", "description": "Process files", "tags": ["file", "io"]}
+            {
+                "name": "database_query",
+                "description": "Query database",
+                "tags": ["db", "sql"],
+            },
+            {
+                "name": "api_client",
+                "description": "Make API calls",
+                "tags": ["http", "rest"],
+            },
+            {
+                "name": "file_processor",
+                "description": "Process files",
+                "tags": ["file", "io"],
+            },
         ]
 
         # Search by name
@@ -170,6 +182,7 @@ class TestToolEndpoints:
     def clear_mock_tools(self):
         """Clear mock tools before each test."""
         from metamcp.api.tools import mock_tools
+
         mock_tools.clear()
         yield
         mock_tools.clear()
@@ -187,7 +200,7 @@ class TestToolEndpoints:
             "metadata": {"version": "1.0.0"},
             "version": "1.0.0",
             "author": "test_author",
-            "tags": ["test", "api"]
+            "tags": ["test", "api"],
         }
 
         response = client.post("/api/v1/tools", json=tool_data)
@@ -203,7 +216,7 @@ class TestToolEndpoints:
         tool_data = {
             "name": "duplicate_tool",
             "description": "First tool",
-            "endpoint": "http://localhost:8001"
+            "endpoint": "http://localhost:8001",
         }
 
         # Register first tool
@@ -223,7 +236,7 @@ class TestToolEndpoints:
         tool_data = {
             "name": "list_test_tool",
             "description": "Tool for testing list",
-            "endpoint": "http://localhost:8001"
+            "endpoint": "http://localhost:8001",
         }
         client.post("/api/v1/tools", json=tool_data)
 
@@ -245,7 +258,7 @@ class TestToolEndpoints:
             tool_data = {
                 "name": f"pagination_tool_{i}",
                 "description": f"Tool {i} for pagination test",
-                "endpoint": f"http://localhost:800{i}"
+                "endpoint": f"http://localhost:800{i}",
             }
             client.post("/api/v1/tools", json=tool_data)
 
@@ -265,7 +278,7 @@ class TestToolEndpoints:
                 "name": f"{category}_tool",
                 "description": f"Tool for {category}",
                 "endpoint": "http://localhost:8001",
-                "category": category
+                "category": category,
             }
             client.post("/api/v1/tools", json=tool_data)
 
@@ -289,7 +302,7 @@ class TestToolEndpoints:
             "metadata": {"test": "data"},
             "version": "1.0.0",
             "author": "test_author",
-            "tags": ["test"]
+            "tags": ["test"],
         }
         client.post("/api/v1/tools", json=tool_data)
 
@@ -327,7 +340,7 @@ class TestToolEndpoints:
         tool_data = {
             "name": "update_test_tool",
             "description": "Original description",
-            "endpoint": "http://localhost:8001"
+            "endpoint": "http://localhost:8001",
         }
         client.post("/api/v1/tools", json=tool_data)
 
@@ -336,7 +349,7 @@ class TestToolEndpoints:
             "description": "Updated description",
             "category": "updated_category",
             "capabilities": ["read", "write"],
-            "security_level": 3
+            "security_level": 3,
         }
 
         response = client.put("/api/v1/tools/update_test_tool", json=update_data)
@@ -351,9 +364,7 @@ class TestToolEndpoints:
 
     def test_update_nonexistent_tool(self, client):
         """Test updating non-existent tool."""
-        update_data = {
-            "description": "Updated description"
-        }
+        update_data = {"description": "Updated description"}
 
         response = client.put("/api/v1/tools/nonexistent_tool", json=update_data)
         assert response.status_code == 404
@@ -364,7 +375,7 @@ class TestToolEndpoints:
         tool_data = {
             "name": "delete_test_tool",
             "description": "Tool to be deleted",
-            "endpoint": "http://localhost:8001"
+            "endpoint": "http://localhost:8001",
         }
         client.post("/api/v1/tools", json=tool_data)
 
@@ -391,20 +402,20 @@ class TestToolEndpoints:
                 "name": "database_query",
                 "description": "Query database with SQL",
                 "endpoint": "http://localhost:8001",
-                "tags": ["database", "sql"]
+                "tags": ["database", "sql"],
             },
             {
                 "name": "api_client",
                 "description": "Make HTTP API calls",
                 "endpoint": "http://localhost:8002",
-                "tags": ["http", "rest"]
+                "tags": ["http", "rest"],
             },
             {
                 "name": "file_processor",
                 "description": "Process files and documents",
                 "endpoint": "http://localhost:8003",
-                "tags": ["file", "io"]
-            }
+                "tags": ["file", "io"],
+            },
         ]
 
         for tool in tools:
@@ -414,7 +425,7 @@ class TestToolEndpoints:
         search_data = {
             "query": "database",
             "max_results": 10,
-            "similarity_threshold": 0.7
+            "similarity_threshold": 0.7,
         }
 
         response = client.post("/api/v1/tools/search", json=search_data)
@@ -432,17 +443,19 @@ class TestToolEndpoints:
         tool_data = {
             "name": "execute_test_tool",
             "description": "Tool for execution test",
-            "endpoint": "http://localhost:8001"
+            "endpoint": "http://localhost:8001",
         }
         client.post("/api/v1/tools", json=tool_data)
 
         # Execute tool
         execution_data = {
             "input_data": {"param1": "value1", "param2": "value2"},
-            "async_execution": False
+            "async_execution": False,
         }
 
-        response = client.post("/api/v1/tools/execute_test_tool/execute", json=execution_data)
+        response = client.post(
+            "/api/v1/tools/execute_test_tool/execute", json=execution_data
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -456,12 +469,11 @@ class TestToolEndpoints:
 
     def test_execute_nonexistent_tool(self, client):
         """Test executing non-existent tool."""
-        execution_data = {
-            "input_data": {"param1": "value1"},
-            "async_execution": False
-        }
+        execution_data = {"input_data": {"param1": "value1"}, "async_execution": False}
 
-        response = client.post("/api/v1/tools/nonexistent_tool/execute", json=execution_data)
+        response = client.post(
+            "/api/v1/tools/nonexistent_tool/execute", json=execution_data
+        )
         assert response.status_code == 404
 
 
@@ -479,7 +491,7 @@ class TestToolRegistryMock:
             "name": "test_tool",
             "description": "Test tool",
             "endpoint": "http://localhost:8001",
-            "is_active": True
+            "is_active": True,
         }
         mock_tools["test-id"] = test_tool
 
@@ -503,7 +515,7 @@ class TestToolRegistryMock:
             "name": "delete_test_tool",
             "description": "Tool to be deleted",
             "endpoint": "http://localhost:8001",
-            "is_active": True
+            "is_active": True,
         }
         mock_tools["delete-test-id"] = test_tool
 

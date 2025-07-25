@@ -18,11 +18,11 @@ def setup_logging(
     log_level: str = "INFO",
     log_file: str | None = None,
     structured: bool = True,
-    json_format: bool = True
+    json_format: bool = True,
 ) -> None:
     """
     Setup structured logging for the application.
-    
+
     Args:
         log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
         log_file: Optional log file path
@@ -67,7 +67,7 @@ def setup_logging(
 def setup_file_logging(log_file: str, log_level: str = "INFO") -> None:
     """
     Setup file-based logging with rotation.
-    
+
     Args:
         log_file: Path to log file
         log_level: Logging level
@@ -78,15 +78,12 @@ def setup_file_logging(log_file: str, log_level: str = "INFO") -> None:
 
     # Create rotating file handler
     file_handler = logging.handlers.RotatingFileHandler(
-        log_file,
-        maxBytes=100 * 1024 * 1024,  # 100MB
-        backupCount=5,
-        encoding="utf-8"
+        log_file, maxBytes=100 * 1024 * 1024, backupCount=5, encoding="utf-8"  # 100MB
     )
 
     # Set formatter
     formatter = logging.Formatter(
-        '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
     )
     file_handler.setFormatter(formatter)
     file_handler.setLevel(getattr(logging, log_level.upper()))
@@ -99,10 +96,10 @@ def setup_file_logging(log_file: str, log_level: str = "INFO") -> None:
 def get_logger(name: str) -> structlog.BoundLogger:
     """
     Get a structured logger for the given name.
-    
+
     Args:
         name: Logger name, typically __name__
-        
+
     Returns:
         Structured logger instance
     """
@@ -112,14 +109,14 @@ def get_logger(name: str) -> structlog.BoundLogger:
 class AuditLogger:
     """
     Specialized logger for audit events.
-    
+
     Provides structured logging for security and compliance auditing.
     """
 
     def __init__(self, name: str = "audit"):
         """
         Initialize audit logger.
-        
+
         Args:
             name: Logger name
         """
@@ -132,11 +129,11 @@ class AuditLogger:
         method: str,
         ip_address: str,
         user_agent: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log authentication events.
-        
+
         Args:
             user_id: User identifier
             success: Whether authentication succeeded
@@ -152,7 +149,7 @@ class AuditLogger:
             method=method,
             ip_address=ip_address,
             user_agent=user_agent,
-            **kwargs
+            **kwargs,
         )
 
     def log_authorization(
@@ -162,11 +159,11 @@ class AuditLogger:
         action: str,
         success: bool,
         policy: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log authorization events.
-        
+
         Args:
             user_id: User identifier
             resource: Resource being accessed
@@ -182,7 +179,7 @@ class AuditLogger:
             action=action,
             success=success,
             policy=policy,
-            **kwargs
+            **kwargs,
         )
 
     def log_tool_execution(
@@ -193,11 +190,11 @@ class AuditLogger:
         execution_time: float,
         input_data: dict[str, Any] | None = None,
         error: str | None = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log tool execution events.
-        
+
         Args:
             user_id: User identifier
             tool_name: Name of executed tool
@@ -215,7 +212,7 @@ class AuditLogger:
             execution_time=execution_time,
             input_data=input_data,
             error=error,
-            **kwargs
+            **kwargs,
         )
 
     def log_policy_evaluation(
@@ -226,11 +223,11 @@ class AuditLogger:
         action: str,
         result: str,
         evaluation_time: float,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log policy evaluation events.
-        
+
         Args:
             user_id: User identifier
             policy_name: Name of evaluated policy
@@ -248,7 +245,7 @@ class AuditLogger:
             action=action,
             result=result,
             evaluation_time=evaluation_time,
-            **kwargs
+            **kwargs,
         )
 
 
@@ -260,7 +257,7 @@ class PerformanceLogger:
     def __init__(self, name: str = "performance"):
         """
         Initialize performance logger.
-        
+
         Args:
             name: Logger name
         """
@@ -272,11 +269,11 @@ class PerformanceLogger:
         method: str,
         status_code: int,
         response_time: float,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log HTTP request timing.
-        
+
         Args:
             endpoint: API endpoint
             method: HTTP method
@@ -290,7 +287,7 @@ class PerformanceLogger:
             method=method,
             status_code=status_code,
             response_time=response_time,
-            **kwargs
+            **kwargs,
         )
 
     def log_database_timing(
@@ -299,11 +296,11 @@ class PerformanceLogger:
         table: str,
         query_time: float,
         rows_affected: int | None = None,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log database operation timing.
-        
+
         Args:
             operation: Database operation type
             table: Database table
@@ -317,7 +314,7 @@ class PerformanceLogger:
             table=table,
             query_time=query_time,
             rows_affected=rows_affected,
-            **kwargs
+            **kwargs,
         )
 
     def log_vector_search_timing(
@@ -326,11 +323,11 @@ class PerformanceLogger:
         results_count: int,
         search_time: float,
         similarity_threshold: float,
-        **kwargs
+        **kwargs,
     ) -> None:
         """
         Log vector search timing.
-        
+
         Args:
             query: Search query
             results_count: Number of results returned
@@ -344,5 +341,5 @@ class PerformanceLogger:
             results_count=results_count,
             search_time=search_time,
             similarity_threshold=similarity_threshold,
-            **kwargs
+            **kwargs,
         )

@@ -7,8 +7,9 @@ individual step execution with retry logic and error handling.
 
 import asyncio
 import time
+from collections.abc import Callable
 from datetime import UTC, datetime
-from typing import Any, Callable, Dict, Optional
+from typing import Any
 
 from ..exceptions import WorkflowExecutionError
 from ..utils.logging import get_logger
@@ -25,7 +26,7 @@ logger = get_logger(__name__)
 class WorkflowExecutor:
     """
     Executor for individual workflow steps.
-    
+
     This class handles the execution of individual workflow steps
     with retry logic, timeout handling, and error management.
     """
@@ -52,18 +53,18 @@ class WorkflowExecutor:
         self,
         step: WorkflowStep,
         tool_executor: Callable,
-        variables: Dict[str, Any],
-        timeout: Optional[int] = None
+        variables: dict[str, Any],
+        timeout: int | None = None,
     ) -> StepExecutionResult:
         """
         Execute a single workflow step.
-        
+
         Args:
             step: Workflow step to execute
             tool_executor: Function to execute tools
             variables: Workflow variables
             timeout: Step timeout in seconds
-            
+
         Returns:
             Step execution result
         """
@@ -75,13 +76,19 @@ class WorkflowExecutor:
 
             # Execute step based on type
             if step.step_type == StepType.TOOL_CALL:
-                result = await self._execute_tool_step(step, tool_executor, variables, timeout)
+                result = await self._execute_tool_step(
+                    step, tool_executor, variables, timeout
+                )
             elif step.step_type == StepType.CONDITION:
                 result = await self._execute_condition_step(step, variables)
             elif step.step_type == StepType.PARALLEL:
-                result = await self._execute_parallel_step(step, tool_executor, variables, timeout)
+                result = await self._execute_parallel_step(
+                    step, tool_executor, variables, timeout
+                )
             elif step.step_type == StepType.LOOP:
-                result = await self._execute_loop_step(step, tool_executor, variables, timeout)
+                result = await self._execute_loop_step(
+                    step, tool_executor, variables, timeout
+                )
             elif step.step_type == StepType.DELAY:
                 result = await self._execute_delay_step(step)
             elif step.step_type == StepType.HTTP_REQUEST:
@@ -101,7 +108,7 @@ class WorkflowExecutor:
                 result=result,
                 execution_time=execution_time,
                 started_at=step_start_time,
-                completed_at=step_end_time
+                completed_at=step_end_time,
             )
 
         except Exception as e:
@@ -116,15 +123,15 @@ class WorkflowExecutor:
                 error=str(e),
                 execution_time=execution_time,
                 started_at=step_start_time,
-                completed_at=step_end_time
+                completed_at=step_end_time,
             )
 
     async def _execute_tool_step(
         self,
         step: WorkflowStep,
         tool_executor: Callable,
-        variables: Dict[str, Any],
-        timeout: Optional[int]
+        variables: dict[str, Any],
+        timeout: int | None,
     ) -> Any:
         """Execute a tool call step."""
         tool_name = step.config.get("tool_name")
@@ -132,7 +139,9 @@ class WorkflowExecutor:
             raise WorkflowExecutionError(f"Tool name not specified for step {step.id}")
 
         # Prepare arguments with variable substitution
-        arguments = self._substitute_variables(step.config.get("arguments", {}), variables)
+        arguments = self._substitute_variables(
+            step.config.get("arguments", {}), variables
+        )
 
         # Execute tool with retry logic
         retry_config = step.retry_config or {}
@@ -144,26 +153,25 @@ class WorkflowExecutor:
             try:
                 if timeout:
                     result = await asyncio.wait_for(
-                        tool_executor(tool_name, arguments),
-                        timeout=timeout
+                        tool_executor(tool_name, arguments), timeout=timeout
                     )
                 else:
                     result = await tool_executor(tool_name, arguments)
                 return result
 
-            except Exception as e:
+            except Exception:
                 if attempt == max_attempts - 1:
                     raise
 
                 # Wait before retry
-                delay = initial_delay * (backoff_factor ** attempt)
-                logger.warning(f"Step {step.id} attempt {attempt + 1} failed, retrying in {delay}s")
+                delay = initial_delay * (backoff_factor**attempt)
+                logger.warning(
+                    f"Step {step.id} attempt {attempt + 1} failed, retrying in {delay}s"
+                )
                 await asyncio.sleep(delay)
 
     async def _execute_condition_step(
-        self,
-        step: WorkflowStep,
-        variables: Dict[str, Any]
+        self, step: WorkflowStep, variables: dict[str, Any]
     ) -> bool:
         """Execute a condition step."""
         condition = step.config.get("condition")
@@ -177,13 +185,15 @@ class WorkflowExecutor:
         self,
         step: WorkflowStep,
         tool_executor: Callable,
-        variables: Dict[str, Any],
-        timeout: Optional[int]
+        variables: dict[str, Any],
+        timeout: int | None,
     ) -> list[Any]:
         """Execute a parallel step."""
         sub_steps = step.config.get("steps", [])
         if not sub_steps:
-            raise WorkflowExecutionError(f"No sub-steps specified for parallel step {step.id}")
+            raise WorkflowExecutionError(
+                f"No sub-steps specified for parallel step {step.id}"
+            )
 
         # Create tasks for sub-steps
         tasks = []
@@ -193,7 +203,7 @@ class WorkflowExecutor:
                 name=sub_step_config.get("name", "sub_step"),
                 step_type=StepType(sub_step_config.get("type", "tool_call")),
                 config=sub_step_config.get("config", {}),
-                metadata=sub_step_config.get("metadata", {})
+                metadata=sub_step_config.get("metadata", {}),
             )
             task = self.execute_step(sub_step, tool_executor, variables, timeout)
             tasks.append(task)
@@ -212,8 +222,8 @@ class WorkflowExecutor:
         self,
         step: WorkflowStep,
         tool_executor: Callable,
-        variables: Dict[str, Any],
-        timeout: Optional[int]
+        variables: dict[str, Any],
+        timeout: int | None,
     ) -> list[Any]:
         """Execute a loop step."""
         loop_config = step.config.get("loop", {})
@@ -233,15 +243,19 @@ class WorkflowExecutor:
                 id=f"{step.id}_body_{i}",
                 name=f"Loop body {i}",
                 step_type=StepType.TOOL_CALL,
-                config=step.config.get("body", {})
+                config=step.config.get("body", {}),
             )
 
             try:
-                result = await self.execute_step(body_step, tool_executor, loop_variables, timeout)
+                result = await self.execute_step(
+                    body_step, tool_executor, loop_variables, timeout
+                )
                 if result.status == StepStatus.COMPLETED:
                     results.append(result.result)
                 else:
-                    raise WorkflowExecutionError(f"Loop body {i} failed: {result.error}")
+                    raise WorkflowExecutionError(
+                        f"Loop body {i} failed: {result.error}"
+                    )
             except Exception as e:
                 if continue_on_error:
                     logger.warning(f"Loop iteration {i} failed: {e}")
@@ -257,10 +271,7 @@ class WorkflowExecutor:
         await asyncio.sleep(delay_seconds)
 
     async def _execute_http_step(
-        self,
-        step: WorkflowStep,
-        variables: Dict[str, Any],
-        timeout: Optional[int]
+        self, step: WorkflowStep, variables: dict[str, Any], timeout: int | None
     ) -> Any:
         """Execute an HTTP request step."""
         import httpx
@@ -277,7 +288,9 @@ class WorkflowExecutor:
             response.raise_for_status()
             return response.json()
 
-    def _evaluate_condition(self, condition: Dict[str, Any], variables: Dict[str, Any]) -> bool:
+    def _evaluate_condition(
+        self, condition: dict[str, Any], variables: dict[str, Any]
+    ) -> bool:
         """Evaluate a condition."""
         operator = condition.get("operator")
         left_operand = condition.get("left_operand")
@@ -285,7 +298,11 @@ class WorkflowExecutor:
 
         # Get actual values
         left_value = self._get_variable_value(left_operand, variables)
-        right_value = self._get_variable_value(right_operand, variables) if right_operand else None
+        right_value = (
+            self._get_variable_value(right_operand, variables)
+            if right_operand
+            else None
+        )
 
         # Evaluate condition
         if operator == "equals":
@@ -307,7 +324,7 @@ class WorkflowExecutor:
         else:
             raise WorkflowExecutionError(f"Unsupported condition operator: {operator}")
 
-    def _get_variable_value(self, variable_path: str, variables: Dict[str, Any]) -> Any:
+    def _get_variable_value(self, variable_path: str, variables: dict[str, Any]) -> Any:
         """Get variable value from workflow variables."""
         if not variable_path.startswith("$"):
             return variable_path
@@ -325,15 +342,17 @@ class WorkflowExecutor:
 
         return value
 
-    def _substitute_variables(self, data: Any, variables: Dict[str, Any]) -> Any:
+    def _substitute_variables(self, data: Any, variables: dict[str, Any]) -> Any:
         """Substitute variables in data structure."""
         if isinstance(data, str):
             if data.startswith("$"):
                 return self._get_variable_value(data, variables)
             return data
         elif isinstance(data, dict):
-            return {k: self._substitute_variables(v, variables) for k, v in data.items()}
+            return {
+                k: self._substitute_variables(v, variables) for k, v in data.items()
+            }
         elif isinstance(data, list):
             return [self._substitute_variables(item, variables) for item in data]
         else:
-            return data 
+            return data

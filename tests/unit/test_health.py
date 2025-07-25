@@ -276,7 +276,7 @@ class TestHealthComponentIntegration:
             healthy=True,
             timestamp=datetime.now(UTC).isoformat(),
             version="1.0.0",
-            uptime=100.0
+            uptime=100.0,
         )
 
         assert health_status.healthy is True
@@ -285,9 +285,7 @@ class TestHealthComponentIntegration:
 
         # Test ComponentHealth structure
         component_health = ComponentHealth(
-            name="test_component",
-            status="healthy",
-            response_time=0.1
+            name="test_component", status="healthy", response_time=0.1
         )
 
         assert component_health.name == "test_component"

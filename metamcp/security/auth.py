@@ -22,14 +22,14 @@ settings = get_settings()
 class AuthManager:
     """
     Authentication Manager for user authentication and session management.
-    
+
     This class handles JWT token generation, validation, and user management.
     """
 
     def __init__(self, settings):
         """
         Initialize Authentication Manager.
-        
+
         Args:
             settings: Application settings
         """
@@ -42,14 +42,14 @@ class AuthManager:
                 "username": "admin",
                 "hashed_password": self.pwd_context.hash("admin123"),
                 "role": "admin",
-                "permissions": ["read", "write", "execute", "admin"]
+                "permissions": ["read", "write", "execute", "admin"],
             },
             "user": {
                 "username": "user",
                 "hashed_password": self.pwd_context.hash("user123"),
                 "role": "user",
-                "permissions": ["read", "execute"]
-            }
+                "permissions": ["read", "execute"],
+            },
         }
 
         self._initialized = False
@@ -64,9 +64,7 @@ class AuthManager:
 
             # Validate JWT secret
             if not self.settings.secret_key:
-                raise AuthenticationError(
-                    message="JWT secret key not configured"
-                )
+                raise AuthenticationError(message="JWT secret key not configured")
 
             self._initialized = True
             logger.info("Authentication Manager initialized successfully")
@@ -92,32 +90,34 @@ class AuthManager:
     def validate_password_strength(self, password: str) -> bool:
         """
         Validate password strength.
-        
+
         Args:
             password: Password to validate
-            
+
         Returns:
             True if password meets strength requirements
         """
         # Basic password strength validation
         if len(password) < 8:
             return False
-        
+
         # Check for at least one uppercase, lowercase, and digit
         has_upper = any(c.isupper() for c in password)
         has_lower = any(c.islower() for c in password)
         has_digit = any(c.isdigit() for c in password)
-        
+
         return has_upper and has_lower and has_digit
 
-    def create_token(self, data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
+    def create_token(
+        self, data: dict[str, Any], expires_delta: timedelta | None = None
+    ) -> str:
         """
         Create a JWT access token (alias for create_access_token).
-        
+
         Args:
             data: Token payload data
             expires_delta: Token expiration time
-            
+
         Returns:
             JWT token string
         """
@@ -126,11 +126,11 @@ class AuthManager:
     def authenticate_user(self, username: str, password: str) -> dict[str, Any] | None:
         """
         Authenticate a user with username and password.
-        
+
         Args:
             username: Username
             password: Plain text password
-            
+
         Returns:
             User data if authentication successful, None otherwise
         """
@@ -143,14 +143,16 @@ class AuthManager:
 
         return user
 
-    def create_access_token(self, data: dict[str, Any], expires_delta: timedelta | None = None) -> str:
+    def create_access_token(
+        self, data: dict[str, Any], expires_delta: timedelta | None = None
+    ) -> str:
         """
         Create a JWT access token.
-        
+
         Args:
             data: Token payload data
             expires_delta: Token expiration time
-            
+
         Returns:
             JWT token string
         """
@@ -159,14 +161,14 @@ class AuthManager:
         if expires_delta:
             expire = datetime.utcnow() + expires_delta
         else:
-            expire = datetime.utcnow() + timedelta(minutes=self.settings.access_token_expire_minutes)
+            expire = datetime.utcnow() + timedelta(
+                minutes=self.settings.access_token_expire_minutes
+            )
 
         to_encode.update({"exp": expire})
 
         encoded_jwt = jwt.encode(
-            to_encode,
-            self.settings.secret_key,
-            algorithm=self.settings.algorithm
+            to_encode, self.settings.secret_key, algorithm=self.settings.algorithm
         )
 
         return encoded_jwt
@@ -174,13 +176,13 @@ class AuthManager:
     def validate_token(self, token: str) -> str:
         """
         Validate a JWT token and return user ID.
-        
+
         Args:
             token: JWT token string
-            
+
         Returns:
             User ID from token
-            
+
         Raises:
             AuthenticationError: If token is invalid
         """
@@ -190,31 +192,25 @@ class AuthManager:
                 token = token[7:]
 
             payload = jwt.decode(
-                token,
-                self.settings.secret_key,
-                algorithms=[self.settings.algorithm]
+                token, self.settings.secret_key, algorithms=[self.settings.algorithm]
             )
 
             username = payload.get("sub")
             if username is None:
-                raise AuthenticationError(
-                    message="Invalid token: missing subject"
-                )
+                raise AuthenticationError(message="Invalid token: missing subject")
 
             return str(username)
 
         except JWTError as e:
-            raise AuthenticationError(
-                message=f"Invalid token: {str(e)}"
-            )
+            raise AuthenticationError(message=f"Invalid token: {str(e)}")
 
     def get_user_permissions(self, username: str) -> list:
         """
         Get user permissions.
-        
+
         Args:
             username: Username
-            
+
         Returns:
             List of user permissions
         """
@@ -227,11 +223,11 @@ class AuthManager:
     def check_permission(self, username: str, permission: str) -> bool:
         """
         Check if user has a specific permission.
-        
+
         Args:
             username: Username
             permission: Permission to check
-            
+
         Returns:
             True if user has permission, False otherwise
         """
@@ -241,28 +237,25 @@ class AuthManager:
     async def login(self, username: str, password: str) -> dict[str, Any]:
         """
         Authenticate user and return access token.
-        
+
         Args:
             username: Username
             password: Plain text password
-            
+
         Returns:
             Authentication response with token
-            
+
         Raises:
             AuthenticationError: If authentication fails
         """
         user = self.authenticate_user(username, password)
         if not user:
-            raise AuthenticationError(
-                message="Invalid username or password"
-            )
+            raise AuthenticationError(message="Invalid username or password")
 
         # Create access token
         access_token_expires = timedelta(hours=self.settings.jwt_expiration_hours)
         access_token = self.create_access_token(
-            data={"sub": username},
-            expires_delta=access_token_expires
+            data={"sub": username}, expires_delta=access_token_expires
         )
 
         return {
@@ -272,17 +265,17 @@ class AuthManager:
             "user": {
                 "username": user["username"],
                 "role": user["role"],
-                "permissions": user["permissions"]
-            }
+                "permissions": user["permissions"],
+            },
         }
 
     async def logout(self, token: str) -> dict[str, str]:
         """
         Logout user (invalidate token).
-        
+
         Args:
             token: JWT token to invalidate
-            
+
         Returns:
             Logout response
         """
@@ -293,23 +286,21 @@ class AuthManager:
     async def get_user_info(self, username: str) -> dict[str, Any]:
         """
         Get user information.
-        
+
         Args:
             username: Username
-            
+
         Returns:
             User information
         """
         user = self.users.get(username)
         if not user:
-            raise AuthenticationError(
-                message="User not found"
-            )
+            raise AuthenticationError(message="User not found")
 
         return {
             "username": user["username"],
             "role": user["role"],
-            "permissions": user["permissions"]
+            "permissions": user["permissions"],
         }
 
     async def shutdown(self) -> None:

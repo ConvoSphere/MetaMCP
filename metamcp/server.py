@@ -22,7 +22,7 @@ from .exceptions import MetaMCPException
 from .mcp.server import MCPServer
 from .monitoring.telemetry import TelemetryManager
 from .utils.logging import get_logger, setup_logging
-from .utils.rate_limiter import create_rate_limiter, RateLimitMiddleware
+from .utils.rate_limiter import RateLimitMiddleware, create_rate_limiter
 
 logger = get_logger(__name__)
 
@@ -49,7 +49,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                 method=request.method,
                 path=str(request.url.path),
                 status_code=response.status_code,
-                duration=duration
+                duration=duration,
             )
 
             return response
@@ -61,7 +61,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
                 method=request.method,
                 path=str(request.url.path),
                 status_code=500,
-                duration=duration
+                duration=duration,
             )
             raise
 
@@ -69,7 +69,7 @@ class MetricsMiddleware(BaseHTTPMiddleware):
 class MetaMCPServer:
     """
     MetaMCP Server Application.
-    
+
     Main server class that manages the FastAPI application,
     MCP server, and telemetry components.
     """
@@ -134,7 +134,7 @@ class MetaMCPServer:
             description="MetaMCP - MCP Meta-Server for AI Agents",
             docs_url="/docs" if self.settings.docs_enabled else None,
             redoc_url="/redoc" if self.settings.docs_enabled else None,
-            lifespan=lifespan
+            lifespan=lifespan,
         )
 
         # Add middleware
@@ -164,12 +164,16 @@ class MetaMCPServer:
         app.add_middleware(GZipMiddleware, minimum_size=1000)
 
         # Rate limiting middleware (skip for WebSocket connections)
-        rate_limiter = create_rate_limiter(use_redis=False)  # Use memory limiter for now
+        rate_limiter = create_rate_limiter(
+            use_redis=False
+        )  # Use memory limiter for now
         app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
 
         # Metrics middleware
         if self.settings.telemetry_enabled:
-            app.add_middleware(MetricsMiddleware, telemetry_manager=self.telemetry_manager)
+            app.add_middleware(
+                MetricsMiddleware, telemetry_manager=self.telemetry_manager
+            )
 
         # Instrument with OpenTelemetry
         if self.settings.telemetry_enabled:
@@ -183,35 +187,40 @@ class MetaMCPServer:
         @app.exception_handler(MetaMCPException)
         async def metamcp_exception_handler(request: Request, exc: MetaMCPException):
             """Handle MetaMCP exceptions."""
-            logger.error(f"MetaMCP Exception: {exc.message}", extra={
-                "error_code": exc.error_code,
-                "status_code": exc.status_code,
-                "path": str(request.url.path)
-            })
+            logger.error(
+                f"MetaMCP Exception: {exc.message}",
+                extra={
+                    "error_code": exc.error_code,
+                    "status_code": exc.status_code,
+                    "path": str(request.url.path),
+                },
+            )
 
             return JSONResponse(
                 status_code=exc.status_code,
                 content={
                     "error": exc.error_code,
                     "message": exc.message,
-                    "details": exc.details
-                }
+                    "details": exc.details,
+                },
             )
 
         @app.exception_handler(Exception)
         async def general_exception_handler(request: Request, exc: Exception):
             """Handle general exceptions."""
-            logger.error(f"Unhandled Exception: {exc}", exc_info=True, extra={
-                "path": str(request.url.path)
-            })
+            logger.error(
+                f"Unhandled Exception: {exc}",
+                exc_info=True,
+                extra={"path": str(request.url.path)},
+            )
 
             return JSONResponse(
                 status_code=500,
                 content={
                     "error": "internal_server_error",
                     "message": "An internal server error occurred",
-                    "details": str(exc) if self.settings.debug else None
-                }
+                    "details": str(exc) if self.settings.debug else None,
+                },
             )
 
     def _add_routes(self, app: FastAPI) -> None:
@@ -223,26 +232,20 @@ class MetaMCPServer:
             return {
                 "name": self.settings.app_name,
                 "version": self.settings.app_version,
-                "status": "running"
+                "status": "running",
             }
 
         @app.get("/health")
         async def health_check():
             """Health check endpoint."""
-            return {
-                "status": "healthy",
-                "timestamp": asyncio.get_event_loop().time()
-            }
+            return {"status": "healthy", "timestamp": asyncio.get_event_loop().time()}
 
         @app.get("/metrics")
         async def metrics():
             """Metrics endpoint for Prometheus."""
             from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
-            return Response(
-                content=generate_latest(),
-                media_type=CONTENT_TYPE_LATEST
-            )
+            return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
         # Add MCP routes
         if self.mcp_server:
@@ -295,7 +298,7 @@ class MetaMCPServer:
                 port=self.settings.port,
                 reload=self.settings.reload,
                 log_level=self.settings.log_level.lower(),
-                access_log=True
+                access_log=True,
             )
 
             server = uvicorn.Server(config)
@@ -314,7 +317,7 @@ class MetaMCPServer:
 def create_app() -> FastAPI:
     """
     Create FastAPI application for external use.
-    
+
     Returns:
         FastAPI: Configured FastAPI application
     """

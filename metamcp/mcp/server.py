@@ -28,7 +28,7 @@ settings = get_settings()
 class MCPServer:
     """
     MCP Server implementation using FastMCP.
-    
+
     This class handles MCP protocol communication, tool discovery,
     and execution with integrated security and monitoring.
     """
@@ -79,7 +79,7 @@ class MCPServer:
             if self.settings.vector_search_enabled:
                 self.vector_client = VectorSearchClient(
                     url=self.settings.weaviate_url,
-                    api_key=self.settings.weaviate_api_key
+                    api_key=self.settings.weaviate_api_key,
                 )
                 await self.vector_client.initialize()
 
@@ -94,6 +94,7 @@ class MCPServer:
 
             # Initialize LLM service
             from ..llm.service import LLMService
+
             self.llm_service = LLMService(self.settings)
             await self.llm_service.initialize()
 
@@ -102,11 +103,13 @@ class MCPServer:
                 self.tool_registry = ToolRegistry(
                     vector_client=self.vector_client,
                     llm_service=self.llm_service,
-                    policy_engine=self.policy_engine
+                    policy_engine=self.policy_engine,
                 )
                 await self.tool_registry.initialize()
             else:
-                logger.warning("Tool registry not initialized due to missing dependencies")
+                logger.warning(
+                    "Tool registry not initialized due to missing dependencies"
+                )
 
         except Exception as e:
             logger.error(f"Failed to initialize components: {e}")
@@ -115,10 +118,7 @@ class MCPServer:
     async def _initialize_fastmcp(self) -> None:
         """Initialize FastMCP server."""
         try:
-            self.fastmcp = FastMCP(
-                name="metamcp",
-                version="1.0.0"
-            )
+            self.fastmcp = FastMCP(name="metamcp", version="1.0.0")
 
             # Register handlers
             self.fastmcp.list_tools = self._handle_list_tools
@@ -167,7 +167,7 @@ class MCPServer:
                 raise MetaMCPException(
                     error_code="tool_list_error",
                     message="Failed to list tools",
-                    details=str(e)
+                    details=str(e),
                 )
 
         @self.router.post("/tools/{tool_name}/execute")
@@ -182,11 +182,13 @@ class MCPServer:
                 raise MetaMCPException(
                     error_code="tool_execution_error",
                     message=f"Failed to execute tool {tool_name}",
-                    details=str(e)
+                    details=str(e),
                 )
 
         logger.info(f"MCP routes setup complete. Router: {self.router}")
-        logger.info(f"MCP router routes: {[route.path for route in self.router.routes]}")
+        logger.info(
+            f"MCP router routes: {[route.path for route in self.router.routes]}"
+        )
 
     async def _handle_list_tools(self) -> list[Tool]:
         """Handle list tools request."""
@@ -202,15 +204,13 @@ class MCPServer:
             return []
 
     async def _handle_call_tool(
-        self,
-        name: str,
-        arguments: dict[str, Any]
+        self, name: str, arguments: dict[str, Any]
     ) -> list[TextContent]:
         """Handle tool execution request."""
         if not self.tool_registry:
             raise MetaMCPException(
                 error_code="tool_registry_unavailable",
-                message="Tool registry not available"
+                message="Tool registry not available",
             )
 
         start_time = asyncio.get_event_loop().time()
@@ -218,24 +218,18 @@ class MCPServer:
         try:
             # Execute tool
             result = await self.tool_registry.execute_tool(
-                tool_name=name,
-                input_data=arguments
+                tool_name=name, input_data=arguments
             )
 
             # Record metrics
             if self.telemetry_manager:
                 duration = asyncio.get_event_loop().time() - start_time
                 self.telemetry_manager.record_tool_execution(
-                    tool_name=name,
-                    success=True,
-                    duration=duration
+                    tool_name=name, success=True, duration=duration
                 )
 
             # Convert result to MCP format
-            content = TextContent(
-                type="text",
-                text=str(result)
-            )
+            content = TextContent(type="text", text=str(result))
 
             return [content]
 
@@ -244,15 +238,13 @@ class MCPServer:
             if self.telemetry_manager:
                 duration = asyncio.get_event_loop().time() - start_time
                 self.telemetry_manager.record_tool_execution(
-                    tool_name=name,
-                    success=False,
-                    duration=duration
+                    tool_name=name, success=False, duration=duration
                 )
 
             logger.error(f"Tool execution failed: {e}")
             raise MetaMCPException(
                 error_code="tool_execution_error",
-                message=f"Tool execution failed: {str(e)}"
+                message=f"Tool execution failed: {str(e)}",
             )
 
     async def _handle_list_resources(self) -> list[Resource]:
@@ -280,10 +272,7 @@ class MCPServer:
         return []
 
     async def search_tools(
-        self,
-        query: str,
-        max_results: int = 10,
-        similarity_threshold: float = 0.7
+        self, query: str, max_results: int = 10, similarity_threshold: float = 0.7
     ) -> list[dict[str, Any]]:
         """Search for tools using semantic search."""
         if not self.tool_registry:
@@ -291,12 +280,13 @@ class MCPServer:
 
         try:
             import time
+
             start_time = time.time()
 
             results = await self.tool_registry.search_tools(
                 query=query,
                 max_results=max_results,
-                similarity_threshold=similarity_threshold
+                similarity_threshold=similarity_threshold,
             )
 
             # Calculate actual duration
@@ -307,10 +297,12 @@ class MCPServer:
                 self.telemetry_manager.record_vector_search(
                     query_length=len(query),
                     result_count=len(results),
-                    duration=duration
+                    duration=duration,
                 )
 
-            logger.info(f"Vector search completed in {duration:.3f}s, found {len(results)} results")
+            logger.info(
+                f"Vector search completed in {duration:.3f}s, found {len(results)} results"
+            )
             return results
 
         except Exception as e:

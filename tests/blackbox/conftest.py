@@ -21,10 +21,7 @@ API_BASE_URL = f"{BASE_URL}/api/v1/"
 WS_URL = f"{BASE_URL.replace('http://', 'ws://').replace('https://', 'wss://')}/mcp/ws"
 
 # Test Data
-TEST_USER = {
-    "username": "admin",
-    "password": "admin123"
-}
+TEST_USER = {"username": "admin", "password": "admin123"}
 
 import uuid
 
@@ -37,18 +34,19 @@ TEST_TOOL = {
     "security_level": 1,
     "schema": {
         "input": {
-            "operation": {"type": "string", "enum": ["add", "subtract", "multiply", "divide"]},
+            "operation": {
+                "type": "string",
+                "enum": ["add", "subtract", "multiply", "divide"],
+            },
             "a": {"type": "number"},
-            "b": {"type": "number"}
+            "b": {"type": "number"},
         },
-        "output": {
-            "result": {"type": "number"}
-        }
+        "output": {"result": {"type": "number"}},
     },
     "metadata": {"version": "1.0.0"},
     "version": "1.0.0",
     "author": "test_author",
-    "tags": ["test", "calculator"]
+    "tags": ["test", "calculator"],
 }
 
 
@@ -68,12 +66,13 @@ async def http_client() -> AsyncGenerator[httpx.AsyncClient, None]:
 
 
 @pytest.fixture
-async def authenticated_client(http_client: httpx.AsyncClient) -> AsyncGenerator[httpx.AsyncClient, None]:
+async def authenticated_client(
+    http_client: httpx.AsyncClient,
+) -> AsyncGenerator[httpx.AsyncClient, None]:
     """HTTP client with authentication token."""
     # Login to get token
     login_response = await http_client.post(
-        f"{API_BASE_URL}/auth/login",
-        json=TEST_USER
+        f"{API_BASE_URL}/auth/login", json=TEST_USER
     )
 
     if login_response.status_code == 200:
@@ -84,7 +83,9 @@ async def authenticated_client(http_client: httpx.AsyncClient) -> AsyncGenerator
 
 
 @pytest.fixture
-async def websocket_connection() -> AsyncGenerator[websockets.WebSocketServerProtocol, None]:
+async def websocket_connection() -> (
+    AsyncGenerator[websockets.WebSocketServerProtocol, None]
+):
     """WebSocket connection for MCP protocol testing."""
     try:
         async with websockets.connect(WS_URL, timeout=30.0) as websocket:
@@ -95,11 +96,8 @@ async def websocket_connection() -> AsyncGenerator[websockets.WebSocketServerPro
                 "method": "initialize",
                 "params": {
                     "protocolVersion": "1.0.0",
-                    "clientInfo": {
-                        "name": "BlackBoxTestClient",
-                        "version": "1.0.0"
-                    }
-                }
+                    "clientInfo": {"name": "BlackBoxTestClient", "version": "1.0.0"},
+                },
             }
 
             await websocket.send(json.dumps(init_message))
@@ -118,13 +116,12 @@ async def websocket_connection() -> AsyncGenerator[websockets.WebSocketServerPro
 
 
 @pytest.fixture
-async def test_tool_id(authenticated_client: httpx.AsyncClient) -> AsyncGenerator[str, None]:
+async def test_tool_id(
+    authenticated_client: httpx.AsyncClient,
+) -> AsyncGenerator[str, None]:
     """Register a test tool and return its ID."""
     # Register test tool
-    response = await authenticated_client.post(
-        f"{API_BASE_URL}/tools",
-        json=TEST_TOOL
-    )
+    response = await authenticated_client.post(f"{API_BASE_URL}/tools", json=TEST_TOOL)
 
     if response.status_code == 200:
         tool_id = response.json()["data"]["tool_id"]
@@ -132,7 +129,9 @@ async def test_tool_id(authenticated_client: httpx.AsyncClient) -> AsyncGenerato
 
         # Cleanup: delete test tool
         try:
-            await authenticated_client.delete(f"{API_BASE_URL}/tools/{TEST_TOOL['name']}")
+            await authenticated_client.delete(
+                f"{API_BASE_URL}/tools/{TEST_TOOL['name']}"
+            )
         except Exception:
             pass  # Ignore cleanup errors
     else:
@@ -155,19 +154,29 @@ def wait_for_service(max_retries: int = 30, delay: float = 2.0) -> bool:
     return False
 
 
-def assert_success_response(response: httpx.Response, expected_status: int = 200) -> dict[str, Any]:
+def assert_success_response(
+    response: httpx.Response, expected_status: int = 200
+) -> dict[str, Any]:
     """Assert that response is successful and return JSON data."""
-    assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+    assert (
+        response.status_code == expected_status
+    ), f"Expected {expected_status}, got {response.status_code}: {response.text}"
     data = response.json()
     assert data["status"] == "success", f"Expected success status, got: {data}"
     return data["data"]
 
 
-def assert_error_response(response: httpx.Response, expected_status: int, expected_error: str = None) -> dict[str, Any]:
+def assert_error_response(
+    response: httpx.Response, expected_status: int, expected_error: str = None
+) -> dict[str, Any]:
     """Assert that response is an error and return error data."""
-    assert response.status_code == expected_status, f"Expected {expected_status}, got {response.status_code}: {response.text}"
+    assert (
+        response.status_code == expected_status
+    ), f"Expected {expected_status}, got {response.status_code}: {response.text}"
     data = response.json()
     assert "error" in data, f"Expected error in response, got: {data}"
     if expected_error:
-        assert data["error"] == expected_error, f"Expected error '{expected_error}', got '{data['error']}'"
+        assert (
+            data["error"] == expected_error
+        ), f"Expected error '{expected_error}', got '{data['error']}'"
     return data

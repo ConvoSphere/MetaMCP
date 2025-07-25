@@ -8,11 +8,11 @@ from .test_security import *
 
 __all__ = [
     "TestAuthentication",
-    "TestAuthorization", 
+    "TestAuthorization",
     "TestInputValidation",
     "TestCryptography",
     "TestSecurityHeaders",
     "TestRateLimiting",
     "TestAuditLogging",
-    "TestConfigurationSecurity"
-] 
+    "TestConfigurationSecurity",
+]

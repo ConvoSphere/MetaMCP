@@ -18,7 +18,7 @@ settings = get_settings()
 class LLMService:
     """
     LLM Service for embeddings and text generation.
-    
+
     This class provides integration with OpenAI for generating embeddings
     and processing text, with fallback to hash-based embeddings.
     """
@@ -26,7 +26,7 @@ class LLMService:
     def __init__(self, settings):
         """
         Initialize LLM Service.
-        
+
         Args:
             settings: Application settings
         """
@@ -71,26 +71,26 @@ class LLMService:
             import openai
 
             if not self.settings.openai_api_key:
-                raise EmbeddingError(
-                    message="OpenAI API key not configured"
-                )
+                raise EmbeddingError(message="OpenAI API key not configured")
 
             # Handle both SecretStr and regular string
             api_key = self.settings.openai_api_key
-            if hasattr(api_key, 'get_secret_value'):
+            if hasattr(api_key, "get_secret_value"):
                 api_key = api_key.get_secret_value()
 
             self.openai_client = openai.AsyncOpenAI(
                 api_key=api_key,
-                base_url=self.settings.openai_base_url if self.settings.openai_base_url else None
+                base_url=(
+                    self.settings.openai_base_url
+                    if self.settings.openai_base_url
+                    else None
+                ),
             )
 
             logger.info("OpenAI client initialized")
 
         except ImportError:
-            raise EmbeddingError(
-                message="OpenAI library not installed"
-            )
+            raise EmbeddingError(message="OpenAI library not installed")
         except Exception as e:
             raise EmbeddingError(
                 message=f"Failed to initialize OpenAI client: {str(e)}"
@@ -99,21 +99,19 @@ class LLMService:
     async def generate_embedding(self, text: str) -> list[float]:
         """
         Generate embedding for text.
-        
+
         Args:
             text: Input text
-            
+
         Returns:
             List of embedding values
-            
+
         Raises:
             EmbeddingError: If embedding generation fails
         """
         try:
             if not self._initialized:
-                raise EmbeddingError(
-                    message="LLM service not initialized"
-                )
+                raise EmbeddingError(message="LLM service not initialized")
 
             if self.provider == LLMProvider.OPENAI:
                 return await self._generate_openai_embedding(text)
@@ -131,17 +129,14 @@ class LLMService:
         """Generate embedding using OpenAI."""
         try:
             response = await self.openai_client.embeddings.create(
-                model=self.settings.openai_embedding_model,
-                input=text
+                model=self.settings.openai_embedding_model, input=text
             )
 
             return response.data[0].embedding
 
         except Exception as e:
             logger.error(f"OpenAI embedding failed: {e}")
-            raise EmbeddingError(
-                message=f"OpenAI embedding failed: {str(e)}"
-            ) from e
+            raise EmbeddingError(message=f"OpenAI embedding failed: {str(e)}") from e
 
     def _generate_fallback_embedding(self, text: str) -> list[float]:
         """Generate fallback embedding using hash."""
@@ -168,22 +163,20 @@ class LLMService:
     async def generate_text(self, prompt: str, max_tokens: int = 1000) -> str:
         """
         Generate text using LLM.
-        
+
         Args:
             prompt: Input prompt
             max_tokens: Maximum tokens to generate
-            
+
         Returns:
             Generated text
-            
+
         Raises:
             EmbeddingError: If text generation fails
         """
         try:
             if not self._initialized:
-                raise EmbeddingError(
-                    message="LLM service not initialized"
-                )
+                raise EmbeddingError(message="LLM service not initialized")
 
             if self.provider == LLMProvider.OPENAI:
                 return await self._generate_openai_text(prompt, max_tokens)
@@ -196,7 +189,7 @@ class LLMService:
             logger.error(f"Text generation failed: {e}")
             raise EmbeddingError(
                 message=f"Failed to generate text: {str(e)}",
-                error_code="text_generation_failed"
+                error_code="text_generation_failed",
             ) from e
 
     async def _generate_openai_text(self, prompt: str, max_tokens: int) -> str:
@@ -205,7 +198,7 @@ class LLMService:
             response = await self.openai_client.chat.completions.create(
                 model=self.settings.openai_model,
                 messages=[{"role": "user", "content": prompt}],
-                max_tokens=max_tokens
+                max_tokens=max_tokens,
             )
 
             return response.choices[0].message.content or ""
@@ -214,7 +207,7 @@ class LLMService:
             logger.error(f"OpenAI text generation failed: {e}")
             raise EmbeddingError(
                 message=f"OpenAI text generation failed: {str(e)}",
-                error_code="openai_text_failed"
+                error_code="openai_text_failed",
             ) from e
 
     async def shutdown(self) -> None:

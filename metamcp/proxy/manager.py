@@ -19,6 +19,7 @@ logger = get_logger(__name__)
 @dataclass
 class ServerInfo:
     """Information about a registered server."""
+
     server_id: str
     name: str
     endpoint: str
@@ -33,7 +34,7 @@ class ServerInfo:
 class ProxyManager:
     """
     Manager for multiple wrapped MCP servers.
-    
+
     This class provides a unified interface for managing multiple
     wrapped MCP servers with discovery, registration, and monitoring.
     """
@@ -76,7 +77,7 @@ class ProxyManager:
                 transport="http",
                 categories=["database", "query"],
                 description="Example database server",
-                security_level="medium"
+                security_level="medium",
             ),
             WrappedServerConfig(
                 name="example-file-server",
@@ -84,8 +85,8 @@ class ProxyManager:
                 transport="websocket",
                 categories=["filesystem", "io"],
                 description="Example file system server",
-                security_level="low"
-            )
+                security_level="low",
+            ),
         ]
 
         for config in example_servers:
@@ -97,10 +98,10 @@ class ProxyManager:
     async def register_server(self, config: WrappedServerConfig) -> str:
         """
         Register a new server with the proxy manager.
-        
+
         Args:
             config: Server configuration
-            
+
         Returns:
             Server ID
         """
@@ -118,7 +119,7 @@ class ProxyManager:
                 last_seen=datetime.now(UTC),
                 tool_count=0,  # Will be updated after tool discovery
                 categories=config.categories or [],
-                security_level=config.security_level
+                security_level=config.security_level,
             )
 
             # Store server info
@@ -155,7 +156,9 @@ class ProxyManager:
                 logger.debug(f"Updated tool count for {server_id}: {tool_count}")
 
             except Exception as e:
-                logger.warning(f"Failed to get tool count for {server_id}, using default: {e}")
+                logger.warning(
+                    f"Failed to get tool count for {server_id}, using default: {e}"
+                )
                 # Fallback to default count
                 server_info.tool_count = 5
 
@@ -165,10 +168,10 @@ class ProxyManager:
     async def _get_server_tool_count(self, config: WrappedServerConfig) -> int:
         """
         Get actual tool count from a wrapped server.
-        
+
         Args:
             config: Server configuration
-            
+
         Returns:
             Number of tools available on the server
         """
@@ -181,7 +184,7 @@ class ProxyManager:
                 f"{config.endpoint}/tools",
                 f"{config.endpoint}/api/v1/tools",
                 f"{config.endpoint}/mcp/tools",
-                config.endpoint
+                config.endpoint,
             ]
 
             timeout = httpx.Timeout(5.0)  # Short timeout for health checks
@@ -200,7 +203,9 @@ class ProxyManager:
                                 if "count" in data:
                                     return data["count"]
                                 # List of tools
-                                elif "tools" in data and isinstance(data["tools"], list):
+                                elif "tools" in data and isinstance(
+                                    data["tools"], list
+                                ):
                                     return len(data["tools"])
                                 # Direct list
                                 elif isinstance(data, list):
@@ -217,7 +222,9 @@ class ProxyManager:
                             # Try next endpoint
                             continue
                         else:
-                            logger.debug(f"Endpoint {endpoint} returned {response.status_code}")
+                            logger.debug(
+                                f"Endpoint {endpoint} returned {response.status_code}"
+                            )
 
                     except httpx.RequestError:
                         # Try next endpoint
@@ -236,10 +243,10 @@ class ProxyManager:
     async def _get_mcp_tool_count(self, config: WrappedServerConfig) -> int:
         """
         Get tool count via MCP protocol.
-        
+
         Args:
             config: Server configuration
-            
+
         Returns:
             Number of tools available on the server
         """
@@ -262,7 +269,7 @@ class ProxyManager:
     async def unregister_server(self, server_id: str) -> None:
         """
         Unregister a server from the proxy manager.
-        
+
         Args:
             server_id: Server ID to unregister
         """
@@ -280,10 +287,10 @@ class ProxyManager:
     async def get_server_info(self, server_id: str) -> ServerInfo | None:
         """
         Get information about a registered server.
-        
+
         Args:
             server_id: Server ID
-            
+
         Returns:
             Server information or None if not found
         """
@@ -292,7 +299,7 @@ class ProxyManager:
     async def list_servers(self) -> list[ServerInfo]:
         """
         List all registered servers.
-        
+
         Returns:
             List of server information
         """
@@ -301,10 +308,10 @@ class ProxyManager:
     async def discover_servers(self, discovery_config: dict[str, Any]) -> list[str]:
         """
         Discover MCP servers automatically.
-        
+
         Args:
             discovery_config: Discovery configuration
-            
+
         Returns:
             List of discovered server IDs
         """
@@ -352,7 +359,7 @@ class ProxyManager:
                                 transport="http",
                                 categories=["discovered"],
                                 description=f"Discovered MCP server on port {port}",
-                                security_level="unknown"
+                                security_level="unknown",
                             )
                             server_id = await self.register_server(config)
                             discovered.append(server_id)
@@ -383,7 +390,7 @@ class ProxyManager:
                             transport="http",
                             categories=["service"],
                             description="Service-discovered MCP server",
-                            security_level="unknown"
+                            security_level="unknown",
                         )
                         server_id = await self.register_server(config)
                         discovered.append(server_id)
@@ -447,7 +454,7 @@ class ProxyManager:
     async def health_check(self) -> dict[str, Any]:
         """
         Perform health check on all registered servers.
-        
+
         Returns:
             Health check results
         """
@@ -465,16 +472,13 @@ class ProxyManager:
                 results[server_id] = {
                     "status": server_info.status,
                     "last_seen": server_info.last_seen.isoformat(),
-                    "healthy": is_healthy
+                    "healthy": is_healthy,
                 }
 
             except Exception as e:
                 logger.error(f"Health check failed for {server_id}: {e}")
                 server_info.status = "error"
-                results[server_id] = {
-                    "status": "error",
-                    "error": str(e)
-                }
+                results[server_id] = {"status": "error", "error": str(e)}
 
         return results
 

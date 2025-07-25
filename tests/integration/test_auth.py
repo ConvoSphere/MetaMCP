@@ -36,7 +36,9 @@ class TestJWTTokenFunctions:
         assert len(token) > 0
 
         # Verify token can be decoded
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
         assert payload["sub"] == "test_user"
 
     def test_create_access_token_with_expiry(self):
@@ -45,7 +47,9 @@ class TestJWTTokenFunctions:
         expires_delta = timedelta(minutes=30)
         token = create_access_token(data, expires_delta=expires_delta)
 
-        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        payload = jwt.decode(
+            token, settings.secret_key, algorithms=[settings.algorithm]
+        )
         assert payload["sub"] == "test_user"
 
         # Check expiry
@@ -140,10 +144,9 @@ class TestAuthEndpoints:
 
     def test_login_success(self, client):
         """Test successful login."""
-        response = client.post("/api/v1/auth/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        response = client.post(
+            "/api/v1/auth/login", json={"username": "admin", "password": "admin123"}
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -153,10 +156,10 @@ class TestAuthEndpoints:
 
     def test_login_invalid_credentials(self, client):
         """Test login with invalid credentials."""
-        response = client.post("/api/v1/auth/login", json={
-            "username": "admin",
-            "password": "wrongpassword"
-        })
+        response = client.post(
+            "/api/v1/auth/login",
+            json={"username": "admin", "password": "wrongpassword"},
+        )
 
         assert response.status_code == 401
         data = response.json()
@@ -165,26 +168,24 @@ class TestAuthEndpoints:
 
     def test_login_missing_credentials(self, client):
         """Test login with missing credentials."""
-        response = client.post("/api/v1/auth/login", json={
-            "username": "",
-            "password": ""
-        })
+        response = client.post(
+            "/api/v1/auth/login", json={"username": "", "password": ""}
+        )
 
         assert response.status_code == 401
 
     def test_get_current_user_info(self, client):
         """Test getting current user info."""
         # First login to get token
-        login_response = client.post("/api/v1/auth/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response = client.post(
+            "/api/v1/auth/login", json={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
 
         # Get user info
-        response = client.get("/api/v1/auth/me", headers={
-            "Authorization": f"Bearer {token}"
-        })
+        response = client.get(
+            "/api/v1/auth/me", headers={"Authorization": f"Bearer {token}"}
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -195,25 +196,24 @@ class TestAuthEndpoints:
 
     def test_get_current_user_invalid_token(self, client):
         """Test getting user info with invalid token."""
-        response = client.get("/api/v1/auth/me", headers={
-            "Authorization": "Bearer invalid_token"
-        })
+        response = client.get(
+            "/api/v1/auth/me", headers={"Authorization": "Bearer invalid_token"}
+        )
 
         assert response.status_code == 401
 
     def test_get_user_permissions(self, client):
         """Test getting user permissions."""
         # First login to get token
-        login_response = client.post("/api/v1/auth/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response = client.post(
+            "/api/v1/auth/login", json={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
 
         # Get permissions
-        response = client.get("/api/v1/auth/permissions", headers={
-            "Authorization": f"Bearer {token}"
-        })
+        response = client.get(
+            "/api/v1/auth/permissions", headers={"Authorization": f"Bearer {token}"}
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -225,16 +225,15 @@ class TestAuthEndpoints:
     def test_refresh_token(self, client):
         """Test token refresh."""
         # First login to get token
-        login_response = client.post("/api/v1/auth/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response = client.post(
+            "/api/v1/auth/login", json={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
 
         # Refresh token
-        response = client.post("/api/v1/auth/refresh", headers={
-            "Authorization": f"Bearer {token}"
-        })
+        response = client.post(
+            "/api/v1/auth/refresh", headers={"Authorization": f"Bearer {token}"}
+        )
 
         assert response.status_code == 200
         data = response.json()
@@ -245,16 +244,15 @@ class TestAuthEndpoints:
     def test_logout(self, client):
         """Test logout functionality."""
         # First login to get token
-        login_response = client.post("/api/v1/auth/login", json={
-            "username": "admin",
-            "password": "admin123"
-        })
+        login_response = client.post(
+            "/api/v1/auth/login", json={"username": "admin", "password": "admin123"}
+        )
         token = login_response.json()["access_token"]
 
         # Logout
-        response = client.post("/api/v1/auth/logout", headers={
-            "Authorization": f"Bearer {token}"
-        })
+        response = client.post(
+            "/api/v1/auth/logout", headers={"Authorization": f"Bearer {token}"}
+        )
 
         assert response.status_code == 200
         data = response.json()

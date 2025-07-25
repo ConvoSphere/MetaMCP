@@ -35,11 +35,8 @@ class TestMCPConnection:
                 "method": "initialize",
                 "params": {
                     "protocolVersion": "1.0.0",
-                    "clientInfo": {
-                        "name": "TestMCPClient",
-                        "version": "1.0.0"
-                    }
-                }
+                    "clientInfo": {"name": "TestMCPClient", "version": "1.0.0"},
+                },
             }
 
             await websocket.send(json.dumps(init_message))
@@ -55,7 +52,9 @@ class TestMCPConnection:
             # Should be success or error, not both
             has_result = "result" in response_data
             has_error = "error" in response_data
-            assert has_result != has_error, "Response should have either result or error, not both"
+            assert (
+                has_result != has_error
+            ), "Response should have either result or error, not both"
 
             if has_result:
                 result = response_data["result"]
@@ -76,11 +75,8 @@ class TestMCPConnection:
                 "method": "initialize",
                 "params": {
                     "protocolVersion": "invalid_version",
-                    "clientInfo": {
-                        "name": "TestMCPClient",
-                        "version": "1.0.0"
-                    }
-                }
+                    "clientInfo": {"name": "TestMCPClient", "version": "1.0.0"},
+                },
             }
 
             await websocket.send(json.dumps(init_message))
@@ -100,7 +96,7 @@ class TestMCPConnection:
             init_message = {
                 "jsonrpc": "2.0",
                 "id": 1,
-                "method": "initialize"
+                "method": "initialize",
                 # Missing params
             }
 
@@ -129,11 +125,8 @@ class TestMCPTools:
                 "method": "initialize",
                 "params": {
                     "protocolVersion": "1.0.0",
-                    "clientInfo": {
-                        "name": "TestMCPClient",
-                        "version": "1.0.0"
-                    }
-                }
+                    "clientInfo": {"name": "TestMCPClient", "version": "1.0.0"},
+                },
             }
 
             await websocket.send(json.dumps(init_message))
@@ -147,7 +140,7 @@ class TestMCPTools:
                     "jsonrpc": "2.0",
                     "id": 2,
                     "method": "tools/list",
-                    "params": {}
+                    "params": {},
                 }
 
                 await websocket.send(json.dumps(list_message))
@@ -188,11 +181,8 @@ class TestMCPTools:
                 "method": "initialize",
                 "params": {
                     "protocolVersion": "1.0.0",
-                    "clientInfo": {
-                        "name": "TestMCPClient",
-                        "version": "1.0.0"
-                    }
-                }
+                    "clientInfo": {"name": "TestMCPClient", "version": "1.0.0"},
+                },
             }
 
             await websocket.send(json.dumps(init_message))
@@ -208,10 +198,8 @@ class TestMCPTools:
                     "method": "tools/call",
                     "params": {
                         "name": "nonexistent_tool",
-                        "arguments": {
-                            "param1": "value1"
-                        }
-                    }
+                        "arguments": {"param1": "value1"},
+                    },
                 }
 
                 await websocket.send(json.dumps(call_message))
@@ -235,11 +223,8 @@ class TestMCPTools:
                 "method": "initialize",
                 "params": {
                     "protocolVersion": "1.0.0",
-                    "clientInfo": {
-                        "name": "TestMCPClient",
-                        "version": "1.0.0"
-                    }
-                }
+                    "clientInfo": {"name": "TestMCPClient", "version": "1.0.0"},
+                },
             }
 
             await websocket.send(json.dumps(init_message))
@@ -253,7 +238,7 @@ class TestMCPTools:
                     "jsonrpc": "2.0",
                     "id": 4,
                     "method": "invalid/method",
-                    "params": {}
+                    "params": {},
                 }
 
                 await websocket.send(json.dumps(invalid_message))
@@ -290,11 +275,7 @@ class TestMCPErrorHandling:
     async def test_mcp_missing_jsonrpc(self):
         """Test MCP message without jsonrpc field."""
         async with websockets.connect(WS_URL, timeout=30.0) as websocket:
-            message = {
-                "id": 1,
-                "method": "initialize",
-                "params": {}
-            }
+            message = {"id": 1, "method": "initialize", "params": {}}
 
             await websocket.send(json.dumps(message))
             response = await websocket.recv()
@@ -318,18 +299,10 @@ class TestMCPErrorHandling:
                     "method": "initialize",
                     "params": {
                         "protocolVersion": "1.0.0",
-                        "clientInfo": {
-                            "name": "TestMCPClient",
-                            "version": "1.0.0"
-                        }
-                    }
+                        "clientInfo": {"name": "TestMCPClient", "version": "1.0.0"},
+                    },
                 },
-                {
-                    "jsonrpc": "2.0",
-                    "id": 2,
-                    "method": "tools/list",
-                    "params": {}
-                }
+                {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
             ]
 
             # Send all messages

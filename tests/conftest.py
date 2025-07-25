@@ -10,13 +10,11 @@ import os
 import sys
 import tempfile
 import time
+from collections.abc import AsyncGenerator, Generator
 from pathlib import Path
-from typing import AsyncGenerator, Dict, Generator, List, Optional
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
-import httpx
 import pytest
-import pytest_asyncio
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from httpx import AsyncClient
@@ -27,12 +25,11 @@ from sqlalchemy.orm import sessionmaker
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from metamcp.api.router import create_api_router
 from metamcp.config import Settings
 from metamcp.main import create_app
 from metamcp.services.auth_service import AuthService
-from metamcp.services.tool_service import ToolService
 from metamcp.services.search_service import SearchService
+from metamcp.services.tool_service import ToolService
 from metamcp.utils.cache import Cache
 from metamcp.utils.circuit_breaker import CircuitBreaker
 from metamcp.utils.rate_limiter import RateLimiter
@@ -45,34 +42,26 @@ def test_settings() -> Settings:
     return Settings(
         # Database
         database_url="sqlite:///./test.db",
-        
         # Vector Database
         vector_database_url="http://localhost:8080",
-        
         # Security
         secret_key="test-secret-key-for-testing-only",
         algorithm="HS256",
         access_token_expire_minutes=30,
-        
         # Logging
         log_level="DEBUG",
-        
         # Testing
         testing=True,
-        
         # Rate Limiting
         rate_limit_enabled=True,
         rate_limit_requests_per_minute=100,
-        
         # Cache
         cache_enabled=True,
         cache_ttl_seconds=300,
-        
         # Circuit Breaker
         circuit_breaker_enabled=True,
         circuit_breaker_failure_threshold=5,
         circuit_breaker_recovery_timeout=60,
-        
         # Admin UI
         admin_ui_enabled=True,
         admin_ui_port=8081,
@@ -155,7 +144,7 @@ def circuit_breaker(test_settings: Settings) -> CircuitBreaker:
     """Create CircuitBreaker instance for testing."""
     return CircuitBreaker(
         failure_threshold=test_settings.circuit_breaker_failure_threshold,
-        recovery_timeout=test_settings.circuit_breaker_recovery_timeout
+        recovery_timeout=test_settings.circuit_breaker_recovery_timeout,
     )
 
 
@@ -167,7 +156,7 @@ def rate_limiter(test_settings: Settings) -> RateLimiter:
 
 # Test Data Fixtures
 @pytest.fixture
-def sample_user_data() -> Dict:
+def sample_user_data() -> dict:
     """Provide sample user data for testing."""
     return {
         "username": "testuser",
@@ -180,7 +169,7 @@ def sample_user_data() -> Dict:
 
 
 @pytest.fixture
-def sample_tool_data() -> Dict:
+def sample_tool_data() -> dict:
     """Provide sample tool data for testing."""
     return {
         "name": "Calculator",
@@ -190,42 +179,38 @@ def sample_tool_data() -> Dict:
         "input_schema": {
             "type": "object",
             "properties": {
-                "operation": {"type": "string", "enum": ["add", "subtract", "multiply", "divide"]},
+                "operation": {
+                    "type": "string",
+                    "enum": ["add", "subtract", "multiply", "divide"],
+                },
                 "a": {"type": "number"},
-                "b": {"type": "number"}
+                "b": {"type": "number"},
             },
-            "required": ["operation", "a", "b"]
+            "required": ["operation", "a", "b"],
         },
         "output_schema": {
             "type": "object",
             "properties": {
                 "result": {"type": "number"},
-                "operation": {"type": "string"}
-            }
+                "operation": {"type": "string"},
+            },
         },
         "endpoints": [
-            {
-                "url": "http://localhost:8001/calculate",
-                "method": "POST",
-                "timeout": 30
-            }
+            {"url": "http://localhost:8001/calculate", "method": "POST", "timeout": 30}
         ],
         "tags": ["math", "calculator"],
-        "category": "utility"
+        "category": "utility",
     }
 
 
 @pytest.fixture
-def sample_search_query() -> Dict:
+def sample_search_query() -> dict:
     """Provide sample search query for testing."""
     return {
         "query": "calculator tool",
-        "filters": {
-            "category": "utility",
-            "tags": ["math"]
-        },
+        "filters": {"category": "utility", "tags": ["math"]},
         "limit": 10,
-        "offset": 0
+        "offset": 0,
     }
 
 
@@ -256,15 +241,15 @@ def mock_llm_service():
 
 # Authentication Fixtures
 @pytest.fixture
-async def test_user_token(auth_service: AuthService, sample_user_data: Dict) -> str:
+async def test_user_token(auth_service: AuthService, sample_user_data: dict) -> str:
     """Create a test user and return authentication token."""
     # Create test user
     user = await auth_service.create_user(sample_user_data)
-    
+
     # Generate token
     token_data = {"sub": user["username"], "permissions": user["permissions"]}
     token = await auth_service.create_access_token(token_data)
-    
+
     return token
 
 
@@ -279,20 +264,20 @@ async def admin_token(auth_service: AuthService) -> str:
         "is_active": True,
         "is_admin": True,
     }
-    
+
     # Create admin user
     user = await auth_service.create_user(admin_data)
-    
+
     # Generate token
     token_data = {"sub": user["username"], "permissions": user["permissions"]}
     token = await auth_service.create_access_token(token_data)
-    
+
     return token
 
 
 # Tool Fixtures
 @pytest.fixture
-async def registered_tool(tool_service: ToolService, sample_tool_data: Dict) -> str:
+async def registered_tool(tool_service: ToolService, sample_tool_data: dict) -> str:
     """Register a test tool and return its ID."""
     tool_id = await tool_service.register_tool(sample_tool_data, "testuser")
     return tool_id
@@ -362,7 +347,7 @@ async def test_environment():
         os.environ["META_MCP_TESTING"] = "true"
         os.environ["META_MCP_DATABASE_URL"] = f"sqlite:///{temp_dir}/test.db"
         os.environ["META_MCP_LOG_LEVEL"] = "DEBUG"
-        
+
         yield {
             "temp_dir": temp_dir,
             "database_url": f"sqlite:///{temp_dir}/test.db",
@@ -372,7 +357,7 @@ async def test_environment():
 # Test Utilities
 class TestUtils:
     """Utility class for common test operations."""
-    
+
     @staticmethod
     def assert_success_response(response, expected_status: int = 200):
         """Assert successful HTTP response and return JSON data."""
@@ -381,9 +366,11 @@ class TestUtils:
         assert "status" in data
         assert data["status"] == "success"
         return data.get("data", data)
-    
+
     @staticmethod
-    def assert_error_response(response, expected_status: int, expected_error: Optional[str] = None):
+    def assert_error_response(
+        response, expected_status: int, expected_error: str | None = None
+    ):
         """Assert error HTTP response and return error data."""
         assert response.status_code == expected_status
         data = response.json()
@@ -393,14 +380,14 @@ class TestUtils:
             assert "error" in data
             assert expected_error in data["error"]
         return data
-    
+
     @staticmethod
     def create_test_file(content: str, extension: str = ".txt") -> Path:
         """Create a temporary test file."""
         temp_file = Path(tempfile.mktemp(suffix=extension))
         temp_file.write_text(content)
         return temp_file
-    
+
     @staticmethod
     def measure_time(func, *args, **kwargs):
         """Measure execution time of a function."""
@@ -408,7 +395,7 @@ class TestUtils:
         result = func(*args, **kwargs)
         end_time = time.time()
         return result, end_time - start_time
-    
+
     @staticmethod
     async def measure_async_time(func, *args, **kwargs):
         """Measure execution time of an async function."""
@@ -430,36 +417,24 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "slow: marks tests as slow (deselect with '-m \"not slow\"')"
     )
-    config.addinivalue_line(
-        "markers", "integration: marks tests as integration tests"
-    )
-    config.addinivalue_line(
-        "markers", "performance: marks tests as performance tests"
-    )
-    config.addinivalue_line(
-        "markers", "security: marks tests as security tests"
-    )
-    config.addinivalue_line(
-        "markers", "benchmark: marks tests as benchmarks"
-    )
-    config.addinivalue_line(
-        "markers", "load: marks tests as load tests"
-    )
-    config.addinivalue_line(
-        "markers", "stress: marks tests as stress tests"
-    )
+    config.addinivalue_line("markers", "integration: marks tests as integration tests")
+    config.addinivalue_line("markers", "performance: marks tests as performance tests")
+    config.addinivalue_line("markers", "security: marks tests as security tests")
+    config.addinivalue_line("markers", "benchmark: marks tests as benchmarks")
+    config.addinivalue_line("markers", "load: marks tests as load tests")
+    config.addinivalue_line("markers", "stress: marks tests as stress tests")
 
 
 # Test Data Factories
 class TestDataFactory:
     """Factory for creating test data."""
-    
+
     @staticmethod
-    def create_user_data(username: str = None, **kwargs) -> Dict:
+    def create_user_data(username: str = None, **kwargs) -> dict:
         """Create user test data."""
         if username is None:
             username = f"testuser_{int(time.time())}"
-        
+
         return {
             "username": username,
             "email": f"{username}@example.com",
@@ -467,15 +442,15 @@ class TestDataFactory:
             "full_name": f"Test User {username}",
             "is_active": True,
             "is_admin": False,
-            **kwargs
+            **kwargs,
         }
-    
+
     @staticmethod
-    def create_tool_data(name: str = None, **kwargs) -> Dict:
+    def create_tool_data(name: str = None, **kwargs) -> dict:
         """Create tool test data."""
         if name is None:
             name = f"testtool_{int(time.time())}"
-        
+
         return {
             "name": name,
             "description": f"A test tool called {name}",
@@ -483,39 +458,25 @@ class TestDataFactory:
             "author": "Test Author",
             "input_schema": {
                 "type": "object",
-                "properties": {
-                    "input": {"type": "string"}
-                },
-                "required": ["input"]
+                "properties": {"input": {"type": "string"}},
+                "required": ["input"],
             },
             "output_schema": {
                 "type": "object",
-                "properties": {
-                    "result": {"type": "string"}
-                }
+                "properties": {"result": {"type": "string"}},
             },
             "endpoints": [
-                {
-                    "url": "http://localhost:8001/test",
-                    "method": "POST",
-                    "timeout": 30
-                }
+                {"url": "http://localhost:8001/test", "method": "POST", "timeout": 30}
             ],
             "tags": ["test"],
             "category": "utility",
-            **kwargs
+            **kwargs,
         }
-    
+
     @staticmethod
-    def create_search_query(query: str = "test", **kwargs) -> Dict:
+    def create_search_query(query: str = "test", **kwargs) -> dict:
         """Create search query test data."""
-        return {
-            "query": query,
-            "filters": {},
-            "limit": 10,
-            "offset": 0,
-            **kwargs
-        }
+        return {"query": query, "filters": {}, "limit": 10, "offset": 0, **kwargs}
 
 
 @pytest.fixture
@@ -546,5 +507,5 @@ def test_config():
             "response_time_ms": 1000,
             "memory_mb": 512,
             "cpu_percent": 80,
-        }
+        },
     }
