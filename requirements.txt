@@ -17,6 +17,7 @@ pydantic-settings
 # --- Database (PostgreSQL, optional for persistence) ---
 sqlalchemy
 alembic
+asyncpg
 
 # --- Vector Search ---
 weaviate-client

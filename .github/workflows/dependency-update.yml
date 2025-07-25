@@ -1,0 +1,69 @@
+name: Dependency Updates
+
+on:
+  schedule:
+    - cron: '0 10 * * 1'  # Every Monday at 10 AM
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-dependencies:
+    name: Update Dependencies
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v1
+      with:
+        version: '1.0.0'
+
+    - name: Update Python dependencies
+      run: |
+        # Update requirements.txt
+        uv pip compile --upgrade --output-file requirements.txt pyproject.toml
+        
+        # Update dev requirements
+        uv pip compile --upgrade --extra dev --output-file requirements-dev.txt pyproject.toml
+
+    - name: Run security check on updated dependencies
+      run: |
+        uv pip install safety
+        uv pip install -r requirements.txt
+        safety check -r requirements.txt --output safety-check.txt || true
+
+    - name: Create Pull Request
+      uses: peter-evans/create-pull-request@v5
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        commit-message: "chore: update dependencies"
+        title: "🔄 Automated Dependency Updates"
+        body: |
+          ## 🔄 Automated Dependency Updates
+          
+          This PR contains automated updates to project dependencies.
+          
+          ### Changes
+          - Updated `requirements.txt`
+          - Updated `requirements-dev.txt`
+          
+          ### Security Check
+          See attached safety check results.
+          
+          Please review the changes before merging.
+        branch: automated/dependency-updates
+        delete-branch: true
+        labels: |
+          dependencies
+          automated
+        assignees: ${{ github.actor }}

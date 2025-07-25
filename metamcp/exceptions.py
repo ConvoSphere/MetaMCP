@@ -187,6 +187,17 @@ class WorkflowValidationError(MetaMCPException):
         )
 
 
+class WorkflowPersistenceError(MetaMCPException):
+    """Raised when workflow persistence operations fail."""
+    
+    def __init__(self, message: str, error_code: str = "workflow_persistence_error"):
+        super().__init__(
+            message=message,
+            error_code=error_code,
+            status_code=500
+        )
+
+
 # Search-related exceptions
 class SearchError(MetaMCPException):
     """Raised when search operations fail."""
@@ -413,6 +424,7 @@ __all__ = [
     "ServerDiscoveryError",
     "WorkflowExecutionError",
     "WorkflowValidationError",
+    "WorkflowPersistenceError",
     "SearchError",
     "ValidationError",
     "CircuitBreakerOpenError",

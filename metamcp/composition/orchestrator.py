@@ -313,15 +313,46 @@ class WorkflowOrchestrator:
 
     async def _load_persisted_workflows(self) -> None:
         """Load persisted workflows from storage."""
-        # TODO: Implement persistence layer
-        # For now, this is a placeholder
-        logger.info("Loading persisted workflows...")
+        try:
+            from metamcp.composition.persistence import get_persistence_manager
+            persistence = get_persistence_manager()
+            
+            # Initialize persistence if needed
+            if not hasattr(persistence, '_initialized'):
+                await persistence.initialize()
+                persistence._initialized = True
+            
+            # Load all workflows
+            workflows = await persistence.load_all_workflows()
+            
+            # Register loaded workflows
+            for workflow in workflows:
+                self._workflows[workflow.id] = workflow
+                logger.debug(f"Loaded workflow: {workflow.id} - {workflow.name}")
+            
+            logger.info(f"Loaded {len(workflows)} persisted workflows")
+            
+        except Exception as e:
+            logger.error(f"Failed to load persisted workflows: {e}")
+            # Don't raise exception to allow startup to continue
 
     async def _persist_workflow(self, workflow: WorkflowDefinition) -> None:
         """Persist workflow to storage."""
-        # TODO: Implement persistence layer
-        # For now, this is a placeholder
-        logger.debug(f"Persisting workflow: {workflow.id}")
+        try:
+            from metamcp.composition.persistence import get_persistence_manager
+            persistence = get_persistence_manager()
+            
+            # Initialize persistence if needed
+            if not hasattr(persistence, '_initialized'):
+                await persistence.initialize()
+                persistence._initialized = True
+            
+            await persistence.save_workflow(workflow)
+            logger.debug(f"Persisted workflow: {workflow.id}")
+            
+        except Exception as e:
+            logger.error(f"Failed to persist workflow {workflow.id}: {e}")
+            # Don't raise exception to allow operation to continue
 
     async def shutdown(self) -> None:
         """Shutdown the workflow orchestrator."""
