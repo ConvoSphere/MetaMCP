@@ -102,12 +102,12 @@ class MetaMCPServer:
                 await self.telemetry_manager.initialize()
                 logger.info("Telemetry initialized")
 
-            # Create FastAPI application
-            self.app = self._create_fastapi_app()
-
-            # Initialize MCP server
+            # Initialize MCP server first
             self.mcp_server = MCPServer()
             await self.mcp_server.initialize()
+
+            # Create FastAPI application after MCP server is initialized
+            self.app = self._create_fastapi_app()
 
             logger.info("MetaMCP Server initialized successfully")
 
@@ -151,7 +151,7 @@ class MetaMCPServer:
     def _add_middleware(self, app: FastAPI) -> None:
         """Add middleware to the FastAPI application."""
 
-        # CORS middleware
+        # CORS middleware (first to handle preflight requests)
         app.add_middleware(
             CORSMiddleware,
             allow_origins=self.settings.cors_origins,
@@ -163,7 +163,7 @@ class MetaMCPServer:
         # Gzip middleware
         app.add_middleware(GZipMiddleware, minimum_size=1000)
 
-        # Rate limiting middleware
+        # Rate limiting middleware (skip for WebSocket connections)
         rate_limiter = create_rate_limiter(use_redis=False)  # Use memory limiter for now
         app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
 
@@ -246,7 +246,11 @@ class MetaMCPServer:
 
         # Add MCP routes
         if self.mcp_server:
+            logger.info(f"Adding MCP routes with router: {self.mcp_server.router}")
             app.include_router(self.mcp_server.router, prefix="/mcp")
+            logger.info("MCP routes added successfully")
+        else:
+            logger.warning("MCP server not available, skipping MCP routes")
 
     async def _shutdown(self) -> None:
         """Shutdown the server components."""

@@ -136,11 +136,14 @@ class MCPServer:
 
     def _setup_routes(self) -> None:
         """Setup API routes."""
+        logger.info("Setting up MCP routes...")
 
         @self.router.websocket("/ws")
         async def websocket_endpoint(websocket: WebSocket):
             """WebSocket endpoint for MCP communication."""
+            logger.info("WebSocket connection attempt")
             await websocket.accept()
+            logger.info("WebSocket connection accepted")
 
             try:
                 # Handle WebSocket communication directly
@@ -155,6 +158,7 @@ class MCPServer:
         @self.router.get("/tools")
         async def list_tools():
             """List available tools."""
+            logger.info("MCP tools endpoint called")
             try:
                 tools = await self._handle_list_tools()
                 return {"tools": tools}
@@ -169,6 +173,7 @@ class MCPServer:
         @self.router.post("/tools/{tool_name}/execute")
         async def execute_tool(tool_name: str, input_data: dict[str, Any]):
             """Execute a tool."""
+            logger.info(f"MCP tool execution endpoint called for {tool_name}")
             try:
                 result = await self._handle_call_tool(tool_name, input_data)
                 return {"result": result}
@@ -179,6 +184,9 @@ class MCPServer:
                     message=f"Failed to execute tool {tool_name}",
                     details=str(e)
                 )
+
+        logger.info(f"MCP routes setup complete. Router: {self.router}")
+        logger.info(f"MCP router routes: {[route.path for route in self.router.routes]}")
 
     async def _handle_list_tools(self) -> list[Tool]:
         """Handle list tools request."""

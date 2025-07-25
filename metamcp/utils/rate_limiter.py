@@ -174,6 +174,10 @@ class RateLimitMiddleware:
     async def __call__(self, request: Any, call_next):
         """Process request with rate limiting."""
         try:
+            # Skip rate limiting for WebSocket connections
+            if request.url.path.startswith("/mcp/ws"):
+                return await call_next(request)
+            
             # Generate rate limit key
             key = self.rate_limiter.generate_key(request)
             
