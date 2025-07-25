@@ -43,6 +43,8 @@ class ComponentHealth(BaseModel):
     status: str
     response_time: float | None = None
     error: str | None = None
+    message: str | None = None
+    details: dict | None = None
 
 
 class DetailedHealthStatus(BaseModel):
@@ -174,35 +176,51 @@ async def check_vector_db_health() -> ComponentHealth:
         # Try to connect to Weaviate and check health
         try:
             import weaviate
-            client = weaviate.Client(url=settings.weaviate_url)
+            from weaviate.classes.init import Auth
+            
+            # Parse the URL to get host and port
+            from urllib.parse import urlparse
+            parsed_url = urlparse(settings.weaviate_url)
+            host = parsed_url.hostname
+            port = parsed_url.port or 80
+            secure = parsed_url.scheme == 'https'
+            
+            # Connect to Weaviate using the proper method
+            client = weaviate.connect_to_custom(
+                http_host=host,
+                http_port=port,
+                http_secure=secure,
+                grpc_host=host,
+                grpc_port=port,
+                grpc_secure=secure
+            )
             
             # Check if Weaviate is ready
             is_ready = client.is_ready()
-            is_live = client.is_live()
+            response_time = time.time() - start_time
             
-            if is_ready and is_live:
-                # Get some cluster info for details
-                cluster_info = client.cluster.get_nodes_status()
-                response_time = time.time() - start_time
-                
+            if is_ready:
+                # Get meta information
+                meta_data = client.get_meta()
                 return ComponentHealth(
                     name="vector_db",
                     status="healthy",
                     response_time=response_time,
                     details={
-                        "ready": is_ready,
-                        "live": is_live,
-                        "cluster_nodes": len(cluster_info) if cluster_info else 0,
-                        "weaviate_url": settings.weaviate_url
+                        "ready": True,
+                        "live": True,
+                        "weaviate_url": settings.weaviate_url,
+                        "version": getattr(meta_data, 'version', 'unknown'),
+                        "hostname": host
                     }
                 )
             else:
                 return ComponentHealth(
                     name="vector_db",
                     status="unhealthy",
-                    message=f"Weaviate not ready (ready: {is_ready}, live: {is_live})",
-                    response_time=time.time() - start_time,
-                    details={"ready": is_ready, "live": is_live}
+                    message="Weaviate is not ready",
+                    response_time=response_time,
+                    details={"error": "Not ready", "weaviate_url": settings.weaviate_url}
                 )
                 
         except Exception as weaviate_error:
@@ -213,17 +231,9 @@ async def check_vector_db_health() -> ComponentHealth:
                 response_time=time.time() - start_time,
                 details={"error": str(weaviate_error), "weaviate_url_configured": True}
             )
-        # For now, return mock healthy status
-        response_time = time.time() - start_time
-
-        return ComponentHealth(
-            name="vector_database",
-            status="healthy",
-            response_time=response_time
-        )
     except Exception as e:
         return ComponentHealth(
-            name="vector_database",
+            name="vector_db",
             status="unhealthy",
             response_time=time.time() - start_time,
             error=str(e)

@@ -45,7 +45,7 @@ class VectorSearchClient:
         self.timeout = timeout
 
         # Weaviate client
-        self.client: weaviate.Client | None = None
+        self.client: weaviate.WeaviateClient | None = None
 
         self._initialized = False
 
@@ -57,17 +57,19 @@ class VectorSearchClient:
         try:
             logger.info("Initializing Vector Search Client...")
 
-            # Create Weaviate client
-            auth_config = None
+            # Create Weaviate client using v4 API
+            from weaviate.classes.config import ConnectionParams
+            
             if self.api_key:
-                auth_config = weaviate.auth.Auth.api_key(self.api_key)
-
-            # Use the correct connection method for Weaviate
-            self.client = weaviate.Client(
-                url=self.url,
-                auth_client_secret=auth_config,
-                timeout_config=(self.timeout, self.timeout)
-            )
+                connection_params = ConnectionParams.from_url(
+                    self.url,
+                    auth_credentials=weaviate.auth.Auth.api_key(self.api_key),
+                    additional_headers={"X-OpenAI-Api-Key": self.api_key}
+                )
+            else:
+                connection_params = ConnectionParams.from_url(self.url)
+                
+            self.client = weaviate.WeaviateClient(connection_params)
 
             # Test connection
             await self._test_connection()
@@ -88,13 +90,8 @@ class VectorSearchClient:
     async def _test_connection(self) -> None:
         """Test connection to Weaviate."""
         try:
-            # Simple health check
-            is_ready = self.client.is_ready()
-            if not is_ready:
-                raise VectorSearchError(
-                    message="Weaviate server is not ready",
-                    error_code="weaviate_not_ready"
-                )
+            # Simple health check using v4 API
+            response = self.client.get_meta()
             logger.info("Weaviate connection test successful")
         except Exception as e:
             logger.error(f"Weaviate connection test failed: {e}")
