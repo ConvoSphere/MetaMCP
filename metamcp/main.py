@@ -40,6 +40,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     logger.info("Starting MCP Meta-Server...")
 
     try:
+        # Initialize database connection pool
+        from .utils.database import initialize_database
+        await initialize_database()
+        logger.info("Database connection pool initialized")
+
         # Initialize the MCP server
         mcp_server = MetaMCPServer()
         await mcp_server.initialize()
@@ -67,6 +72,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
         if hasattr(app.state, "mcp_server"):
             await app.state.mcp_server._shutdown()
+
+        # Close database connection pool
+        from .utils.database import close_database
+        await close_database()
+        logger.info("Database connection pool closed")
 
         logger.info("MCP Meta-Server shutdown complete")
 

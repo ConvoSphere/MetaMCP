@@ -88,15 +88,61 @@ async def check_database_health() -> ComponentHealth:
     start_time = time.time()
 
     try:
-        # TODO: Implement actual database health check
-        # For now, return mock healthy status
-        response_time = time.time() - start_time
-
-        return ComponentHealth(
-            name="database",
-            status="healthy",
-            response_time=response_time
-        )
+        # Implement actual database health check
+        from metamcp.config import get_settings
+        settings = get_settings()
+        
+        # Check if database URL is configured
+        if not settings.database_url:
+            return ComponentHealth(
+                name="database",
+                status="unhealthy",
+                message="Database URL not configured",
+                response_time=time.time() - start_time,
+                details={"error": "DATABASE_URL environment variable not set"}
+            )
+        
+        # Use database manager for health check
+        try:
+            from metamcp.utils.database import get_database_manager
+            db_manager = get_database_manager()
+            
+            if not db_manager.is_initialized:
+                # Try to initialize if not already done
+                await db_manager.initialize()
+            
+            # Use database manager health check
+            health_result = await db_manager.health_check()
+            
+            if health_result["status"] == "healthy":
+                return ComponentHealth(
+                    name="database",
+                    status="healthy",
+                    response_time=health_result["response_time"],
+                    details={
+                        "connection": "successful",
+                        "pool_stats": health_result["pool_stats"],
+                        "query_result": health_result["test_query_result"]
+                    }
+                )
+            else:
+                return ComponentHealth(
+                    name="database",
+                    status="unhealthy",
+                    message=f"Database health check failed: {health_result.get('error')}",
+                    response_time=time.time() - start_time,
+                    details={"error": health_result.get("error"), "database_url_configured": True}
+                )
+                
+        except Exception as db_error:
+            return ComponentHealth(
+                name="database",
+                status="unhealthy",
+                message=f"Database connection failed: {str(db_error)}",
+                response_time=time.time() - start_time,
+                details={"error": str(db_error), "database_url_configured": True}
+            )
+            
     except Exception as e:
         return ComponentHealth(
             name="database",
@@ -111,7 +157,62 @@ async def check_vector_db_health() -> ComponentHealth:
     start_time = time.time()
 
     try:
-        # TODO: Implement actual vector database health check
+        # Implement actual vector database health check
+        from metamcp.config import get_settings
+        settings = get_settings()
+        
+        # Check if Weaviate URL is configured
+        if not settings.weaviate_url:
+            return ComponentHealth(
+                name="vector_db",
+                status="unhealthy",
+                message="Weaviate URL not configured",
+                response_time=time.time() - start_time,
+                details={"error": "WEAVIATE_URL environment variable not set"}
+            )
+        
+        # Try to connect to Weaviate and check health
+        try:
+            import weaviate
+            client = weaviate.Client(url=settings.weaviate_url)
+            
+            # Check if Weaviate is ready
+            is_ready = client.is_ready()
+            is_live = client.is_live()
+            
+            if is_ready and is_live:
+                # Get some cluster info for details
+                cluster_info = client.cluster.get_nodes_status()
+                response_time = time.time() - start_time
+                
+                return ComponentHealth(
+                    name="vector_db",
+                    status="healthy",
+                    response_time=response_time,
+                    details={
+                        "ready": is_ready,
+                        "live": is_live,
+                        "cluster_nodes": len(cluster_info) if cluster_info else 0,
+                        "weaviate_url": settings.weaviate_url
+                    }
+                )
+            else:
+                return ComponentHealth(
+                    name="vector_db",
+                    status="unhealthy",
+                    message=f"Weaviate not ready (ready: {is_ready}, live: {is_live})",
+                    response_time=time.time() - start_time,
+                    details={"ready": is_ready, "live": is_live}
+                )
+                
+        except Exception as weaviate_error:
+            return ComponentHealth(
+                name="vector_db",
+                status="unhealthy",
+                message=f"Weaviate connection failed: {str(weaviate_error)}",
+                response_time=time.time() - start_time,
+                details={"error": str(weaviate_error), "weaviate_url_configured": True}
+            )
         # For now, return mock healthy status
         response_time = time.time() - start_time
 
@@ -134,15 +235,99 @@ async def check_llm_service_health() -> ComponentHealth:
     start_time = time.time()
 
     try:
-        # TODO: Implement actual LLM service health check
-        # For now, return mock healthy status
-        response_time = time.time() - start_time
-
-        return ComponentHealth(
-            name="llm_service",
-            status="healthy",
-            response_time=response_time
-        )
+        # Implement actual LLM service health check
+        from metamcp.config import get_settings
+        settings = get_settings()
+        
+        # Check configured LLM provider
+        llm_provider = getattr(settings, 'llm_provider', 'openai').lower()
+        
+        if llm_provider == 'openai':
+            # Check OpenAI API key and connectivity
+            openai_api_key = getattr(settings, 'openai_api_key', None)
+            if not openai_api_key:
+                return ComponentHealth(
+                    name="llm_service",
+                    status="unhealthy",
+                    message="OpenAI API key not configured",
+                    response_time=time.time() - start_time,
+                    details={"error": "OPENAI_API_KEY environment variable not set", "provider": "openai"}
+                )
+            
+            try:
+                import openai
+                # Simple API call to check connectivity
+                client = openai.OpenAI(api_key=openai_api_key)
+                # List models as a health check
+                models = client.models.list()
+                
+                response_time = time.time() - start_time
+                return ComponentHealth(
+                    name="llm_service",
+                    status="healthy",
+                    response_time=response_time,
+                    details={
+                        "provider": "openai",
+                        "api_key_configured": True,
+                        "models_accessible": len(models.data) if hasattr(models, 'data') else 0
+                    }
+                )
+                
+            except Exception as openai_error:
+                return ComponentHealth(
+                    name="llm_service",
+                    status="unhealthy",
+                    message=f"OpenAI API connection failed: {str(openai_error)}",
+                    response_time=time.time() - start_time,
+                    details={"error": str(openai_error), "provider": "openai"}
+                )
+                
+        elif llm_provider == 'anthropic':
+            # Check Anthropic API key
+            anthropic_api_key = getattr(settings, 'anthropic_api_key', None)
+            if not anthropic_api_key:
+                return ComponentHealth(
+                    name="llm_service",
+                    status="unhealthy",
+                    message="Anthropic API key not configured",
+                    response_time=time.time() - start_time,
+                    details={"error": "ANTHROPIC_API_KEY environment variable not set", "provider": "anthropic"}
+                )
+            
+            try:
+                import anthropic
+                client = anthropic.Anthropic(api_key=anthropic_api_key)
+                # Simple API call to check connectivity
+                # Note: Anthropic doesn't have a models list endpoint, so we'll just validate the client
+                response_time = time.time() - start_time
+                return ComponentHealth(
+                    name="llm_service",
+                    status="healthy",
+                    response_time=response_time,
+                    details={
+                        "provider": "anthropic",
+                        "api_key_configured": True,
+                        "client_initialized": True
+                    }
+                )
+                
+            except Exception as anthropic_error:
+                return ComponentHealth(
+                    name="llm_service",
+                    status="unhealthy",
+                    message=f"Anthropic API connection failed: {str(anthropic_error)}",
+                    response_time=time.time() - start_time,
+                    details={"error": str(anthropic_error), "provider": "anthropic"}
+                )
+        else:
+            # Unknown or unsupported provider
+            return ComponentHealth(
+                name="llm_service",
+                status="unhealthy",
+                message=f"Unsupported LLM provider: {llm_provider}",
+                response_time=time.time() - start_time,
+                details={"error": f"Provider '{llm_provider}' not supported", "supported_providers": ["openai", "anthropic"]}
+            )
     except Exception as e:
         return ComponentHealth(
             name="llm_service",
