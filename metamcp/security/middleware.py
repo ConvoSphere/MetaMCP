@@ -1,365 +1,236 @@
 """
-Enhanced Security Features
+Security Middleware
 
-This module provides comprehensive security middleware including request signing,
-API key management, IP whitelisting, and security headers.
+This module provides security middleware for XSS protection, CSRF protection,
+and input validation.
 """
 
-import hashlib
-import hmac
-import time
-from dataclasses import dataclass
-from typing import Any
+import re
+import secrets
+from typing import Any, Callable
+from urllib.parse import urlparse
+
+from fastapi import Request, Response
+from fastapi.responses import JSONResponse
+from starlette.middleware.base import BaseHTTPMiddleware
 
 from ..config import get_settings
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
+settings = get_settings()
 
 
-@dataclass
-class SecurityConfig:
-    """Security configuration."""
+class SecurityMiddleware(BaseHTTPMiddleware):
+    """Security middleware for XSS and CSRF protection."""
 
-    enable_request_signing: bool = True
-    enable_api_keys: bool = True
-    enable_ip_whitelist: bool = False
-    enable_security_headers: bool = True
-    allowed_ips: set[str] | None = None
+    def __init__(self, app, csrf_enabled: bool = True, xss_enabled: bool = True):
+        super().__init__(app)
+        self.csrf_enabled = csrf_enabled
+        self.xss_enabled = xss_enabled
+        self.csrf_tokens: dict[str, str] = {}  # In production, use Redis/database
 
-    def __post_init__(self):
-        """Initialize default values."""
-        if self.allowed_ips is None:
-            self.allowed_ips = set()
-
-    api_key_header: str = "X-API-Key"
-    signature_header: str = "X-Signature"
-    timestamp_header: str = "X-Timestamp"
-    max_timestamp_drift: int = 300  # 5 minutes
-
-
-class RequestSigner:
-    """Handles request signing and verification."""
-
-    def __init__(self, secret_key: str):
-        """Initialize request signer."""
-        self.secret_key = secret_key.encode("utf-8")
-        self.logger = get_logger(__name__)
-
-    def sign_request(
-        self, method: str, path: str, body: str = "", timestamp: int | None = None
-    ) -> str:
-        """Sign a request."""
-        if timestamp is None:
-            timestamp = int(time.time())
-
-        # Create signature string
-        signature_string = f"{method.upper()}{path}{body}{timestamp}"
-
-        # Create HMAC signature
-        signature = hmac.new(
-            self.secret_key, signature_string.encode("utf-8"), hashlib.sha256
-        ).hexdigest()
-
-        return signature
-
-    def verify_signature(
-        self, method: str, path: str, body: str, signature: str, timestamp: int
-    ) -> bool:
-        """Verify request signature."""
-        expected_signature = self.sign_request(method, path, body, timestamp)
-        return hmac.compare_digest(signature, expected_signature)
-
-    def verify_timestamp(self, timestamp: int, max_drift: int = 300) -> bool:
-        """Verify request timestamp."""
-        current_time = int(time.time())
-        return abs(current_time - timestamp) <= max_drift
-
-
-class APIKeyManager:
-    """Manages API keys and permissions."""
-
-    def __init__(self):
-        """Initialize API key manager."""
-        self.logger = get_logger(__name__)
-        self.api_keys: dict[str, dict[str, Any]] = {}
-        self._initialize_default_keys()
-
-    def _initialize_default_keys(self):
-        """Initialize with default API keys."""
-        # Add some default API keys for testing
-        self.add_api_key(
-            key="test-key-1",
-            name="Test API Key 1",
-            permissions=["read", "write"],
-            rate_limit=1000,
-            expires_at=None,
-        )
-
-        self.add_api_key(
-            key="admin-key-1",
-            name="Admin API Key 1",
-            permissions=["read", "write", "admin"],
-            rate_limit=10000,
-            expires_at=None,
-        )
-
-    def add_api_key(
-        self,
-        key: str,
-        name: str,
-        permissions: list[str],
-        rate_limit: int = 1000,
-        expires_at: int | None = None,
-    ):
-        """Add a new API key."""
-        self.api_keys[key] = {
-            "name": name,
-            "permissions": permissions,
-            "rate_limit": rate_limit,
-            "expires_at": expires_at,
-            "created_at": int(time.time()),
-        }
-        self.logger.info(f"Added API key: {name}")
-
-    def validate_api_key(self, key: str) -> tuple[bool, dict[str, Any] | None]:
-        """Validate API key and return key info."""
-        if key not in self.api_keys:
-            return False, None
-
-        key_info = self.api_keys[key]
-
-        # Check if key is expired
-        if key_info and key_info["expires_at"] and time.time() > key_info["expires_at"]:
-            return False, None
-
-        return True, key_info
-
-    def has_permission(self, key: str, permission: str) -> bool:
-        """Check if API key has specific permission."""
-        is_valid, key_info = self.validate_api_key(key)
-        if not is_valid:
-            return False
-
-        return permission in key_info["permissions"]
-
-    def get_key_rate_limit(self, key: str) -> int | None:
-        """Get rate limit for API key."""
-        is_valid, key_info = self.validate_api_key(key)
-        if not is_valid:
-            return None
-
-        return key_info["rate_limit"]
-
-
-class IPWhitelistManager:
-    """Manages IP whitelisting."""
-
-    def __init__(self, allowed_ips: set[str] = None):
-        """Initialize IP whitelist manager."""
-        self.logger = get_logger(__name__)
-        self.allowed_ips = allowed_ips or set()
-        self.enabled = len(self.allowed_ips) > 0
-
-    def add_ip(self, ip: str):
-        """Add IP to whitelist."""
-        self.allowed_ips.add(ip)
-        self.enabled = True
-        self.logger.info(f"Added IP to whitelist: {ip}")
-
-    def remove_ip(self, ip: str):
-        """Remove IP from whitelist."""
-        self.allowed_ips.discard(ip)
-        self.enabled = len(self.allowed_ips) > 0
-        self.logger.info(f"Removed IP from whitelist: {ip}")
-
-    def is_ip_allowed(self, ip: str) -> bool:
-        """Check if IP is allowed."""
-        if not self.enabled:
-            return True
-
-        return ip in self.allowed_ips
-
-    def get_allowed_ips(self) -> set[str]:
-        """Get all allowed IPs."""
-        return self.allowed_ips.copy()
-
-
-class SecurityHeadersMiddleware:
-    """Adds security headers to responses."""
-
-    def __init__(self):
-        """Initialize security headers middleware."""
-        self.logger = get_logger(__name__)
-        self.settings = get_settings()
-
-    def add_security_headers(self, response: Any):
-        """Add security headers to response."""
-        headers = {
-            "X-Content-Type-Options": "nosniff",
-            "X-Frame-Options": "DENY",
-            "X-XSS-Protection": "1; mode=block",
-            "Referrer-Policy": "strict-origin-when-cross-origin",
-            "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'",
-            "Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-            "Cache-Control": "no-cache, no-store, must-revalidate",
-            "Pragma": "no-cache",
-            "Expires": "0",
-        }
-
-        for header, value in headers.items():
-            response.headers[header] = value
-
-
-class SecurityMiddleware:
-    """Comprehensive security middleware."""
-
-    def __init__(self, config: SecurityConfig):
-        """Initialize security middleware."""
-        self.config = config
-        self.logger = get_logger(__name__)
-        self.settings = get_settings()
-
-        # Initialize security components
-        self.request_signer = RequestSigner(self.settings.secret_key)
-        self.api_key_manager = APIKeyManager()
-        self.ip_whitelist_manager = IPWhitelistManager(config.allowed_ips)
-        self.security_headers = SecurityHeadersMiddleware()
-
-    async def __call__(self, request: Any, call_next):
+    async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """Process request with security checks."""
         try:
-            # Get client IP
-            client_ip = (
-                getattr(request.client, "host", "unknown")
-                if request.client
-                else "unknown"
-            )
+            # Skip security checks for certain paths
+            if self._should_skip_security(request):
+                return await call_next(request)
 
-            # Check IP whitelist
-            if not self.ip_whitelist_manager.is_ip_allowed(client_ip):
-                self.logger.warning(
-                    f"Blocked request from unauthorized IP: {client_ip}"
-                )
-                return self._create_security_error_response(
-                    "IP not whitelisted", 403, {"ip": client_ip}
-                )
-
-            # Verify API key if enabled
-            if self.config.enable_api_keys:
-                api_key = request.headers.get(self.config.api_key_header)
-                if not api_key:
-                    return self._create_security_error_response(
-                        "API key required",
-                        401,
-                        {"missing_header": self.config.api_key_header},
+            # CSRF Protection
+            if self.csrf_enabled and request.method in ["POST", "PUT", "DELETE", "PATCH"]:
+                csrf_result = await self._check_csrf(request)
+                if not csrf_result["valid"]:
+                    return JSONResponse(
+                        status_code=403,
+                        content={
+                            "error": "csrf_violation",
+                            "message": "CSRF token validation failed",
+                            "details": csrf_result["reason"]
+                        }
                     )
 
-                is_valid, key_info = self.api_key_manager.validate_api_key(api_key)
-                if not is_valid:
-                    return self._create_security_error_response(
-                        "Invalid API key", 401, {"invalid_key": True}
-                    )
-
-                # Store key info in request state for later use
-                request.state.api_key_info = key_info
-
-            # Verify request signature if enabled
-            if self.config.enable_request_signing:
-                signature = request.headers.get(self.config.signature_header)
-                timestamp = request.headers.get(self.config.timestamp_header)
-
-                if not signature or not timestamp:
-                    return self._create_security_error_response(
-                        "Request signature required", 401, {"missing_signature": True}
-                    )
-
-                try:
-                    timestamp_int = int(timestamp)
-                except ValueError:
-                    return self._create_security_error_response(
-                        "Invalid timestamp", 400, {"invalid_timestamp": True}
-                    )
-
-                # Verify timestamp
-                if not self.request_signer.verify_timestamp(
-                    timestamp_int, self.config.max_timestamp_drift
-                ):
-                    return self._create_security_error_response(
-                        "Request timestamp expired", 401, {"timestamp_expired": True}
-                    )
-
-                # Verify signature
-                body = await self._get_request_body(request)
-                if not self.request_signer.verify_signature(
-                    request.method,
-                    str(request.url.path),
-                    body,
-                    signature,
-                    timestamp_int,
-                ):
-                    return self._create_security_error_response(
-                        "Invalid request signature", 401, {"invalid_signature": True}
+            # XSS Protection
+            if self.xss_enabled:
+                xss_result = await self._check_xss(request)
+                if not xss_result["valid"]:
+                    return JSONResponse(
+                        status_code=400,
+                        content={
+                            "error": "xss_violation",
+                            "message": "XSS protection violation detected",
+                            "details": xss_result["reason"]
+                        }
                     )
 
             # Process request
             response = await call_next(request)
 
             # Add security headers
-            if self.config.enable_security_headers:
-                self.security_headers.add_security_headers(response)
+            self._add_security_headers(response)
 
             return response
 
         except Exception as e:
-            self.logger.error(f"Security middleware error: {e}")
-            return self._create_security_error_response(
-                "Security check failed", 500, {"error": str(e)}
-            )
+            logger.error(f"Security middleware error: {e}")
+            return await call_next(request)
 
-    async def _get_request_body(self, request: Any) -> str:
-        """Get request body as string."""
+    def _should_skip_security(self, request: Request) -> bool:
+        """Check if security checks should be skipped for this request."""
+        skip_paths = [
+            "/health",
+            "/metrics",
+            "/docs",
+            "/redoc",
+            "/openapi.json",
+            "/mcp/ws",  # WebSocket connections
+        ]
+        
+        return any(request.url.path.startswith(path) for path in skip_paths)
+
+    async def _check_csrf(self, request: Request) -> dict[str, Any]:
+        """Check CSRF token."""
         try:
-            body = await request.body()
-            return body.decode("utf-8")
-        except Exception:
-            return ""
+            # Get CSRF token from header or form data
+            csrf_token = request.headers.get("X-CSRF-Token")
+            if not csrf_token:
+                csrf_token = (await request.form()).get("csrf_token")
 
-    def _create_security_error_response(
-        self, message: str, status_code: int, details: dict[str, Any] = None
-    ) -> Any:
-        """Create security error response."""
-        from fastapi.responses import JSONResponse
+            if not csrf_token:
+                return {"valid": False, "reason": "Missing CSRF token"}
 
-        error_response = {
-            "error": "security_error",
-            "message": message,
-            "timestamp": int(time.time()),
-        }
+            # Validate CSRF token
+            if not self._validate_csrf_token(csrf_token):
+                return {"valid": False, "reason": "Invalid CSRF token"}
 
-        if details:
-            error_response["details"] = details
+            return {"valid": True, "reason": None}
 
-        return JSONResponse(
-            status_code=status_code,
-            content=error_response,
-            headers={"X-Security-Error": "true", "X-Security-Message": message},
+        except Exception as e:
+            logger.error(f"CSRF check error: {e}")
+            return {"valid": False, "reason": f"CSRF validation error: {str(e)}"}
+
+    def _validate_csrf_token(self, token: str) -> bool:
+        """Validate CSRF token."""
+        # In production, implement proper token validation
+        # For now, check if token exists in our store
+        return token in self.csrf_tokens.values()
+
+    async def _check_xss(self, request: Request) -> dict[str, Any]:
+        """Check for XSS attempts."""
+        try:
+            # Check URL parameters
+            for param_name, param_value in request.query_params.items():
+                if self._contains_xss_pattern(param_value):
+                    return {
+                        "valid": False,
+                        "reason": f"XSS pattern detected in query parameter: {param_name}"
+                    }
+
+            # Check request body for JSON requests
+            if request.headers.get("content-type", "").startswith("application/json"):
+                try:
+                    body = await request.json()
+                    if self._check_json_xss(body):
+                        return {
+                            "valid": False,
+                            "reason": "XSS pattern detected in request body"
+                        }
+                except:
+                    pass  # Skip if body is not valid JSON
+
+            # Check form data
+            if request.headers.get("content-type", "").startswith("application/x-www-form-urlencoded"):
+                try:
+                    form_data = await request.form()
+                    for field_name, field_value in form_data.items():
+                        if self._contains_xss_pattern(str(field_value)):
+                            return {
+                                "valid": False,
+                                "reason": f"XSS pattern detected in form field: {field_name}"
+                            }
+                except:
+                    pass
+
+            return {"valid": True, "reason": None}
+
+        except Exception as e:
+            logger.error(f"XSS check error: {e}")
+            return {"valid": False, "reason": f"XSS validation error: {str(e)}"}
+
+    def _contains_xss_pattern(self, value: str) -> bool:
+        """Check if string contains XSS patterns."""
+        if not isinstance(value, str):
+            return False
+
+        # Common XSS patterns
+        xss_patterns = [
+            r"<script[^>]*>.*?</script>",
+            r"javascript:",
+            r"on\w+\s*=",
+            r"<iframe[^>]*>",
+            r"<object[^>]*>",
+            r"<embed[^>]*>",
+            r"<form[^>]*>",
+            r"<input[^>]*>",
+            r"<textarea[^>]*>",
+            r"<select[^>]*>",
+            r"<link[^>]*>",
+            r"<meta[^>]*>",
+            r"<style[^>]*>",
+            r"<base[^>]*>",
+            r"<bgsound[^>]*>",
+            r"<link[^>]*>",
+            r"<xml[^>]*>",
+            r"<xmp[^>]*>",
+            r"<plaintext[^>]*>",
+            r"<listing[^>]*>",
+        ]
+
+        value_lower = value.lower()
+        for pattern in xss_patterns:
+            if re.search(pattern, value_lower, re.IGNORECASE | re.DOTALL):
+                return True
+
+        return False
+
+    def _check_json_xss(self, data: Any) -> bool:
+        """Recursively check JSON data for XSS patterns."""
+        if isinstance(data, dict):
+            for key, value in data.items():
+                if self._check_json_xss(value):
+                    return True
+        elif isinstance(data, list):
+            for item in data:
+                if self._check_json_xss(item):
+                    return True
+        elif isinstance(data, str):
+            return self._contains_xss_pattern(data)
+        
+        return False
+
+    def _add_security_headers(self, response: Response) -> None:
+        """Add security headers to response."""
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+            "style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data: https:; "
+            "font-src 'self'; "
+            "connect-src 'self'; "
+            "frame-ancestors 'none';"
         )
 
+    def generate_csrf_token(self, session_id: str) -> str:
+        """Generate CSRF token for session."""
+        token = secrets.token_urlsafe(32)
+        self.csrf_tokens[session_id] = token
+        return token
 
-def create_security_middleware(config: SecurityConfig) -> SecurityMiddleware:
-    """Create security middleware instance."""
-    return SecurityMiddleware(config)
-
-
-def create_default_security_config() -> SecurityConfig:
-    """Create default security configuration."""
-    settings = get_settings()
-
-    return SecurityConfig(
-        enable_request_signing=settings.environment == "production",
-        enable_api_keys=True,
-        enable_ip_whitelist=False,
-        enable_security_headers=True,
-        allowed_ips=set(),
-    )
+    def invalidate_csrf_token(self, session_id: str) -> None:
+        """Invalidate CSRF token for session."""
+        if session_id in self.csrf_tokens:
+            del self.csrf_tokens[session_id]
