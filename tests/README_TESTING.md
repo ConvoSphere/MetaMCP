@@ -15,6 +15,43 @@ This document provides a complete guide to the testing infrastructure for MetaMC
 9. [Test Reporting](#test-reporting)
 10. [Best Practices](#best-practices)
 
+---
+
+## Lokale Testumgebung & Mocks
+
+Um reproduzierbare und schnelle Tests zu gewährleisten, beachte bitte folgende Hinweise für die lokale Testumgebung:
+
+- **.env.test verwenden:**
+  - Lege eine Datei `.env.test` mit Dummy-Werten für alle Umgebungsvariablen an (z.B. Dummy-API-Keys, SQLite-URL).
+  - Beispiel für Datenbank: `DATABASE_URL=sqlite+aiosqlite:///:memory:`
+
+- **SQLite-In-Memory für Unit-Tests:**
+  - Für Unit- und Service-Tests empfiehlt sich eine In-Memory-SQLite-Datenbank, um externe Abhängigkeiten zu vermeiden.
+
+- **Externe Services mocken:**
+  - Datenbank, Weaviate, LLM und andere externe Systeme sollten in Unit-Tests immer gemockt werden.
+  - Nutze dazu z.B. `pytest-mock` oder `unittest.mock.AsyncMock`.
+  - Beispiel für das Mocken einer asynchronen DB-Verbindung:
+    ```python
+    @pytest.mark.asyncio
+    async def test_fetch_query(mocker, db_manager):
+        mock_pool = mocker.AsyncMock()
+        mock_connection = mocker.AsyncMock()
+        mock_connection.fetch.return_value = [{"id": 1}]
+        mock_pool.acquire.return_value.__aenter__.return_value = mock_connection
+        db_manager._pool = mock_pool
+        result = await db_manager.fetch("SELECT * FROM test")
+        assert result == [{"id": 1}]
+    ```
+
+- **Testdaten-Factories:**
+  - Nutze die bereitgestellten Factories in `test_data_factory.py` für konsistente Testdaten.
+
+- **Hinweis:**
+  - Integration- und Blackbox-Tests benötigen ggf. laufende Services (siehe jeweilige README).
+
+---
+
 ## Test Structure
 
 ```

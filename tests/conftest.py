@@ -239,6 +239,24 @@ def mock_llm_service():
         yield mock_service.return_value
 
 
+@pytest.fixture
+def mock_db_manager():
+    """
+    Provide a fully mocked DatabaseManager for unit tests.
+    Nutze diese Fixture, um alle DB-Operationen (acquire, fetch, fetchval, execute) zu mocken.
+    Beispiel:
+        def test_something(mock_db_manager):
+            mock_db_manager.fetch.return_value = [{"id": 1}]
+            ...
+    """
+    mock_manager = AsyncMock()
+    mock_manager.acquire.return_value.__aenter__.return_value = mock_manager
+    mock_manager.fetch = AsyncMock()
+    mock_manager.fetchval = AsyncMock()
+    mock_manager.execute = AsyncMock()
+    yield mock_manager
+
+
 # Authentication Fixtures
 @pytest.fixture
 async def test_user_token(auth_service: AuthService, sample_user_data: dict) -> str:
