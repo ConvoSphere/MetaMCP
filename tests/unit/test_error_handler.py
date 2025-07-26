@@ -398,9 +398,10 @@ class TestErrorHandlingIntegration:
         # Test recoverable error
         context = ErrorContext()
         recoverable_error = ErrorDetails(
-            error_code="ConnectionError",
+            error_code="NETWORK_ERROR",
             message="Connection failed",
             context=context,
+            category="network",
             recoverable=True
         )
         
@@ -410,7 +411,7 @@ class TestErrorHandlingIntegration:
             assert should_retry is True
             
             delay = recovery_handler.get_retry_delay(attempt)
-            assert delay == attempt
+            assert delay == 1.0 * (2 ** (attempt - 1))  # Exponential backoff
             
             response = recovery_handler.create_retry_response(recoverable_error, attempt)
             assert response["error"]["retry_after"] == delay

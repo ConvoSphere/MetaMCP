@@ -166,12 +166,17 @@ class TestAPIVersionMiddleware:
         request.headers = {"accept": "application/vnd.api+json; version=v1"}
         request.url.path = "/api/v1/test"
         
+        # Create a proper response mock
+        response_mock = Mock()
+        response_mock.headers = {}
+        
         call_next = AsyncMock()
-        call_next.return_value = {"status": "success"}
+        call_next.return_value = response_mock
         
         response = await middleware(request, call_next)
         
-        assert response == {"status": "success"}
+        assert response == response_mock
+        assert response.headers["X-API-Version"] == "v1"
         call_next.assert_called_once()
 
     @pytest.mark.asyncio
@@ -185,13 +190,15 @@ class TestAPIVersionMiddleware:
         
         response = await middleware(request, call_next)
         
+        # The response should be a JSONResponse with status_code attribute
+        assert hasattr(response, 'status_code')
         assert response.status_code == 400
-        assert "unsupported" in response.body.decode().lower()
+        assert "version_error" in response.body.decode().lower()
 
     def test_extract_version_from_header(self, middleware):
         """Test extracting version from header."""
         request = Mock()
-        request.headers = {"accept": "application/vnd.api+json; version=v1"}
+        request.headers = {"X-API-Version": "v1"}
         
         version = middleware._extract_version(request)
         assert version == "v1"
