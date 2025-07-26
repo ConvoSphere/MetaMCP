@@ -15,6 +15,43 @@ This document provides a complete guide to the testing infrastructure for MetaMC
 9. [Test Reporting](#test-reporting)
 10. [Best Practices](#best-practices)
 
+---
+
+## Lokale Testumgebung & Mocks
+
+Um reproduzierbare und schnelle Tests zu gewährleisten, beachte bitte folgende Hinweise für die lokale Testumgebung:
+
+- **.env.test verwenden:**
+  - Lege eine Datei `.env.test` mit Dummy-Werten für alle Umgebungsvariablen an (z.B. Dummy-API-Keys, SQLite-URL).
+  - Beispiel für Datenbank: `DATABASE_URL=sqlite+aiosqlite:///:memory:`
+
+- **SQLite-In-Memory für Unit-Tests:**
+  - Für Unit- und Service-Tests empfiehlt sich eine In-Memory-SQLite-Datenbank, um externe Abhängigkeiten zu vermeiden.
+
+- **Externe Services mocken:**
+  - Datenbank, Weaviate, LLM und andere externe Systeme sollten in Unit-Tests immer gemockt werden.
+  - Nutze dazu z.B. `pytest-mock` oder `unittest.mock.AsyncMock`.
+  - Beispiel für das Mocken einer asynchronen DB-Verbindung:
+    ```python
+    @pytest.mark.asyncio
+    async def test_fetch_query(mocker, db_manager):
+        mock_pool = mocker.AsyncMock()
+        mock_connection = mocker.AsyncMock()
+        mock_connection.fetch.return_value = [{"id": 1}]
+        mock_pool.acquire.return_value.__aenter__.return_value = mock_connection
+        db_manager._pool = mock_pool
+        result = await db_manager.fetch("SELECT * FROM test")
+        assert result == [{"id": 1}]
+    ```
+
+- **Testdaten-Factories:**
+  - Nutze die bereitgestellten Factories in `test_data_factory.py` für konsistente Testdaten.
+
+- **Hinweis:**
+  - Integration- und Blackbox-Tests benötigen ggf. laufende Services (siehe jeweilige README).
+
+---
+
 ## Test Structure
 
 ```
@@ -635,6 +672,104 @@ The test runner provides:
    current_time = measure_execution_time(operation)
    assert current_time <= baseline_time * 1.2  # 20% tolerance
    ```
+
+## Testabdeckung & Verbesserungsplan
+
+### Aktueller Status (Stand: Dezember 2024)
+
+**Testabdeckung:** ~44% Gesamtabdeckung
+- **Hohe Abdeckung (>80%):** `metamcp/api/tools.py`, `metamcp/services/auth_service.py`
+- **Niedrige Abdeckung (<20%):** `metamcp/client.py`, `metamcp/composition/engine.py`, `metamcp/proxy/manager.py`
+
+**Identifizierte Probleme:**
+- Viele Tests schlagen fehl aufgrund fehlender externer Services (DB, Weaviate, LLMs)
+- Pydantic V1-Warnungen (Validatoren, Config-Klassen)
+- Fehlende Testdaten und Umgebungsvariablen
+- Unvollständige Mocking-Strategien für externe Dependencies
+
+---
+
+### Verbesserungsplan
+
+#### Phase 1: Sofortmaßnahmen (1-2 Tage) ✅
+- [x] **Pydantic-Migration:** V1-Validatoren (`@validator`) → V2 (`@field_validator`)
+- [x] **Config-Migration:** `Config`-Klassen → `ConfigDict`
+- [x] **Test-Dokumentation:** README um lokale Testumgebung & Mocks erweitert
+- [x] **Mock-Fixtures:** Universelle Fixtures für DB, Weaviate, LLM in `conftest.py`
+
+#### Phase 2: Testinfrastruktur & Mocking (1 Woche)
+- [ ] **Testdaten-Factories erweitern:**
+  - Komplexe Szenarien für Composition Engine
+  - Realistische MCP-Protokoll-Daten
+  - Edge Cases für Error-Handling
+- [ ] **Service-Layer Tests:**
+  - Vollständige Unit-Tests für `metamcp/services/`
+  - Mocking aller externen Dependencies
+  - Error-Szenarien und Edge Cases
+- [ ] **API-Layer Tests:**
+  - FastAPI Endpoint Tests mit TestClient
+  - Request/Response Validation
+  - Authentication & Authorization Tests
+
+#### Phase 3: Kernmodule-Abdeckung (2 Wochen)
+- [ ] **Client-Module:** `metamcp/client.py` (aktuell <20%)
+  - Connection Management Tests
+  - Protocol Handling Tests
+  - Error Recovery Tests
+- [ ] **Composition Engine:** `metamcp/composition/engine.py` (aktuell <20%)
+  - Workflow Execution Tests
+  - Tool Composition Tests
+  - State Management Tests
+- [ ] **Proxy Manager:** `metamcp/proxy/manager.py` (aktuell <20%)
+  - Proxy Lifecycle Tests
+  - Load Balancing Tests
+  - Failover Scenarios
+
+#### Phase 4: Integration & E2E Tests (1 Woche)
+- [ ] **End-to-End Workflows:**
+  - Komplette MCP-Sessions
+  - Tool-Chain-Execution
+  - Error-Propagation-Tests
+- [ ] **Performance-Baselines:**
+  - Response-Time-Messungen
+  - Memory-Usage-Tracking
+  - Throughput-Tests
+
+#### Phase 5: Qualitätssicherung (1 Woche)
+- [ ] **Coverage-Ziele erreichen:**
+  - Mindestens 80% Gesamtabdeckung
+  - 90% für kritische Module (Auth, API, Services)
+  - 70% für Utility-Module
+- [ ] **Test-Performance optimieren:**
+  - Test-Suite unter 5 Minuten
+  - Parallele Test-Ausführung
+  - Caching von Testdaten
+
+---
+
+### Erfolgsmetriken
+
+**Quantitativ:**
+- Testabdeckung: 44% → 80%+
+- Test-Ausführungszeit: <5 Minuten
+- Fehlgeschlagene Tests: <5%
+
+**Qualitativ:**
+- Reproduzierbare Tests (keine flaky tests)
+- Klare Test-Dokumentation
+- Einfache lokale Testausführung
+- Automatisierte CI/CD-Integration
+
+---
+
+### Nächste Schritte
+
+1. **Sofort:** Phase 1 abschließen (Pydantic-Migration)
+2. **Diese Woche:** Phase 2 beginnen (Testdaten-Factories)
+3. **Nächste Woche:** Phase 3 starten (Kernmodule-Tests)
+4. **Monitoring:** Wöchentliche Coverage-Reports
+
+---
 
 ## Troubleshooting
 

@@ -9,7 +9,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from pydantic import Field, validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
 
@@ -195,7 +195,8 @@ class Settings(BaseSettings):
         description="Microsoft OAuth userinfo URL",
     )
 
-    @validator("environment")
+    @field_validator("environment")
+    @classmethod
     def validate_environment(cls, v):
         """Validate environment setting."""
         allowed = ["development", "staging", "production"]
@@ -203,7 +204,8 @@ class Settings(BaseSettings):
             raise ValueError(f"Environment must be one of {allowed}")
         return v
 
-    @validator("log_level")
+    @field_validator("log_level")
+    @classmethod
     def validate_log_level(cls, v):
         """Validate log level setting."""
         allowed = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -211,7 +213,8 @@ class Settings(BaseSettings):
             raise ValueError(f"Log level must be one of {allowed}")
         return v.upper()
 
-    @validator("log_format")
+    @field_validator("log_format")
+    @classmethod
     def validate_log_format(cls, v):
         """Validate log format setting."""
         allowed = ["json", "text"]
@@ -219,12 +222,11 @@ class Settings(BaseSettings):
             raise ValueError(f"Log format must be one of {allowed}")
         return v
 
-    class Config:
-        """Pydantic configuration."""
-
-        env_file = ".env"
-        env_file_encoding = "utf-8"
-        case_sensitive = False
+    model_config = {
+        "env_file": ".env",
+        "env_file_encoding": "utf-8",
+        "case_sensitive": False,
+    }
 
 
 # Global settings instance
