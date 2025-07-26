@@ -75,6 +75,8 @@ class MemoryRateLimiter(RateLimiterBackend):
 
             if is_allowed:
                 self._requests[key].append(now)
+                # After adding the request, recalculate current_requests
+                current_requests = len(self._requests[key])
 
             # Calculate rate limit info
             reset_time = int(now + window)

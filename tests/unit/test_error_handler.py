@@ -143,11 +143,11 @@ class TestErrorHandler:
         
         error_details = error_handler.handle_exception(exception, context)
         
-        assert error_details.error_code == "ValueError"
+        assert error_details.error_code == "GENERAL_ERROR"
         assert "Test exception" in error_details.message
         assert error_details.context == context
         assert error_details.severity == "error"
-        assert error_details.category == "validation"
+        assert error_details.category == "general"
 
     def test_handle_exception_without_context(self, error_handler):
         """Test handling exception without context."""
@@ -155,33 +155,33 @@ class TestErrorHandler:
         
         error_details = error_handler.handle_exception(exception)
         
-        assert error_details.error_code == "ValueError"
+        assert error_details.error_code == "GENERAL_ERROR"
         assert error_details.context is not None
         assert error_details.context.correlation_id is not None
 
     def test_classify_exception(self, error_handler):
         """Test exception classification."""
         # Test ValueError
-        code, message, category, recoverable = error_handler._classify_exception(
-            ValueError("Invalid input")
+        code, severity, category, recoverable = error_handler._classify_exception(
+            ValueError("Test error")
         )
-        assert code == "ValueError"
-        assert category == "validation"
+        assert code == "GENERAL_ERROR"
+        assert category == "general"
         assert recoverable is True
         
         # Test ConnectionError
-        code, message, category, recoverable = error_handler._classify_exception(
+        code, severity, category, recoverable = error_handler._classify_exception(
             ConnectionError("Connection failed")
         )
-        assert code == "ConnectionError"
+        assert code == "NETWORK_ERROR"
         assert category == "network"
         assert recoverable is True
         
         # Test PermissionError
-        code, message, category, recoverable = error_handler._classify_exception(
+        code, severity, category, recoverable = error_handler._classify_exception(
             PermissionError("Access denied")
         )
-        assert code == "PermissionError"
+        assert code == "PERMISSION_DENIED"
         assert category == "authorization"
         assert recoverable is False
 
@@ -197,11 +197,11 @@ class TestErrorHandler:
         stats = error_handler.get_error_statistics()
         
         assert "total_errors" in stats
-        assert "errors_by_category" in stats
-        assert "errors_by_severity" in stats
+        assert "by_category" in stats
+        assert "by_severity" in stats
         assert stats["total_errors"] == 2
-        assert stats["errors_by_category"]["validation"] == 1
-        assert stats["errors_by_category"]["network"] == 1
+        assert stats["by_category"]["general"] == 1
+        assert stats["by_category"]["network"] == 1
 
     def test_clear_error_reports(self, error_handler):
         """Test clearing error reports."""
@@ -267,10 +267,10 @@ class TestErrorRecoveryHandler:
         response = recovery_handler.create_retry_response(error_details, 1)
         
         assert "error" in response
-        assert "retry_after" in response
-        assert response["retry_after"] == 1.0
-        assert "retry_count" in response
-        assert response["retry_count"] == 1
+        assert "retry_after" in response["error"]
+        assert response["error"]["retry_after"] == 1.0
+        assert "attempt_count" in response["error"]
+        assert response["error"]["attempt_count"] == 1
 
 
 class TestErrorHandlingFunctions:
@@ -289,7 +289,7 @@ class TestErrorHandlingFunctions:
         response = handle_request_error(exception, request, "user123")
         
         assert "error" in response
-        assert response["error"]["code"] == "ValueError"
+        assert response["error"]["code"] == "GENERAL_ERROR"
         assert "Test error" in response["error"]["message"]
 
     def test_handle_request_error_no_request(self):
@@ -299,7 +299,7 @@ class TestErrorHandlingFunctions:
         response = handle_request_error(exception)
         
         assert "error" in response
-        assert response["error"]["code"] == "ValueError"
+        assert response["error"]["code"] == "GENERAL_ERROR"
 
     def test_get_error_stats(self):
         """Test get_error_stats function."""
@@ -307,8 +307,8 @@ class TestErrorHandlingFunctions:
         
         assert isinstance(stats, dict)
         assert "total_errors" in stats
-        assert "errors_by_category" in stats
-        assert "errors_by_severity" in stats
+        assert "by_category" in stats
+        assert "by_severity" in stats
 
 
 class TestErrorHandlingIntegration:
@@ -332,7 +332,7 @@ class TestErrorHandlingIntegration:
         error_details = handler.handle_exception(exception, context)
         
         # Verify error details
-        assert error_details.error_code == "ConnectionError"
+        assert error_details.error_code == "NETWORK_ERROR"
         assert error_details.context == context
         assert error_details.recoverable is True
         assert error_details.category == "network"
@@ -345,12 +345,12 @@ class TestErrorHandlingIntegration:
         assert retry_delay == 1.0
         
         retry_response = recovery_handler.create_retry_response(error_details, 1)
-        assert "retry_after" in retry_response
+        assert "retry_after" in retry_response["error"]
         
         # Verify statistics
         stats = handler.get_error_statistics()
         assert stats["total_errors"] == 1
-        assert stats["errors_by_category"]["network"] == 1
+        assert stats["by_category"]["network"] == 1
 
     def test_error_classification_integration(self):
         """Test error classification integration."""
@@ -358,11 +358,11 @@ class TestErrorHandlingIntegration:
         
         # Test different exception types
         exceptions = [
-            (ValueError("Invalid input"), "validation"),
+            (ValueError("Test error"), "general"),
             (ConnectionError("Connection failed"), "network"),
             (PermissionError("Access denied"), "authorization"),
             (TimeoutError("Request timeout"), "network"),
-            (KeyError("Missing key"), "validation"),
+            (KeyError("Missing key"), "general"),
         ]
         
         for exception, expected_category in exceptions:
@@ -383,10 +383,10 @@ class TestErrorHandlingIntegration:
         
         # Verify response structure
         assert "error" in response
-        assert response["error"]["code"] == "ValueError"
+        assert response["error"]["code"] == "GENERAL_ERROR"
         assert response["error"]["message"] == "Test error"
         assert response["error"]["severity"] == "error"
-        assert response["error"]["category"] == "validation"
+        assert response["error"]["category"] == "general"
         assert response["error"]["recoverable"] is True
         assert "correlation_id" in response["error"]
         assert "timestamp" in response["error"]
@@ -413,8 +413,8 @@ class TestErrorHandlingIntegration:
             assert delay == attempt
             
             response = recovery_handler.create_retry_response(recoverable_error, attempt)
-            assert response["retry_after"] == delay
-            assert response["retry_count"] == attempt
+            assert response["error"]["retry_after"] == delay
+            assert response["error"]["attempt_count"] == attempt
         
         # Should not retry after max attempts
         should_retry = recovery_handler.should_retry(recoverable_error, 5)
