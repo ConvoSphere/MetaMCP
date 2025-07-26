@@ -12,7 +12,7 @@ from typing import Any
 from urllib.parse import urlencode
 
 import httpx
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from ..config import get_settings
 from ..exceptions import MetaMCPException
@@ -34,10 +34,9 @@ class OAuthProvider(BaseModel):
     scopes: list[str] = Field(default=["openid", "email", "profile"])
     redirect_uri: str = Field(..., description="Redirect URI")
 
-    class Config:
-        """Pydantic configuration."""
-
-        extra = "forbid"
+    model_config = {
+        "extra": "forbid"
+    }
 
 
 class OAuthToken(BaseModel):
