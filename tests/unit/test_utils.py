@@ -453,11 +453,14 @@ class TestCircuitBreakerDecorator:
 
     async def test_circuit_breaker_decorator(self):
         """Test circuit breaker decorator."""
-        from metamcp.utils.circuit_breaker import circuit_breaker
+        from metamcp.utils.circuit_breaker import circuit_breaker, CircuitBreakerConfig
 
         call_count = 0
 
-        @circuit_breaker("test_circuit")
+        # Use a lower failure threshold for testing
+        config = CircuitBreakerConfig(failure_threshold=2, recovery_timeout=1.0)
+
+        @circuit_breaker("test_circuit", config)
         async def test_function():
             nonlocal call_count
             call_count += 1
@@ -470,21 +473,17 @@ class TestCircuitBreakerDecorator:
             with pytest.raises(Exception):
                 await test_function()
 
-        # Third call should fail and open circuit
-        with pytest.raises(Exception):
+        # Third call should be rejected (circuit breaker should be open after 2 failures)
+        from metamcp.utils.circuit_breaker import CircuitBreakerOpenError
+        with pytest.raises(CircuitBreakerOpenError):
             await test_function()
 
-        # Fourth call should be rejected (circuit breaker should be open)
-        # Note: The circuit breaker might not be open yet due to timing
-        # Let's just verify the function was called the expected number of times
-        assert call_count >= 3
-
-        # Test that the function can still be called (circuit breaker might not be open)
-        try:
+        # Fourth call should also be rejected
+        with pytest.raises(CircuitBreakerOpenError):
             await test_function()
-        except Exception:
-            # Expected if circuit breaker is open
-            pass
+
+        # Verify the function was called exactly 2 times (the 3rd and 4th calls were rejected)
+        assert call_count == 2
 
 
 class TestCacheFactory:
