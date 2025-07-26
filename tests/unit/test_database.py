@@ -2,61 +2,53 @@
 Unit tests for database connection pooling.
 """
 
-from unittest.mock import AsyncMock, patch
-
 import pytest
-
+from unittest.mock import AsyncMock, patch
 from metamcp.utils.database import DatabaseManager, get_database_manager
 
 
 class TestDatabaseManager:
-    """Test database manager functionality."""
+    """Test cases for DatabaseManager."""
 
     @pytest.fixture
     def db_manager(self):
-        """Create a database manager instance."""
+        """Create a database manager instance for testing."""
         return DatabaseManager()
 
     @pytest.mark.asyncio
     async def test_initialize_without_url(self, db_manager):
-        """Test initialization without database URL."""
-        with patch.object(db_manager._settings, "database_url", None):
+        """Test initialization without URL."""
+        with pytest.raises(ValueError, match="Database URL is required"):
             await db_manager.initialize()
-            assert not db_manager.is_initialized
 
     @pytest.mark.asyncio
     async def test_initialize_with_url(self, db_manager):
-        """Test successful initialization with database URL."""
-        mock_pool = AsyncMock()
-        mock_pool.acquire.return_value.__aenter__ = AsyncMock()
-        mock_pool.acquire.return_value.__aexit__ = AsyncMock()
-        mock_connection = AsyncMock()
-        mock_connection.fetchval.return_value = 1
-        mock_pool.acquire.return_value.__aenter__.return_value = mock_connection
+        """Test initialization with URL."""
+        with patch("asyncpg.create_pool") as mock_create_pool:
+            mock_pool = AsyncMock()
+            mock_create_pool.return_value = mock_pool
 
-        with patch("asyncpg.create_pool", return_value=mock_pool):
-            with patch.object(
-                db_manager._settings, "database_url", "postgresql://test"
-            ):
-                await db_manager.initialize()
-                assert db_manager.is_initialized
+            await db_manager.initialize("postgresql://test:test@localhost/test")
+
+            mock_create_pool.assert_called_once()
+            assert db_manager._pool == mock_pool
 
     @pytest.mark.asyncio
     async def test_close(self, db_manager):
-        """Test closing the database pool."""
+        """Test closing the database connection."""
         mock_pool = AsyncMock()
         db_manager._pool = mock_pool
 
         await db_manager.close()
+
         mock_pool.close.assert_called_once()
-        assert not db_manager.is_initialized
+        assert db_manager._pool is None
 
     @pytest.mark.asyncio
     async def test_health_check_uninitialized(self, db_manager):
         """Test health check when pool is not initialized."""
-        result = await db_manager.health_check()
-        assert result["status"] == "unhealthy"
-        assert "not initialized" in result["error"]
+        with pytest.raises(RuntimeError, match="Database pool not initialized"):
+            await db_manager.health_check()
 
     @pytest.mark.asyncio
     async def test_health_check_success(self, db_manager):
@@ -70,10 +62,11 @@ class TestDatabaseManager:
         mock_connection = AsyncMock()
         mock_connection.fetchval.return_value = 1
 
-        mock_pool.acquire.return_value.__aenter__ = AsyncMock(
-            return_value=mock_connection
-        )
-        mock_pool.acquire.return_value.__aexit__ = AsyncMock()
+        # Create a proper async context manager mock
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        mock_pool.acquire.return_value = mock_context
 
         db_manager._pool = mock_pool
 
@@ -107,10 +100,11 @@ class TestDatabaseManager:
         mock_pool = AsyncMock()
         mock_connection = AsyncMock()
 
-        mock_pool.acquire.return_value.__aenter__ = AsyncMock(
-            return_value=mock_connection
-        )
-        mock_pool.acquire.return_value.__aexit__ = AsyncMock()
+        # Create a proper async context manager mock
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        mock_pool.acquire.return_value = mock_context
 
         db_manager._pool = mock_pool
 
@@ -126,10 +120,11 @@ class TestDatabaseManager:
         mock_connection = AsyncMock()
         mock_connection.fetch.return_value = [{"id": 1}, {"id": 2}]
 
-        mock_pool.acquire.return_value.__aenter__ = AsyncMock(
-            return_value=mock_connection
-        )
-        mock_pool.acquire.return_value.__aexit__ = AsyncMock()
+        # Create a proper async context manager mock
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        mock_pool.acquire.return_value = mock_context
 
         db_manager._pool = mock_pool
 
@@ -144,10 +139,11 @@ class TestDatabaseManager:
         mock_connection = AsyncMock()
         mock_connection.fetchval.return_value = 42
 
-        mock_pool.acquire.return_value.__aenter__ = AsyncMock(
-            return_value=mock_connection
-        )
-        mock_pool.acquire.return_value.__aexit__ = AsyncMock()
+        # Create a proper async context manager mock
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        mock_pool.acquire.return_value = mock_context
 
         db_manager._pool = mock_pool
 

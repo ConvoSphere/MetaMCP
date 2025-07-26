@@ -335,11 +335,10 @@ class Cache:
         for key, value in sorted(kwargs.items()):
             key_parts.append(f"{key}:{value}")
 
-        # Create hash of the key string using bcrypt for security
+        # Create hash of the key string using hashlib for deterministic results
         key_string = "|".join(key_parts)
-        # Use bcrypt to generate a secure hash, but limit to 32 chars for cache key
-        salt = bcrypt.gensalt()
-        hash_bytes = bcrypt.hashpw(key_string.encode(), salt)
+        import hashlib
+        hash_bytes = hashlib.sha256(key_string.encode()).digest()
         # Convert to hex and truncate to 32 characters for cache key
         return hash_bytes.hex()[:32]
 
