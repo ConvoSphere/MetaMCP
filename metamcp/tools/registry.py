@@ -426,7 +426,7 @@ class ToolRegistry:
     async def _execute_tool_internal(
         self, tool_name: str, arguments: dict[str, Any], tool_data: dict[str, Any]
     ) -> Any:
-        """Internal tool execution implementation."""
+        """Internal tool execution implementation with retry logic and improved error handling."""
         import asyncio
 
         import httpx
@@ -442,24 +442,27 @@ class ToolRegistry:
                 "execution_time": 0.1,
             }
 
-        # Make HTTP call to tool endpoint
-        timeout = getattr(settings, "tool_timeout", 30)
+        # Get configuration
+        timeout = settings.tool_timeout
+        retry_attempts = settings.tool_retry_attempts
+        retry_delay = settings.tool_retry_delay
 
-        try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                # Try different endpoint patterns
-                execution_endpoints = [
-                    f"{endpoint}/execute",
-                    f"{endpoint}/tools/{tool_name}/execute",
-                    f"{endpoint}/api/v1/tools/{tool_name}/execute",
-                    endpoint,  # Direct endpoint
-                ]
+        # Try different endpoint patterns
+        execution_endpoints = [
+            f"{endpoint}/execute",
+            f"{endpoint}/tools/{tool_name}/execute",
+            f"{endpoint}/api/v1/tools/{tool_name}/execute",
+            endpoint,  # Direct endpoint
+        ]
 
-                response = None
-                last_error = None
+        last_error = None
+        response = None
 
-                for exec_endpoint in execution_endpoints:
-                    try:
+        # Retry logic for each endpoint
+        for attempt in range(retry_attempts):
+            for exec_endpoint in execution_endpoints:
+                try:
+                    async with httpx.AsyncClient(timeout=timeout) as client:
                         response = await client.post(
                             exec_endpoint,
                             json={
@@ -478,12 +481,23 @@ class ToolRegistry:
                         else:
                             last_error = f"HTTP {response.status_code}: {response.text}"
 
-                    except httpx.TimeoutException:
-                        last_error = f"Timeout connecting to {exec_endpoint}"
-                    except httpx.ConnectError:
-                        last_error = f"Connection error to {exec_endpoint}"
-                    except Exception as e:
-                        last_error = f"Error calling {exec_endpoint}: {str(e)}"
+                except httpx.TimeoutException:
+                    last_error = f"Timeout connecting to {exec_endpoint}"
+                    logger.warning(f"Timeout on attempt {attempt + 1} for {tool_name} at {exec_endpoint}")
+                except httpx.ConnectError:
+                    last_error = f"Connection error to {exec_endpoint}"
+                    logger.warning(f"Connection error on attempt {attempt + 1} for {tool_name} at {exec_endpoint}")
+                except Exception as e:
+                    last_error = f"Error calling {exec_endpoint}: {str(e)}"
+                    logger.warning(f"Error on attempt {attempt + 1} for {tool_name} at {exec_endpoint}: {e}")
+
+            # If we got a successful response, break out of retry loop
+            if response and response.status_code == 200:
+                break
+
+            # Wait before retry (except on last attempt)
+            if attempt < retry_attempts - 1:
+                await asyncio.sleep(retry_delay * (attempt + 1))  # Exponential backoff
 
                 if response and response.status_code == 200:
                     try:

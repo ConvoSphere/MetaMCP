@@ -165,8 +165,9 @@ class MetaMCPServer:
 
         # Rate limiting middleware (skip for WebSocket connections)
         rate_limiter = create_rate_limiter(
-            use_redis=False
-        )  # Use memory limiter for now
+            use_redis=self.settings.rate_limit_use_redis,
+            redis_url=self.settings.rate_limit_redis_url
+        )
         app.add_middleware(RateLimitMiddleware, rate_limiter=rate_limiter)
 
         # Metrics middleware

@@ -119,6 +119,23 @@ class Settings(BaseSettings):
     rate_limit_window: int = Field(
         default=60, description="Rate limit window in seconds"
     )
+    rate_limit_use_redis: bool = Field(
+        default=False, description="Use Redis backend for rate limiting"
+    )
+    rate_limit_redis_url: str = Field(
+        default="redis://localhost:6379", description="Redis URL for rate limiting"
+    )
+
+    # Tool Execution Settings
+    tool_timeout: int = Field(
+        default=30, description="Timeout for tool execution in seconds"
+    )
+    tool_retry_attempts: int = Field(
+        default=3, description="Number of retry attempts for tool execution"
+    )
+    tool_retry_delay: float = Field(
+        default=1.0, description="Delay between retry attempts in seconds"
+    )
 
     # Tool Registry Settings
     tool_registry_enabled: bool = Field(
