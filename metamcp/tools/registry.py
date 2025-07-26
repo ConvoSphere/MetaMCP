@@ -447,6 +447,25 @@ class ToolRegistry:
         retry_attempts = settings.tool_retry_attempts
         retry_delay = settings.tool_retry_delay
 
+        # Circuit breaker configuration
+        if settings.circuit_breaker_enabled:
+            from ..utils.circuit_breaker import (
+                CircuitBreakerConfig,
+                get_circuit_breaker,
+                CircuitBreakerOpenError,
+            )
+            
+            cb_config = CircuitBreakerConfig(
+                failure_threshold=settings.circuit_breaker_failure_threshold,
+                recovery_timeout=settings.circuit_breaker_recovery_timeout,
+                success_threshold=settings.circuit_breaker_success_threshold,
+                expected_exception=(httpx.TimeoutException, httpx.ConnectError, Exception),
+            )
+            
+            circuit_breaker = await get_circuit_breaker(f"tool:{tool_name}", cb_config)
+        else:
+            circuit_breaker = None
+
         # Try different endpoint patterns
         execution_endpoints = [
             f"{endpoint}/execute",
@@ -462,24 +481,37 @@ class ToolRegistry:
         for attempt in range(retry_attempts):
             for exec_endpoint in execution_endpoints:
                 try:
-                    async with httpx.AsyncClient(timeout=timeout) as client:
-                        response = await client.post(
-                            exec_endpoint,
-                            json={
-                                "tool": tool_name,
-                                "arguments": arguments,
-                                "timestamp": datetime.now(UTC).isoformat(),
-                            },
-                            headers={
-                                "Content-Type": "application/json",
-                                "User-Agent": "MetaMCP/1.0.0",
-                            },
-                        )
+                    # Define the HTTP call function
+                    async def make_http_call():
+                        async with httpx.AsyncClient(timeout=timeout) as client:
+                            return await client.post(
+                                exec_endpoint,
+                                json={
+                                    "tool": tool_name,
+                                    "arguments": arguments,
+                                    "timestamp": datetime.now(UTC).isoformat(),
+                                },
+                                headers={
+                                    "Content-Type": "application/json",
+                                    "User-Agent": "MetaMCP/1.0.0",
+                                },
+                            )
 
-                        if response.status_code == 200:
-                            break
-                        else:
-                            last_error = f"HTTP {response.status_code}: {response.text}"
+                    # Execute with circuit breaker if enabled
+                    if circuit_breaker:
+                        try:
+                            response = await circuit_breaker.call(make_http_call)
+                        except CircuitBreakerOpenError as e:
+                            last_error = f"Circuit breaker open for {tool_name}: {e}"
+                            logger.warning(f"Circuit breaker open for {tool_name} at {exec_endpoint}")
+                            continue
+                    else:
+                        response = await make_http_call()
+
+                    if response.status_code == 200:
+                        break
+                    else:
+                        last_error = f"HTTP {response.status_code}: {response.text}"
 
                 except httpx.TimeoutException:
                     last_error = f"Timeout connecting to {exec_endpoint}"

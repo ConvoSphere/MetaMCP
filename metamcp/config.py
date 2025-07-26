@@ -137,6 +137,20 @@ class Settings(BaseSettings):
         default=1.0, description="Delay between retry attempts in seconds"
     )
 
+    # Circuit Breaker Settings
+    circuit_breaker_enabled: bool = Field(
+        default=True, description="Enable circuit breaker pattern"
+    )
+    circuit_breaker_failure_threshold: int = Field(
+        default=5, description="Number of failures before opening circuit"
+    )
+    circuit_breaker_recovery_timeout: int = Field(
+        default=60, description="Seconds to wait before trying half-open"
+    )
+    circuit_breaker_success_threshold: int = Field(
+        default=2, description="Number of successes to close circuit again"
+    )
+
     # Tool Registry Settings
     tool_registry_enabled: bool = Field(
         default=True, description="Enable tool registry"
