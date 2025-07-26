@@ -14,6 +14,7 @@ from ..llm.service import LLMService
 from ..security.policies import PolicyEngine
 from ..utils.logging import get_logger
 from ..vector.client import VectorSearchClient
+from ..cache.decorators import cache_result, cache_invalidate
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -132,6 +133,7 @@ class ToolRegistry:
         for tool in initial_tools:
             await self.register_tool(tool)
 
+    @cache_invalidate(pattern="tools:list:*")
     async def register_tool(self, tool_data: dict[str, Any]) -> str:
         """
         Register a new tool.
@@ -219,6 +221,7 @@ class ToolRegistry:
             logger.warning(f"Failed to generate tool embedding: {e}")
             return [0.0] * 1536  # Default embedding with correct dimension
 
+    @cache_result(ttl=300, key_prefix="tools:list", strategy="short")
     async def list_tools(self, user_id: str) -> list[dict[str, Any]]:
         """
         List available tools for a user.
@@ -426,7 +429,7 @@ class ToolRegistry:
     async def _execute_tool_internal(
         self, tool_name: str, arguments: dict[str, Any], tool_data: dict[str, Any]
     ) -> Any:
-        """Internal tool execution implementation."""
+        """Internal tool execution implementation with retry logic and improved error handling."""
         import asyncio
 
         import httpx
@@ -442,48 +445,94 @@ class ToolRegistry:
                 "execution_time": 0.1,
             }
 
-        # Make HTTP call to tool endpoint
-        timeout = getattr(settings, "tool_timeout", 30)
+        # Get configuration
+        timeout = settings.tool_timeout
+        retry_attempts = settings.tool_retry_attempts
+        retry_delay = settings.tool_retry_delay
 
-        try:
-            async with httpx.AsyncClient(timeout=timeout) as client:
-                # Try different endpoint patterns
-                execution_endpoints = [
-                    f"{endpoint}/execute",
-                    f"{endpoint}/tools/{tool_name}/execute",
-                    f"{endpoint}/api/v1/tools/{tool_name}/execute",
-                    endpoint,  # Direct endpoint
-                ]
+        # Circuit breaker configuration
+        if settings.circuit_breaker_enabled:
+            from ..utils.circuit_breaker import (
+                CircuitBreakerConfig,
+                get_circuit_breaker,
+                CircuitBreakerOpenError,
+            )
+            
+            cb_config = CircuitBreakerConfig(
+                failure_threshold=settings.circuit_breaker_failure_threshold,
+                recovery_timeout=settings.circuit_breaker_recovery_timeout,
+                success_threshold=settings.circuit_breaker_success_threshold,
+                expected_exception=(httpx.TimeoutException, httpx.ConnectError, Exception),
+            )
+            
+            circuit_breaker = await get_circuit_breaker(f"tool:{tool_name}", cb_config)
+        else:
+            circuit_breaker = None
 
-                response = None
-                last_error = None
+        # Try different endpoint patterns
+        execution_endpoints = [
+            f"{endpoint}/execute",
+            f"{endpoint}/tools/{tool_name}/execute",
+            f"{endpoint}/api/v1/tools/{tool_name}/execute",
+            endpoint,  # Direct endpoint
+        ]
 
-                for exec_endpoint in execution_endpoints:
-                    try:
-                        response = await client.post(
-                            exec_endpoint,
-                            json={
-                                "tool": tool_name,
-                                "arguments": arguments,
-                                "timestamp": datetime.now(UTC).isoformat(),
-                            },
-                            headers={
-                                "Content-Type": "application/json",
-                                "User-Agent": "MetaMCP/1.0.0",
-                            },
-                        )
+        last_error = None
+        response = None
 
-                        if response.status_code == 200:
-                            break
-                        else:
-                            last_error = f"HTTP {response.status_code}: {response.text}"
+        # Retry logic for each endpoint
+        for attempt in range(retry_attempts):
+            for exec_endpoint in execution_endpoints:
+                try:
+                    # Define the HTTP call function
+                    async def make_http_call():
+                        async with httpx.AsyncClient(timeout=timeout) as client:
+                            return await client.post(
+                                exec_endpoint,
+                                json={
+                                    "tool": tool_name,
+                                    "arguments": arguments,
+                                    "timestamp": datetime.now(UTC).isoformat(),
+                                },
+                                headers={
+                                    "Content-Type": "application/json",
+                                    "User-Agent": "MetaMCP/1.0.0",
+                                },
+                            )
 
-                    except httpx.TimeoutException:
-                        last_error = f"Timeout connecting to {exec_endpoint}"
-                    except httpx.ConnectError:
-                        last_error = f"Connection error to {exec_endpoint}"
-                    except Exception as e:
-                        last_error = f"Error calling {exec_endpoint}: {str(e)}"
+                    # Execute with circuit breaker if enabled
+                    if circuit_breaker:
+                        try:
+                            response = await circuit_breaker.call(make_http_call)
+                        except CircuitBreakerOpenError as e:
+                            last_error = f"Circuit breaker open for {tool_name}: {e}"
+                            logger.warning(f"Circuit breaker open for {tool_name} at {exec_endpoint}")
+                            continue
+                    else:
+                        response = await make_http_call()
+
+                    if response.status_code == 200:
+                        break
+                    else:
+                        last_error = f"HTTP {response.status_code}: {response.text}"
+
+                except httpx.TimeoutException:
+                    last_error = f"Timeout connecting to {exec_endpoint}"
+                    logger.warning(f"Timeout on attempt {attempt + 1} for {tool_name} at {exec_endpoint}")
+                except httpx.ConnectError:
+                    last_error = f"Connection error to {exec_endpoint}"
+                    logger.warning(f"Connection error on attempt {attempt + 1} for {tool_name} at {exec_endpoint}")
+                except Exception as e:
+                    last_error = f"Error calling {exec_endpoint}: {str(e)}"
+                    logger.warning(f"Error on attempt {attempt + 1} for {tool_name} at {exec_endpoint}: {e}")
+
+            # If we got a successful response, break out of retry loop
+            if response and response.status_code == 200:
+                break
+
+            # Wait before retry (except on last attempt)
+            if attempt < retry_attempts - 1:
+                await asyncio.sleep(retry_delay * (attempt + 1))  # Exponential backoff
 
                 if response and response.status_code == 200:
                     try:

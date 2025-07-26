@@ -112,6 +112,66 @@ class MemoryRateLimiter(RateLimiterBackend):
             )
 
 
+class RedisRateLimiter(RateLimiterBackend):
+    """Redis-basierte Rate Limiter Implementierung (async)."""
+
+    def __init__(self, redis_url: str):
+        self.redis_url = redis_url
+        self._redis = None
+        self._lock = asyncio.Lock()
+
+    async def _get_redis(self):
+        if self._redis is None:
+            try:
+                import redis.asyncio as redis
+                self._redis = redis.from_url(self.redis_url)
+                await self._redis.ping()
+                logger.info(f"Connected to Redis for rate limiting: {self.redis_url}")
+            except Exception as e:
+                logger.error(f"Failed to connect to Redis for rate limiting: {e}")
+                raise
+        return self._redis
+
+    async def is_allowed(self, key: str, limit: int, window: int) -> tuple[bool, RateLimitInfo]:
+        redis_client = await self._get_redis()
+        now = int(time.time())
+        async with self._lock:
+            # Use Redis INCR and EXPIRE for atomic rate limiting
+            current = await redis_client.incr(key)
+            if current == 1:
+                await redis_client.expire(key, window)
+            ttl = await redis_client.ttl(key)
+            remaining = max(0, limit - current)
+            is_allowed = current <= limit
+            reset_time = now + (ttl if ttl > 0 else window)
+            return is_allowed, RateLimitInfo(
+                limit=limit,
+                remaining=remaining,
+                reset_time=reset_time,
+                window_size=window,
+            )
+
+    async def get_remaining(self, key: str, limit: int, window: int) -> RateLimitInfo:
+        redis_client = await self._get_redis()
+        current = await redis_client.get(key)
+        current = int(current) if current else 0
+        ttl = await redis_client.ttl(key)
+        now = int(time.time())
+        remaining = max(0, limit - current)
+        reset_time = now + (ttl if ttl > 0 else window)
+        return RateLimitInfo(
+            limit=limit,
+            remaining=remaining,
+            reset_time=reset_time,
+            window_size=window,
+        )
+
+    async def close(self):
+        if self._redis is not None:
+            await self._redis.close()
+            self._redis = None
+
+
 class RateLimiter:
     """Main rate limiter class that manages different backends."""
 
@@ -168,10 +228,12 @@ def create_rate_limiter(
 ) -> RateLimiter:
     """Create rate limiter instance."""
     if use_redis:
-        # For now, fall back to memory limiter
-        # Redis implementation can be added later
-        logger.warning("Redis rate limiter not implemented yet, using memory limiter")
-        backend = MemoryRateLimiter()
+        try:
+            backend = RedisRateLimiter(redis_url)
+            logger.info(f"Using RedisRateLimiter at {redis_url}")
+        except Exception as e:
+            logger.error(f"Falling back to MemoryRateLimiter: {e}")
+            backend = MemoryRateLimiter()
     else:
         backend = MemoryRateLimiter()
 

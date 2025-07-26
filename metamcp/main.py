@@ -25,6 +25,9 @@ from .monitoring.health import setup_health_checks
 from .monitoring.metrics import setup_metrics
 from .server import MetaMCPServer
 from .utils.logging import get_logger, setup_logging
+from .performance.background_tasks import start_background_tasks, stop_background_tasks
+from .cache.redis_cache import close_cache_manager
+from .performance.connection_pool import close_database_pool
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -60,6 +63,10 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Setup health checks
         setup_health_checks(app, mcp_server)
 
+        # Start background task manager
+        await start_background_tasks()
+        logger.info("Background task manager started")
+
         logger.info("MCP Meta-Server started successfully")
 
         yield
@@ -74,10 +81,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         if hasattr(app.state, "mcp_server"):
             await app.state.mcp_server._shutdown()
 
-        # Close database connection pool
-        from .utils.database import close_database
+        # Stop background task manager
+        await stop_background_tasks()
+        logger.info("Background task manager stopped")
 
-        await close_database()
+        # Close cache manager
+        await close_cache_manager()
+        logger.info("Cache manager closed")
+
+        # Close database connection pool
+        await close_database_pool()
         logger.info("Database connection pool closed")
 
         logger.info("MCP Meta-Server shutdown complete")

@@ -119,6 +119,74 @@ class Settings(BaseSettings):
     rate_limit_window: int = Field(
         default=60, description="Rate limit window in seconds"
     )
+    rate_limit_use_redis: bool = Field(
+        default=False, description="Use Redis backend for rate limiting"
+    )
+    rate_limit_redis_url: str = Field(
+        default="redis://localhost:6379", description="Redis URL for rate limiting"
+    )
+
+    # Tool Execution Settings
+    tool_timeout: int = Field(
+        default=30, description="Timeout for tool execution in seconds"
+    )
+    tool_retry_attempts: int = Field(
+        default=3, description="Number of retry attempts for tool execution"
+    )
+    tool_retry_delay: float = Field(
+        default=1.0, description="Delay between retry attempts in seconds"
+    )
+
+    # Circuit Breaker Settings
+    circuit_breaker_enabled: bool = Field(
+        default=True, description="Enable circuit breaker pattern"
+    )
+    circuit_breaker_failure_threshold: int = Field(
+        default=5, description="Number of failures before opening circuit"
+    )
+    circuit_breaker_recovery_timeout: int = Field(
+        default=60, description="Seconds to wait before trying half-open"
+    )
+    circuit_breaker_success_threshold: int = Field(
+        default=2, description="Number of successes to close circuit again"
+    )
+
+    # Cache Configuration
+    cache_enabled: bool = Field(
+        default=True, description="Enable caching system"
+    )
+    cache_redis_url: str = Field(
+        default="redis://localhost:6379/1", description="Redis URL for caching"
+    )
+    cache_default_ttl: int = Field(
+        default=3600, description="Default cache TTL in seconds"
+    )
+    cache_max_ttl: int = Field(
+        default=604800, description="Maximum cache TTL in seconds (1 week)"
+    )
+    cache_max_connections: int = Field(
+        default=20, description="Maximum Redis connections for cache"
+    )
+
+    # Performance Configuration
+    database_pool_size: int = Field(
+        default=10, description="Database connection pool size"
+    )
+    database_max_overflow: int = Field(
+        default=20, description="Database connection pool max overflow"
+    )
+    database_pool_timeout: int = Field(
+        default=30, description="Database connection pool timeout"
+    )
+    database_pool_recycle: int = Field(
+        default=3600, description="Database connection pool recycle time"
+    )
+    worker_threads: int = Field(
+        default=4, description="Number of worker threads for background tasks"
+    )
+    max_concurrent_requests: int = Field(
+        default=100, description="Maximum concurrent requests"
+    )
 
     # Tool Registry Settings
     tool_registry_enabled: bool = Field(
@@ -194,6 +262,14 @@ class Settings(BaseSettings):
         default="https://graph.microsoft.com/v1.0/me",
         description="Microsoft OAuth userinfo URL",
     )
+
+    # OAuth Provider Credentials
+    google_oauth_client_id: str | None = Field(default=None, description="Google OAuth Client ID")
+    google_oauth_client_secret: str | None = Field(default=None, description="Google OAuth Client Secret")
+    github_oauth_client_id: str | None = Field(default=None, description="GitHub OAuth Client ID")
+    github_oauth_client_secret: str | None = Field(default=None, description="GitHub OAuth Client Secret")
+    microsoft_oauth_client_id: str | None = Field(default=None, description="Microsoft OAuth Client ID")
+    microsoft_oauth_client_secret: str | None = Field(default=None, description="Microsoft OAuth Client Secret")
 
     @field_validator("environment")
     @classmethod

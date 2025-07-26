@@ -545,3 +545,95 @@ async def service_info():
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Failed to get service info: {str(e)}",
         )
+
+
+@health_router.get("/circuit-breakers", summary="Circuit breaker status")
+async def circuit_breaker_status():
+    """Get circuit breaker status and statistics."""
+    try:
+        from ..utils.circuit_breaker import get_circuit_breaker_manager
+        
+        manager = get_circuit_breaker_manager()
+        stats = await manager.get_all_stats()
+        
+        return {
+            "circuit_breakers": {
+                name: {
+                    "state": stat.current_state.value,
+                    "total_calls": stat.total_calls,
+                    "successful_calls": stat.successful_calls,
+                    "failed_calls": stat.failed_calls,
+                    "last_failure_time": stat.last_failure_time,
+                    "last_success_time": stat.last_success_time,
+                }
+                for name, stat in stats.items()
+            },
+            "total_circuit_breakers": len(stats),
+            "enabled": settings.circuit_breaker_enabled,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Failed to get circuit breaker status: {e}")
+        return {
+            "error": "Failed to get circuit breaker status",
+            "enabled": settings.circuit_breaker_enabled,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+
+@health_router.get("/cache", summary="Cache statistics")
+async def cache_status():
+    """Get cache statistics and performance metrics."""
+    try:
+        from ..cache.redis_cache import get_cache_manager
+        
+        cache_manager = get_cache_manager()
+        stats = await cache_manager.get_stats()
+        
+        return {
+            "cache_stats": stats.get("cache_stats", {}),
+            "redis_info": stats.get("redis_info", {}),
+            "hit_rate": stats.get("hit_rate", 0),
+            "enabled": settings.cache_enabled,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Failed to get cache status: {e}")
+        return {
+            "error": "Failed to get cache status",
+            "enabled": settings.cache_enabled,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+
+
+@health_router.get("/performance", summary="Performance metrics")
+async def performance_metrics():
+    """Get performance metrics and system statistics."""
+    try:
+        from ..performance.background_tasks import get_task_manager
+        from ..performance.connection_pool import get_database_pool
+        
+        # Get task manager stats
+        task_manager = get_task_manager()
+        task_stats = await task_manager.get_stats()
+        
+        # Get database pool stats
+        db_pool = get_database_pool()
+        pool_stats = await db_pool.get_pool_status()
+        
+        return {
+            "background_tasks": task_stats,
+            "database_pool": pool_stats,
+            "system_info": {
+                "max_concurrent_requests": settings.max_concurrent_requests,
+                "worker_threads": settings.worker_threads,
+                "database_pool_size": settings.database_pool_size,
+            },
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
+    except Exception as e:
+        logger.error(f"Failed to get performance metrics: {e}")
+        return {
+            "error": "Failed to get performance metrics",
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
