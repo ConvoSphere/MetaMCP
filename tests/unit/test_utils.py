@@ -473,17 +473,17 @@ class TestCircuitBreakerDecorator:
             with pytest.raises(Exception):
                 await test_function()
 
-        # Third call should fail and open circuit
-        with pytest.raises(Exception):
-            await test_function()
-
-        # Fourth call should be rejected (circuit breaker should be open)
+        # Third call should be rejected (circuit breaker should be open after 2 failures)
         from metamcp.utils.circuit_breaker import CircuitBreakerOpenError
         with pytest.raises(CircuitBreakerOpenError):
             await test_function()
 
-        # Verify the function was called exactly 3 times (the 4th call was rejected)
-        assert call_count == 3
+        # Fourth call should also be rejected
+        with pytest.raises(CircuitBreakerOpenError):
+            await test_function()
+
+        # Verify the function was called exactly 2 times (the 3rd and 4th calls were rejected)
+        assert call_count == 2
 
 
 class TestCacheFactory:

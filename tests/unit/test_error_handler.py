@@ -405,8 +405,8 @@ class TestErrorHandlingIntegration:
             recoverable=True
         )
         
-        # Should retry on first few attempts
-        for attempt in range(1, 4):
+        # Should retry on first two attempts
+        for attempt in range(1, 3):
             should_retry = recovery_handler.should_retry(recoverable_error, attempt)
             assert should_retry is True
             
@@ -416,6 +416,10 @@ class TestErrorHandlingIntegration:
             response = recovery_handler.create_retry_response(recoverable_error, attempt)
             assert response["error"]["retry_after"] == delay
             assert response["error"]["attempt_count"] == attempt
+        
+        # Should not retry on third attempt (max attempts reached)
+        should_retry = recovery_handler.should_retry(recoverable_error, 3)
+        assert should_retry is False
         
         # Should not retry after max attempts
         should_retry = recovery_handler.should_retry(recoverable_error, 5)

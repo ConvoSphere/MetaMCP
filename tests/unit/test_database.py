@@ -20,24 +20,36 @@ class TestDatabaseManager:
             mock_settings = Mock()
             mock_settings.database_url = None
             mock_get_settings.return_value = mock_settings
+            
+            # Set the settings on the db_manager
+            db_manager._settings = mock_settings
 
             await db_manager.initialize()
             # Should not raise an exception, just log a warning
+            assert db_manager._pool is None
 
     @pytest.mark.asyncio
     async def test_initialize_with_url(self, db_manager):
         """Test initialization with URL."""
         with patch("metamcp.utils.database.get_settings") as mock_get_settings, \
-             patch("asyncpg.create_pool") as mock_create_pool:
+             patch("asyncpg.create_pool", new_callable=AsyncMock) as mock_create_pool:
             
             mock_settings = Mock()
             mock_settings.database_url = "postgresql://test"
             mock_get_settings.return_value = mock_settings
             
+            # Set the settings on the db_manager
+            db_manager._settings = mock_settings
+            
             mock_pool = Mock()
             mock_connection = Mock()
             mock_connection.fetchval = AsyncMock(return_value=1)
-            mock_pool.acquire = AsyncMock(return_value=mock_connection)
+            
+            # Create proper async context manager for pool.acquire
+            mock_context = AsyncMock()
+            mock_context.__aenter__.return_value = mock_connection
+            mock_context.__aexit__.return_value = None
+            mock_pool.acquire.return_value = mock_context
             mock_create_pool.return_value = mock_pool
 
             await db_manager.initialize()
@@ -75,7 +87,12 @@ class TestDatabaseManager:
         mock_pool.get_min_size.return_value = 5
         mock_pool.get_max_size.return_value = 20
         mock_pool.get_idle_size.return_value = 8
-        mock_pool.acquire = AsyncMock(return_value=mock_connection)
+        
+        # Create proper async context manager for pool.acquire
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        mock_pool.acquire.return_value = mock_context
 
         db_manager._pool = mock_pool
 
@@ -110,7 +127,11 @@ class TestDatabaseManager:
         mock_connection.execute = AsyncMock()
 
         mock_pool = Mock()
-        mock_pool.acquire = AsyncMock(return_value=mock_connection)
+        # Create proper async context manager for pool.acquire
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        mock_pool.acquire.return_value = mock_context
         db_manager._pool = mock_pool
 
         await db_manager.execute("INSERT INTO test VALUES ($1)", "value")
@@ -125,7 +146,11 @@ class TestDatabaseManager:
         mock_connection.fetch = AsyncMock(return_value=[{"id": 1}, {"id": 2}])
 
         mock_pool = Mock()
-        mock_pool.acquire = AsyncMock(return_value=mock_connection)
+        # Create proper async context manager for pool.acquire
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        mock_pool.acquire.return_value = mock_context
         db_manager._pool = mock_pool
 
         result = await db_manager.fetch("SELECT * FROM test")
@@ -139,7 +164,11 @@ class TestDatabaseManager:
         mock_connection.fetchval = AsyncMock(return_value=42)
 
         mock_pool = Mock()
-        mock_pool.acquire = AsyncMock(return_value=mock_connection)
+        # Create proper async context manager for pool.acquire
+        mock_context = AsyncMock()
+        mock_context.__aenter__.return_value = mock_connection
+        mock_context.__aexit__.return_value = None
+        mock_pool.acquire.return_value = mock_context
         db_manager._pool = mock_pool
 
         result = await db_manager.fetchval("SELECT COUNT(*) FROM test")

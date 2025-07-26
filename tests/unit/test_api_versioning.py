@@ -183,17 +183,27 @@ class TestAPIVersionMiddleware:
     async def test_middleware_unsupported_version(self, middleware):
         """Test middleware with unsupported version."""
         request = Mock()
-        request.headers = {"accept": "application/vnd.api+json; version=v999"}
-        request.url.path = "/api/v1/test"
+        request.headers = {"X-API-Version": "v999"}
+        request.url.path = "/api/test"  # No version in path
+        request.query_params = {}
         
         call_next = AsyncMock()
+        
+        # Check that the version is actually unsupported
+        version = middleware._extract_version(request)
+        assert version == "v999"
+        assert not middleware.version_manager.is_version_supported(version)
         
         response = await middleware(request, call_next)
         
         # The response should be a JSONResponse with status_code attribute
         assert hasattr(response, 'status_code')
         assert response.status_code == 400
-        assert "version_error" in response.body.decode().lower()
+        # Check that the response content contains version error information
+        assert hasattr(response, 'body')
+        response_content = response.body.decode()
+        assert "version_error" in response_content.lower()
+        assert "v999" in response_content
 
     def test_extract_version_from_header(self, middleware):
         """Test extracting version from header."""
