@@ -104,82 +104,56 @@ class OAuthManager:
 
     async def _load_providers(self) -> None:
         """Load OAuth providers from configuration."""
+        # Determine protocol based on environment
+        protocol = "https" if self.settings.environment == "production" else "http"
+        base_url = f"{protocol}://{self.settings.host}:{self.settings.port}"
+        
         # Google OAuth
-        if hasattr(self.settings, "google_oauth_client_id"):
+        if (self.settings.google_oauth_client_id and 
+            self.settings.google_oauth_client_secret):
             self.providers["google"] = OAuthProvider(
                 name="google",
                 client_id=self.settings.google_oauth_client_id,
                 client_secret=self.settings.google_oauth_client_secret,
-                authorization_url=getattr(
-                    self.settings,
-                    "google_oauth_authorization_url",
-                    "https://accounts.google.com/oauth/authorize",
-                ),
-                token_url=getattr(
-                    self.settings,
-                    "google_oauth_token_url",
-                    "https://oauth2.googleapis.com/token",
-                ),
-                userinfo_url=getattr(
-                    self.settings,
-                    "google_oauth_userinfo_url",
-                    "https://www.googleapis.com/oauth2/v2/userinfo",
-                ),
+                authorization_url=self.settings.google_oauth_authorization_url,
+                token_url=self.settings.google_oauth_token_url,
+                userinfo_url=self.settings.google_oauth_userinfo_url,
                 scopes=["openid", "email", "profile"],
-                redirect_uri=f"{self.settings.host}:{self.settings.port}/oauth/callback/google",
+                redirect_uri=f"{base_url}/api/v1/oauth/callback/google",
             )
+            logger.info("Google OAuth provider configured")
 
         # GitHub OAuth
-        if hasattr(self.settings, "github_oauth_client_id"):
+        if (self.settings.github_oauth_client_id and 
+            self.settings.github_oauth_client_secret):
             self.providers["github"] = OAuthProvider(
                 name="github",
                 client_id=self.settings.github_oauth_client_id,
                 client_secret=self.settings.github_oauth_client_secret,
-                authorization_url=getattr(
-                    self.settings,
-                    "github_oauth_authorization_url",
-                    "https://github.com/login/oauth/authorize",
-                ),
-                token_url=getattr(
-                    self.settings,
-                    "github_oauth_token_url",
-                    "https://github.com/login/oauth/access_token",
-                ),
-                userinfo_url=getattr(
-                    self.settings,
-                    "github_oauth_userinfo_url",
-                    "https://api.github.com/user",
-                ),
+                authorization_url=self.settings.github_oauth_authorization_url,
+                token_url=self.settings.github_oauth_token_url,
+                userinfo_url=self.settings.github_oauth_userinfo_url,
                 scopes=["read:user", "user:email"],
-                redirect_uri=f"{self.settings.host}:{self.settings.port}/oauth/callback/github",
+                redirect_uri=f"{base_url}/api/v1/oauth/callback/github",
             )
+            logger.info("GitHub OAuth provider configured")
 
         # Microsoft OAuth
-        if hasattr(self.settings, "microsoft_oauth_client_id"):
+        if (self.settings.microsoft_oauth_client_id and 
+            self.settings.microsoft_oauth_client_secret):
             self.providers["microsoft"] = OAuthProvider(
                 name="microsoft",
                 client_id=self.settings.microsoft_oauth_client_id,
                 client_secret=self.settings.microsoft_oauth_client_secret,
-                authorization_url=getattr(
-                    self.settings,
-                    "microsoft_oauth_authorization_url",
-                    "https://login.microsoftonline.com/common/oauth2/v2.0/authorize",
-                ),
-                token_url=getattr(
-                    self.settings,
-                    "microsoft_oauth_token_url",
-                    "https://login.microsoftonline.com/common/oauth2/v2.0/token",
-                ),
-                userinfo_url=getattr(
-                    self.settings,
-                    "microsoft_oauth_userinfo_url",
-                    "https://graph.microsoft.com/v1.0/me",
-                ),
+                authorization_url=self.settings.microsoft_oauth_authorization_url,
+                token_url=self.settings.microsoft_oauth_token_url,
+                userinfo_url=self.settings.microsoft_oauth_userinfo_url,
                 scopes=["openid", "profile", "email"],
-                redirect_uri=f"{self.settings.host}:{self.settings.port}/oauth/callback/microsoft",
+                redirect_uri=f"{base_url}/api/v1/oauth/callback/microsoft",
             )
+            logger.info("Microsoft OAuth provider configured")
 
-        logger.info(f"Loaded {len(self.providers)} OAuth providers")
+        logger.info(f"Loaded {len(self.providers)} OAuth providers: {list(self.providers.keys())}")
 
     async def _initialize_state_management(self) -> None:
         """Initialize OAuth state management."""
@@ -306,6 +280,7 @@ class OAuthManager:
             # Store token for agent sessions
             if is_agent and agent_id:
                 await self._store_agent_token(agent_id, provider, token)
+                logger.info(f"Stored OAuth token for agent {agent_id} ({provider})")
 
             # Clean up state
             del self.state_store[state]
@@ -506,6 +481,30 @@ class OAuthManager:
         if token_key in self.token_store:
             del self.token_store[token_key]
             logger.info(f"Revoked OAuth session for agent {agent_id} ({provider})")
+
+    async def get_fastmcp_agent_token(self, agent_id: str, provider: str) -> dict[str, Any] | None:
+        """
+        Get OAuth token for FastMCP agent with automatic refresh.
+        
+        Args:
+            agent_id: FastMCP agent ID
+            provider: OAuth provider name
+            
+        Returns:
+            Token information for FastMCP agent or None if not available
+        """
+        token = await self.get_agent_token(agent_id, provider)
+        if not token:
+            return None
+            
+        return {
+            "access_token": token.access_token,
+            "token_type": token.token_type,
+            "expires_in": token.expires_in,
+            "scope": token.scope,
+            "provider": provider,
+            "agent_id": agent_id,
+        }
 
     def get_available_providers(self) -> list[str]:
         """Get list of available OAuth providers."""
