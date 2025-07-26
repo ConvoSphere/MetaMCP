@@ -3,6 +3,8 @@ version: '3.8'
 services:
   # MCP Meta-Server
   metamcp-server:
+    env_file:
+      - .env
     build:
       context: .
       dockerfile: Dockerfile
@@ -32,13 +34,13 @@ services:
       
       # LLM Settings
       - LLM_PROVIDER=openai
-      - OPENAI_API_KEY=sk-3dd4I14gJ4rqM3mWsVbGRw
-      - OPENAI_MODEL=gpt-4
-      - OPENAI_BASE_URL=https://admin-litellm.internal.sanjo.foo
-      - OPENAI_EMBEDDING_MODEL=text-embedding-ada-002
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-}
+      - OPENAI_EMBEDDING_MODEL=${OPENAI_EMBEDDING_MODEL:-text-embedding-ada-002}
       
       # Authentication Settings
-      - SECRET_KEY=your-secret-key-change-in-production
+      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
       - ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
       

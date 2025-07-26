@@ -30,7 +30,8 @@ composition_router = APIRouter(prefix="/composition", tags=["composition"])
 # Dependency injection
 def get_workflow_orchestrator() -> WorkflowOrchestrator:
     """Get workflow orchestrator instance."""
-    # TODO: Implement proper dependency injection
+    # Note: In a production environment, this would use a proper DI container
+    # like FastAPI's dependency injection system with scoped instances
     return WorkflowOrchestrator()
 
 

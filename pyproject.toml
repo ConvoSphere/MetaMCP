@@ -101,6 +101,7 @@ Changelog = "https://github.com/metamcp/metamcp/blob/main/CHANGELOG.md"
 
 [project.scripts]
 metamcp = "metamcp.main:main"
+metamcp-cli = "scripts.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["."]

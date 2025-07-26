@@ -445,8 +445,8 @@ def cache(ttl: int | None = None, key_prefix: str = ""):
 
         def sync_wrapper(*args, **kwargs):
             # For sync functions, we'd need to handle differently
-            # This is a simplified version
-            # TODO: Implement proper sync caching
+            # This is a simplified version - sync caching would require
+            # a different approach with thread-safe operations
             return func(*args, **kwargs)
 
         if asyncio.iscoroutinefunction(func):
