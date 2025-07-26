@@ -212,6 +212,14 @@ class Settings(BaseSettings):
         description="Microsoft OAuth userinfo URL",
     )
 
+    # OAuth Provider Credentials
+    google_oauth_client_id: str | None = Field(default=None, description="Google OAuth Client ID")
+    google_oauth_client_secret: str | None = Field(default=None, description="Google OAuth Client Secret")
+    github_oauth_client_id: str | None = Field(default=None, description="GitHub OAuth Client ID")
+    github_oauth_client_secret: str | None = Field(default=None, description="GitHub OAuth Client Secret")
+    microsoft_oauth_client_id: str | None = Field(default=None, description="Microsoft OAuth Client ID")
+    microsoft_oauth_client_secret: str | None = Field(default=None, description="Microsoft OAuth Client Secret")
+
     @field_validator("environment")
     @classmethod
     def validate_environment(cls, v):
