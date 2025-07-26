@@ -14,6 +14,7 @@ from ..llm.service import LLMService
 from ..security.policies import PolicyEngine
 from ..utils.logging import get_logger
 from ..vector.client import VectorSearchClient
+from ..cache.decorators import cache_result, cache_invalidate
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -132,6 +133,7 @@ class ToolRegistry:
         for tool in initial_tools:
             await self.register_tool(tool)
 
+    @cache_invalidate(pattern="tools:list:*")
     async def register_tool(self, tool_data: dict[str, Any]) -> str:
         """
         Register a new tool.
@@ -219,6 +221,7 @@ class ToolRegistry:
             logger.warning(f"Failed to generate tool embedding: {e}")
             return [0.0] * 1536  # Default embedding with correct dimension
 
+    @cache_result(ttl=300, key_prefix="tools:list", strategy="short")
     async def list_tools(self, user_id: str) -> list[dict[str, Any]]:
         """
         List available tools for a user.

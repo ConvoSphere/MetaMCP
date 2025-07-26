@@ -151,6 +151,43 @@ class Settings(BaseSettings):
         default=2, description="Number of successes to close circuit again"
     )
 
+    # Cache Configuration
+    cache_enabled: bool = Field(
+        default=True, description="Enable caching system"
+    )
+    cache_redis_url: str = Field(
+        default="redis://localhost:6379/1", description="Redis URL for caching"
+    )
+    cache_default_ttl: int = Field(
+        default=3600, description="Default cache TTL in seconds"
+    )
+    cache_max_ttl: int = Field(
+        default=604800, description="Maximum cache TTL in seconds (1 week)"
+    )
+    cache_max_connections: int = Field(
+        default=20, description="Maximum Redis connections for cache"
+    )
+
+    # Performance Configuration
+    database_pool_size: int = Field(
+        default=10, description="Database connection pool size"
+    )
+    database_max_overflow: int = Field(
+        default=20, description="Database connection pool max overflow"
+    )
+    database_pool_timeout: int = Field(
+        default=30, description="Database connection pool timeout"
+    )
+    database_pool_recycle: int = Field(
+        default=3600, description="Database connection pool recycle time"
+    )
+    worker_threads: int = Field(
+        default=4, description="Number of worker threads for background tasks"
+    )
+    max_concurrent_requests: int = Field(
+        default=100, description="Maximum concurrent requests"
+    )
+
     # Tool Registry Settings
     tool_registry_enabled: bool = Field(
         default=True, description="Enable tool registry"
