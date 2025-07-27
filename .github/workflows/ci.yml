@@ -235,7 +235,7 @@ jobs:
       continue-on-error: true
 
     - name: Upload security reports
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: security-reports-${{ github.sha }}
         path: |
@@ -277,7 +277,7 @@ jobs:
         META_MCP_SECRET_KEY: test-secret-key-for-testing-only
 
     - name: Upload benchmark results
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: benchmark-results-${{ github.sha }}
         path: benchmark-results.json
