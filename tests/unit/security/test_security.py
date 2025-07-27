@@ -30,7 +30,7 @@ class TestAuthenticationSecurity:
     @pytest_asyncio.fixture
     async def setup_auth_security(self, test_settings):
         """Set up authentication security testing."""
-        self.auth_service = AuthService(settings=test_settings)
+        self.auth_service = AuthService()
 
         # Create test user
         self.test_user = await self.auth_service.create_user(
@@ -41,7 +41,8 @@ class TestAuthenticationSecurity:
                 "full_name": "Security User",
                 "is_active": True,
                 "is_admin": False,
-            }
+            },
+            "system"
         )
 
         yield
@@ -68,22 +69,24 @@ class TestAuthenticationSecurity:
             "is_admin": False,
         }
 
-        user = await self.auth_service.create_user(user_data)
+        user_id = await self.auth_service.create_user(user_data, "system")
+
+        # Get the created user
+        user = self.auth_service._get_user_by_id(user_id)
+        assert user is not None
 
         # Password should be hashed, not stored in plain text
-        assert user["password"] != "TestPassword123!"
-        assert user["password"].startswith("$2b$")  # bcrypt hash format
+        assert user["hashed_password"] != "TestPassword123!"
+        assert user["hashed_password"].startswith("$2b$")  # bcrypt hash format
 
         # Verify password works
-        is_valid = await self.auth_service.verify_password(
-            "TestPassword123!", user["password"]
-        )
+        from passlib.context import CryptContext
+        pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+        is_valid = pwd_context.verify("TestPassword123!", user["hashed_password"])
         assert is_valid is True
 
         # Verify wrong password fails
-        is_invalid = await self.auth_service.verify_password(
-            "WrongPassword", user["password"]
-        )
+        is_invalid = pwd_context.verify("WrongPassword", user["hashed_password"])
         assert is_invalid is False
 
     @pytest.mark.security
@@ -177,8 +180,8 @@ class TestAuthorizationSecurity:
     @pytest_asyncio.fixture
     async def setup_authz_security(self, test_settings):
         """Set up authorization security testing."""
-        self.auth_service = AuthService(settings=test_settings)
-        self.tool_service = ToolService(settings=test_settings)
+        self.auth_service = AuthService()
+        self.tool_service = ToolService()
 
         # Create users with different permissions
         self.admin_user = await self.auth_service.create_user(
@@ -334,8 +337,8 @@ class TestInputValidationSecurity:
     @pytest_asyncio.fixture
     async def setup_validation_security(self, test_settings):
         """Set up input validation security testing."""
-        self.auth_service = AuthService(settings=test_settings)
-        self.tool_service = ToolService(settings=test_settings)
+        self.auth_service = AuthService()
+        self.tool_service = ToolService()
 
         yield
 
@@ -467,7 +470,7 @@ class TestRateLimitingSecurity:
     @pytest_asyncio.fixture
     async def setup_rate_limit_security(self, test_settings):
         """Set up rate limiting security testing."""
-        self.rate_limiter = RateLimiter(settings=test_settings)
+        self.rate_limiter = RateLimiter()
 
         yield
 
@@ -529,7 +532,7 @@ class TestTokenSecurity:
     @pytest_asyncio.fixture
     async def setup_token_security(self, test_settings):
         """Set up token security testing."""
-        self.auth_service = AuthService(settings=test_settings)
+        self.auth_service = AuthService()
 
         # Create test user
         self.test_user = await self.auth_service.create_user(
@@ -626,8 +629,8 @@ class TestDataSecurity:
     @pytest_asyncio.fixture
     async def setup_data_security(self, test_settings):
         """Set up data security testing."""
-        self.auth_service = AuthService(settings=test_settings)
-        self.tool_service = ToolService(settings=test_settings)
+        self.auth_service = AuthService()
+        self.tool_service = ToolService()
         self.cache = Cache(settings=test_settings)
 
         yield
