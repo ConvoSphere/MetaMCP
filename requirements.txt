@@ -1,52 +1,60 @@
-# --- Web Framework & API ---
-fastapi
-uvicorn[standard]
+# Core dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-multipart==0.0.6
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+httpx==0.25.2
+aiofiles==23.2.1
 
-# --- Core Functionality ---
-fastmcp
+# Database
+sqlalchemy==2.0.23
+alembic==1.13.1
+aiosqlite==0.19.0
+asyncpg==0.29.0
 
-# --- Auth & Security ---
-python-jose[cryptography]
-passlib[bcrypt]
-bcrypt
-python-multipart
+# Vector database
+weaviate-client==4.16.4
 
-# --- Config & Validation ---
-pydantic
-pydantic-settings
+# LLM and AI
+openai==1.3.7
+anthropic==0.7.8
+cohere==4.37
 
-# --- Database (PostgreSQL, optional for persistence) ---
-sqlalchemy
-alembic
-asyncpg
+# Monitoring and observability
+prometheus-client==0.19.0
+structlog==23.2.0
 
-# --- Vector Search ---
-weaviate-client
+# Security
+opa-client==0.1.0
 
-# --- LLM Integration ---
-openai
-anthropic
+# Caching
+redis==5.0.1
+aioredis==2.0.1
 
-# --- Policy Engine ---
-opa-python-client
+# Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-cov==4.1.0
+httpx==0.25.2
+faker==20.1.0
+psutil==5.9.6
 
-# --- HTTP Client ---
-httpx
+# Development
+black==23.11.0
+isort==5.12.0
+flake8==6.1.0
+mypy==1.7.1
 
-# --- Redis (Caching, Rate Limiting) ---
-redis
+# Admin Interface
+streamlit==1.28.1
+streamlit-autorefresh==0.3.1
+plotly==5.17.0
+pandas==2.1.4
 
-# --- Monitoring & Telemetry ---
-prometheus-client
-opentelemetry-api
-opentelemetry-sdk
-opentelemetry-instrumentation-fastapi
-opentelemetry-exporter-otlp-proto-http
-opentelemetry-exporter-prometheus
-
-# --- Logging ---
-structlog
-rich
-
-# --- Utility ---
-click
+# Utilities
+python-dotenv==1.0.0
+click==8.1.7
+rich==13.7.0

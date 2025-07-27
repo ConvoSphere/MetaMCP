@@ -64,6 +64,9 @@ export META_MCP_PORT="8000"
 
 # Run the application
 python -m metamcp.main
+
+# Start the Admin Interface (optional)
+python scripts/start_admin.py
 ```
 
 ### Traditional Installation
@@ -87,6 +90,9 @@ export META_MCP_PORT="8000"
 
 # Run the application
 python -m metamcp.main
+
+# Start the Admin Interface (optional)
+python scripts/start_admin.py
 ```
 
 ### Docker Installation
@@ -96,9 +102,13 @@ python -m metamcp.main
 docker build -t metamcp .
 docker run -p 8000:8000 -e META_MCP_SECRET_KEY="your-secret-key" metamcp
 
-# Or use Docker Compose
+# Or use Docker Compose (includes admin interface)
 docker-compose up -d
-```
+
+# Access points:
+# - API Server: http://localhost:9000
+# - Admin Interface: http://localhost:9501
+# - API Documentation: http://localhost:9000/docs
 
 ### Development Setup
 
