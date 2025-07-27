@@ -164,9 +164,9 @@ TELEMETRY_ENABLED=false
 
 ## Next Steps
 
-- **[Configuration Guide](configuration.md)** - Detailed configuration options
+- **[Configuration Guide](../reference/configuration.md)** - Detailed configuration options
 - **[API Reference](../user-guide/api-reference.md)** - Complete API documentation
-- **[Tool Management](../user-guide/tool-management.md)** - Managing tools and capabilities
+- **[API Reference](../user-guide/api-reference.md)** - Complete API documentation
 - **[Security Setup](../user-guide/security.md)** - Security configuration
 
 ## Troubleshooting
@@ -193,6 +193,6 @@ TELEMETRY_ENABLED=false
 
 ### Getting Help
 
-- Check the [Troubleshooting Guide](../reference/troubleshooting.md)
+- Check the [Configuration Guide](../reference/configuration.md) for detailed settings
 - Report issues on [GitHub](https://github.com/lichtbaer/MetaMCP/issues)
 - Join our [Discord community](https://discord.gg/metamcp) 

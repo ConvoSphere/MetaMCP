@@ -4,7 +4,7 @@ Get started with the MetaMCP Proxy Wrapper in minutes. This guide will help you 
 
 ## Prerequisites
 
-- MetaMCP server running (see [Quick Start](../quick-start.md))
+- MetaMCP server running (see [Quick Start](quick-start.md))
 - At least one MCP server to wrap
 - Basic understanding of MCP protocol
 

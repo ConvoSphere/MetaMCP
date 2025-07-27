@@ -14,6 +14,7 @@ from metamcp.utils.rate_limiter import (
     RateLimiterBackend,
     RateLimitInfo,
     RateLimitMiddleware,
+    RedisRateLimiter,
     create_rate_limiter,
 )
 
@@ -231,11 +232,12 @@ class TestRateLimitFunctions:
 
     def test_create_rate_limiter_redis(self):
         """Test creating Redis rate limiter."""
-        # Since RedisRateLimiter doesn't exist, this should fall back to memory limiter
+        # Redis rate limiter should be created if Redis is available
         limiter = create_rate_limiter(
             use_redis=True, redis_url="redis://localhost:6379"
         )
-        assert isinstance(limiter.backend, MemoryRateLimiter)
+        # Should be either RedisRateLimiter or MemoryRateLimiter (fallback)
+        assert isinstance(limiter.backend, (RedisRateLimiter, MemoryRateLimiter))
 
 
 class TestRateLimitMiddleware:

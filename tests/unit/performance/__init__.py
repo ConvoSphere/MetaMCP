@@ -4,12 +4,10 @@ Performance Tests
 Unit tests for performance, benchmarking, and scalability features.
 """
 
-from .test_performance import TestBenchmarking, TestLoadTesting, TestPerformance
+from .test_performance import TestPerformanceBenchmarks, TestLoadTesting, TestPerformanceRegression
 
 __all__ = [
-    "TestPerformance",
-    "TestMemoryUsage",
-    "TestConcurrency",
-    "TestScalability",
-    "TestBenchmarks",
+    "TestPerformanceBenchmarks",
+    "TestLoadTesting", 
+    "TestPerformanceRegression",
 ]
