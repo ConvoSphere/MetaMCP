@@ -19,8 +19,13 @@ MetaMCP is an open-source MCP (Model Context Protocol) Meta-Server that provides
 git clone https://github.com/lichtbaer/MetaMCP.git
 cd MetaMCP
 
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
+
 # Install dependencies
-uv pip install -r requirements.txt
+pip install -r requirements.txt
+pip install -r requirements-dev.txt
 
 # Start the development server
 python -m metamcp.main
@@ -86,43 +91,47 @@ graph TB
 ## Getting Started
 
 1. **[Quick Start](getting-started/quick-start.md)** - Get up and running in minutes
-2. **[Installation](getting-started/installation.md)** - Detailed installation instructions
-3. **[Configuration](getting-started/configuration.md)** - Configure your MetaMCP instance
+2. **[Proxy Quick Start](getting-started/proxy-quick-start.md)** - Using the proxy wrapper
 
 ## User Guide
 
-- **[Overview](user-guide/overview.md)** - Understanding MetaMCP concepts
-- **[Architecture](user-guide/architecture.md)** - Detailed system architecture
 - **[API Reference](user-guide/api-reference.md)** - REST API documentation
-- **[MCP Protocol](user-guide/mcp-protocol.md)** - MCP protocol implementation
-- **[Tool Management](user-guide/tool-management.md)** - Managing tools and capabilities
 - **[Proxy Wrapper](user-guide/proxy-wrapper.md)** - Using the proxy wrapper functionality
 - **[Security](user-guide/security.md)** - Security features and best practices
-- **[OAuth Integration](oauth/fastmcp-integration.md)** - OAuth authentication for agents
 
 ## Developer Guide
 
 - **[Development Setup](developer-guide/development-setup.md)** - Setting up development environment
 - **[Code Structure](developer-guide/code-structure.md)** - Understanding the codebase
-- **[Adding Tools](developer-guide/adding-tools.md)** - How to add new tools
-- **[Custom Policies](developer-guide/custom-policies.md)** - Creating custom access policies
+- **[Architecture](developer-guide/architecture.md)** - Detailed system architecture
 - **[Proxy Development](developer-guide/proxy-development.md)** - Developing with the proxy wrapper
 - **[Testing](developer-guide/testing.md)** - Testing guidelines and examples
 
-## Deployment
+## Development
 
-- **[Docker](deployment/docker.md)** - Docker deployment guide
-- **[Kubernetes](deployment/kubernetes.md)** - Kubernetes deployment
-- **[Production](deployment/production.md)** - Production deployment best practices
-- **[Monitoring](deployment/monitoring.md)** - Monitoring and observability
+- **[Contributing](development/contributing.md)** - How to contribute to MetaMCP
+
+## API & Integration
+
+- **[API Documentation](api/index.md)** - Complete API documentation
+- **[OAuth Integration](oauth/fastmcp-integration.md)** - OAuth authentication for agents
+
+## Monitoring & Operations
+
+- **[Monitoring Overview](monitoring/index.md)** - Monitoring and observability
+- **[Production Setup](monitoring/production-setup.md)** - Production deployment
+- **[Telemetry](monitoring/telemetry.md)** - OpenTelemetry integration
 
 ## Reference
 
 - **[Configuration](reference/configuration.md)** - Complete configuration reference
-- **[API Endpoints](reference/api-endpoints.md)** - Detailed API endpoint documentation
+- **[Environment Variables](reference/environment-variables.md)** - Environment configuration
 - **[Proxy API](reference/proxy-api.md)** - Proxy wrapper API documentation
-- **[Error Codes](reference/error-codes.md)** - Error codes and troubleshooting
-- **[Troubleshooting](reference/troubleshooting.md)** - Common issues and solutions
+
+## Additional Resources
+
+- **[Composition Improvements](composition-improvements.md)** - Recent improvements
+- **[Roadmap](roadmap.md)** - Future development plans
 
 ## Contributing
 

@@ -15,13 +15,13 @@ theme:
       primary: indigo
       accent: indigo
       toggle:
-        icon: material/toggle-wifi
+        icon: material/brightness-auto
         name: Switch to dark mode
     - scheme: slate
       primary: indigo
       accent: indigo
       toggle:
-        icon: material/toggle-wifi-off
+        icon: material/brightness-7
         name: Switch to light mode
   features:
     - announce.dismiss
@@ -48,8 +48,6 @@ theme:
 
 plugins:
   - search
-  - git-revision-date-localized:
-      enable_creation_date: true
   - minify:
       minify_html: true
 
@@ -113,28 +111,31 @@ nav:
   - Home: index.md
   - Getting Started:
     - Quick Start: getting-started/quick-start.md
-    - Installation: getting-started/installation.md
-    - Configuration: getting-started/configuration.md
+    - Proxy Quick Start: getting-started/proxy-quick-start.md
   - User Guide:
-    - Overview: user-guide/overview.md
-    - Architecture: user-guide/architecture.md
     - API Reference: user-guide/api-reference.md
-    - MCP Protocol: user-guide/mcp-protocol.md
-    - Tool Management: user-guide/tool-management.md
+    - Proxy Wrapper: user-guide/proxy-wrapper.md
     - Security: user-guide/security.md
   - Developer Guide:
     - Development Setup: developer-guide/development-setup.md
     - Code Structure: developer-guide/code-structure.md
-    - Adding Tools: developer-guide/adding-tools.md
-    - Custom Policies: developer-guide/custom-policies.md
+    - Architecture: developer-guide/architecture.md
+    - Proxy Development: developer-guide/proxy-development.md
     - Testing: developer-guide/testing.md
-  - Deployment:
-    - Docker: deployment/docker.md
-    - Kubernetes: deployment/kubernetes.md
-    - Production: deployment/production.md
-    - Monitoring: deployment/monitoring.md
+  - Development:
+    - Contributing: development/contributing.md
+  - API:
+    - API Documentation: api/index.md
+  - OAuth:
+    - FastMCP Integration: oauth/fastmcp-integration.md
+  - Monitoring:
+    - Overview: monitoring/index.md
+    - Production Setup: monitoring/production-setup.md
+    - Telemetry: monitoring/telemetry.md
   - Reference:
     - Configuration: reference/configuration.md
-    - API Endpoints: reference/api-endpoints.md
-    - Error Codes: reference/error-codes.md
-    - Troubleshooting: reference/troubleshooting.md 
+    - Environment Variables: reference/environment-variables.md
+    - Proxy API: reference/proxy-api.md
+  - Additional:
+    - Composition Improvements: composition-improvements.md
+    - Roadmap: roadmap.md 
