@@ -43,28 +43,26 @@ def test_settings() -> Settings:
         # Database
         database_url="sqlite:///./test.db",
         # Vector Database
-        vector_database_url="http://localhost:8080",
+        weaviate_url="http://localhost:8080",
         # Security
         secret_key="test-secret-key-for-testing-only",
         algorithm="HS256",
         access_token_expire_minutes=30,
         # Logging
         log_level="DEBUG",
-        # Testing
-        testing=True,
         # Rate Limiting
-        rate_limit_enabled=True,
-        rate_limit_requests_per_minute=100,
+        rate_limit_requests=100,
+        rate_limit_window=60,
         # Cache
         cache_enabled=True,
-        cache_ttl_seconds=300,
+        cache_default_ttl=300,
         # Circuit Breaker
         circuit_breaker_enabled=True,
         circuit_breaker_failure_threshold=5,
         circuit_breaker_recovery_timeout=60,
         # Admin UI
-        admin_ui_enabled=True,
-        admin_ui_port=8081,
+        admin_enabled=True,
+        admin_port=8081,
     )
 
 
@@ -117,19 +115,19 @@ def test_session(test_engine):
 @pytest.fixture
 async def auth_service(test_settings: Settings) -> AuthService:
     """Create AuthService instance for testing."""
-    return AuthService(settings=test_settings)
+    return AuthService()
 
 
 @pytest.fixture
 async def tool_service(test_settings: Settings) -> ToolService:
     """Create ToolService instance for testing."""
-    return ToolService(settings=test_settings)
+    return ToolService()
 
 
 @pytest.fixture
 async def search_service(test_settings: Settings) -> SearchService:
     """Create SearchService instance for testing."""
-    return SearchService(settings=test_settings)
+    return SearchService()
 
 
 # Utility Fixtures
