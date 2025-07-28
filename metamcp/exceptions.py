@@ -4,7 +4,7 @@ Custom exceptions for MetaMCP.
 This module defines all custom exceptions used throughout the MetaMCP system.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 
 class MetaMCPException(Exception):
@@ -330,6 +330,25 @@ class OAuthError(MetaMCPException):
         super().__init__(message=message, error_code=error_code)
 
 
+class RateLimitExceededError(MetaMCPException):
+    """Rate limit exceeded error."""
+    def __init__(self, message: str, error_code: str = "rate_limit_exceeded", retry_after: Optional[int] = None):
+        super().__init__(message=message, error_code=error_code)
+        self.retry_after = retry_after
+
+
+class IPFilterError(MetaMCPException):
+    """IP filtering error."""
+    def __init__(self, message: str, error_code: str = "ip_filter_error"):
+        super().__init__(message=message, error_code=error_code)
+
+
+class PolicyTestError(MetaMCPException):
+    """Policy testing error."""
+    def __init__(self, message: str, error_code: str = "policy_test_error"):
+        super().__init__(message=message, error_code=error_code)
+
+
 # Telemetry exceptions
 class TelemetryError(MetaMCPException):
     """Telemetry-related error."""
@@ -389,6 +408,9 @@ __all__ = [
     "APIKeyError",
     "ToolRegistryError",
     "OAuthError",
+    "RateLimitExceededError",
+    "IPFilterError",
+    "PolicyTestError",
     "TelemetryError",
     "LLMServiceError",
     "CacheError",
