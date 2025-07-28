@@ -4,7 +4,7 @@ Custom exceptions for MetaMCP.
 This module defines all custom exceptions used throughout the MetaMCP system.
 """
 
-from typing import Any
+from typing import Any, Optional
 
 
 class MetaMCPException(Exception):
@@ -303,40 +303,75 @@ class ServiceUnavailableError(MetaMCPException):
 
 # Security exceptions
 class SecurityError(MetaMCPException):
-    """Raised when security-related errors occur."""
+    """Security-related error."""
 
     def __init__(self, message: str, error_code: str = "security_error"):
-        super().__init__(message=message, error_code=error_code, status_code=403)
+        super().__init__(message=message, error_code=error_code)
+
+
+class APIKeyError(MetaMCPException):
+    """API key management error."""
+
+    def __init__(self, message: str, error_code: str = "api_key_error"):
+        super().__init__(message=message, error_code=error_code)
+
+
+class ToolRegistryError(MetaMCPException):
+    """Tool registry security error."""
+
+    def __init__(self, message: str, error_code: str = "tool_registry_error"):
+        super().__init__(message=message, error_code=error_code)
+
+
+class OAuthError(MetaMCPException):
+    """OAuth authentication error."""
+
+    def __init__(self, message: str, error_code: str = "oauth_error"):
+        super().__init__(message=message, error_code=error_code)
+
+
+class RateLimitExceededError(MetaMCPException):
+    """Rate limit exceeded error."""
+    def __init__(self, message: str, error_code: str = "rate_limit_exceeded", retry_after: Optional[int] = None):
+        super().__init__(message=message, error_code=error_code)
+        self.retry_after = retry_after
+
+
+class IPFilterError(MetaMCPException):
+    """IP filtering error."""
+    def __init__(self, message: str, error_code: str = "ip_filter_error"):
+        super().__init__(message=message, error_code=error_code)
+
+
+class PolicyTestError(MetaMCPException):
+    """Policy testing error."""
+    def __init__(self, message: str, error_code: str = "policy_test_error"):
+        super().__init__(message=message, error_code=error_code)
 
 
 # Telemetry exceptions
 class TelemetryError(MetaMCPException):
-    """Raised when telemetry operations fail."""
+    """Telemetry-related error."""
 
     def __init__(self, message: str, error_code: str = "telemetry_error"):
-        super().__init__(message=message, error_code=error_code, status_code=500)
+        super().__init__(message=message, error_code=error_code)
 
 
 # LLM service exceptions
 class LLMServiceError(MetaMCPException):
-    """Raised when LLM service operations fail."""
+    """LLM service error."""
 
     def __init__(self, message: str, provider: str | None = None):
-        details = {"provider": provider} if provider else {}
-        super().__init__(
-            message=message,
-            error_code="llm_service_error",
-            details=details,
-            status_code=500,
-        )
+        super().__init__(message=message, error_code="llm_service_error")
+        self.provider = provider
 
 
 # Cache exceptions
 class CacheError(MetaMCPException):
-    """Raised when cache operations fail."""
+    """Cache-related error."""
 
     def __init__(self, message: str, error_code: str = "cache_error"):
-        super().__init__(message=message, error_code=error_code, status_code=500)
+        super().__init__(message=message, error_code=error_code)
 
 
 # Export all exceptions
@@ -370,6 +405,12 @@ __all__ = [
     "ResourceConflictError",
     "ServiceUnavailableError",
     "SecurityError",
+    "APIKeyError",
+    "ToolRegistryError",
+    "OAuthError",
+    "RateLimitExceededError",
+    "IPFilterError",
+    "PolicyTestError",
     "TelemetryError",
     "LLMServiceError",
     "CacheError",
