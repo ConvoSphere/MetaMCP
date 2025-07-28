@@ -1,22 +1,28 @@
 """
-API Key Management System
+API Key Management
 
-This module provides API key generation, validation, and management
-for service-to-service authentication.
+This module provides API key management functionality including generation,
+validation, and storage with database persistence.
 """
 
-import secrets
 import hashlib
+import secrets
+import uuid
 from datetime import datetime, timedelta
-from typing import Optional, Dict, List
+from typing import Dict, List, Optional
 from dataclasses import dataclass
+import asyncio
 
-from ..config import get_settings
-from ..exceptions import AuthenticationError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+from ..database.connection import get_async_session
+from ..database.models import APIKey as APIKeyModel
+from ..exceptions import APIKeyError
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
-settings = get_settings()
 
 
 @dataclass
@@ -35,15 +41,16 @@ class APIKey:
 
 class APIKeyManager:
     """
-    API Key Manager for service-to-service authentication.
+    API Key Manager for generating, validating, and managing API keys.
     
-    Handles API key generation, validation, and management.
+    This class provides database-backed API key management with secure
+    storage and validation capabilities.
     """
 
     def __init__(self):
         """Initialize API Key Manager."""
-        self.keys: Dict[str, APIKey] = {}
         self._initialized = False
+        self._session_factory: Optional[sessionmaker] = None
 
     async def initialize(self) -> None:
         """Initialize the API key manager."""
@@ -53,17 +60,23 @@ class APIKeyManager:
         try:
             logger.info("Initializing API Key Manager...")
             
-            # Load existing keys from database/storage
-            await self._load_keys()
+            # Get session factory
+            self._session_factory = get_async_session()
+            
+            # Test database connection
+            async with self._session_factory() as session:
+                # Try to query API keys to test connection
+                stmt = select(APIKeyModel).limit(1)
+                await session.execute(stmt)
             
             self._initialized = True
             logger.info("API Key Manager initialized successfully")
 
         except Exception as e:
             logger.error(f"Failed to initialize API Key Manager: {e}")
-            raise AuthenticationError(
+            raise APIKeyError(
                 message=f"Failed to initialize API key manager: {str(e)}"
-            )
+            ) from e
 
     def generate_api_key(self, name: str, owner: str, permissions: List[str], 
                         expires_in_days: Optional[int] = None) -> str:
@@ -71,50 +84,78 @@ class APIKeyManager:
         Generate a new API key.
         
         Args:
-            name: Human-readable name for the key
-            owner: Owner of the key (service/user)
-            permissions: List of permissions granted to this key
-            expires_in_days: Days until key expires (None for no expiration)
+            name: Name for the API key
+            owner: Owner of the API key
+            permissions: List of permissions for the key
+            expires_in_days: Days until key expires (optional)
             
         Returns:
-            The generated API key (only returned once)
+            The generated API key string
         """
-        # Generate unique key ID
-        key_id = f"key_{secrets.token_urlsafe(16)}"
-        
-        # Generate the actual API key
-        api_key = f"mcp_{secrets.token_urlsafe(32)}"
-        
-        # Hash the key for storage
-        key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-        
-        # Set expiration
-        expires_at = None
-        if expires_in_days:
-            expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
-        
-        # Create API key record
-        key_record = APIKey(
-            key_id=key_id,
-            key_hash=key_hash,
-            name=name,
-            owner=owner,
-            permissions=permissions,
-            created_at=datetime.utcnow(),
-            expires_at=expires_at,
-            last_used=None,
-            is_active=True
-        )
-        
-        # Store the key record
-        self.keys[key_id] = key_record
-        
-        logger.info(f"Generated API key '{name}' for {owner}")
-        
-        # Return the actual key (only time it's available)
-        return api_key
+        if not self._initialized:
+            raise APIKeyError(message="API Key Manager not initialized")
 
-    def validate_api_key(self, api_key: str) -> Optional[APIKey]:
+        try:
+            # Generate unique key ID
+            key_id = str(uuid.uuid4())
+            
+            # Generate secure random key
+            api_key = f"mcp_{secrets.token_urlsafe(32)}"
+            
+            # Hash the key for storage
+            key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+            
+            # Calculate expiration
+            expires_at = None
+            if expires_in_days:
+                expires_at = datetime.utcnow() + timedelta(days=expires_in_days)
+            
+            # Create database record
+            asyncio.create_task(self._save_api_key_to_db(
+                key_id=key_id,
+                key_hash=key_hash,
+                name=name,
+                owner=owner,
+                permissions=permissions,
+                expires_at=expires_at
+            ))
+            
+            logger.info(f"Generated API key: {key_id} for owner: {owner}")
+            return api_key
+
+        except Exception as e:
+            logger.error(f"Failed to generate API key: {e}")
+            raise APIKeyError(
+                message=f"Failed to generate API key: {str(e)}"
+            ) from e
+
+    async def _save_api_key_to_db(self, key_id: str, key_hash: str, name: str, 
+                                 owner: str, permissions: List[str], 
+                                 expires_at: Optional[datetime]) -> None:
+        """Save API key to database."""
+        try:
+            async with self._session_factory() as session:
+                api_key_model = APIKeyModel(
+                    id=key_id,
+                    key_hash=key_hash,
+                    name=name,
+                    user_id=owner,
+                    permissions=permissions,
+                    created_at=datetime.utcnow(),
+                    expires_at=expires_at,
+                    is_active=True
+                )
+                session.add(api_key_model)
+                await session.commit()
+                logger.debug(f"Saved API key to database: {key_id}")
+
+        except Exception as e:
+            logger.error(f"Failed to save API key to database: {e}")
+            raise APIKeyError(
+                message=f"Failed to save API key to database: {str(e)}"
+            ) from e
+
+    async def validate_api_key(self, api_key: str) -> Optional[APIKey]:
         """
         Validate an API key.
         
@@ -124,23 +165,51 @@ class APIKeyManager:
         Returns:
             APIKey object if valid, None otherwise
         """
-        if not api_key or not api_key.startswith("mcp_"):
-            return None
-        
-        # Hash the provided key
-        key_hash = hashlib.sha256(api_key.encode()).hexdigest()
-        
-        # Find matching key
-        for key_record in self.keys.values():
-            if (key_record.key_hash == key_hash and 
-                key_record.is_active and
-                (key_record.expires_at is None or key_record.expires_at > datetime.utcnow())):
+        if not self._initialized:
+            raise APIKeyError(message="API Key Manager not initialized")
+
+        try:
+            # Hash the provided key
+            key_hash = hashlib.sha256(api_key.encode()).hexdigest()
+            
+            # Query database for the key
+            async with self._session_factory() as session:
+                stmt = select(APIKeyModel).where(
+                    APIKeyModel.key_hash == key_hash,
+                    APIKeyModel.is_active == True
+                )
+                result = await session.execute(stmt)
+                key_record = result.scalar_one_or_none()
+                
+                if not key_record:
+                    return None
+                
+                # Check expiration
+                if (key_record.expires_at and 
+                    key_record.expires_at < datetime.utcnow()):
+                    logger.warning(f"API key expired: {key_record.id}")
+                    return None
                 
                 # Update last used timestamp
                 key_record.last_used = datetime.utcnow()
-                return key_record
-        
-        return None
+                await session.commit()
+                
+                # Return APIKey object
+                return APIKey(
+                    key_id=key_record.id,
+                    key_hash=key_record.key_hash,
+                    name=key_record.name,
+                    owner=key_record.user_id,
+                    permissions=key_record.permissions,
+                    created_at=key_record.created_at,
+                    expires_at=key_record.expires_at,
+                    last_used=key_record.last_used,
+                    is_active=key_record.is_active
+                )
+
+        except Exception as e:
+            logger.error(f"Failed to validate API key: {e}")
+            return None
 
     def check_permission(self, api_key: str, permission: str) -> bool:
         """
@@ -153,13 +222,13 @@ class APIKeyManager:
         Returns:
             True if key has permission, False otherwise
         """
-        key_record = self.validate_api_key(api_key)
+        key_record = asyncio.run(self.validate_api_key(api_key))
         if not key_record:
             return False
         
         return permission in key_record.permissions
 
-    def revoke_api_key(self, key_id: str) -> bool:
+    async def revoke_api_key(self, key_id: str) -> bool:
         """
         Revoke an API key.
         
@@ -169,13 +238,29 @@ class APIKeyManager:
         Returns:
             True if key was revoked, False if not found
         """
-        if key_id in self.keys:
-            self.keys[key_id].is_active = False
-            logger.info(f"Revoked API key: {key_id}")
-            return True
-        return False
+        if not self._initialized:
+            raise APIKeyError(message="API Key Manager not initialized")
 
-    def list_api_keys(self, owner: Optional[str] = None) -> List[Dict]:
+        try:
+            async with self._session_factory() as session:
+                stmt = select(APIKeyModel).where(APIKeyModel.id == key_id)
+                result = await session.execute(stmt)
+                key_record = result.scalar_one_or_none()
+                
+                if not key_record:
+                    return False
+                
+                key_record.is_active = False
+                await session.commit()
+                
+                logger.info(f"Revoked API key: {key_id}")
+                return True
+
+        except Exception as e:
+            logger.error(f"Failed to revoke API key: {e}")
+            return False
+
+    async def list_api_keys(self, owner: Optional[str] = None) -> List[Dict]:
         """
         List API keys.
         
@@ -185,34 +270,45 @@ class APIKeyManager:
         Returns:
             List of API key information (without actual keys)
         """
-        keys = []
-        for key_record in self.keys.values():
-            if owner and key_record.owner != owner:
-                continue
+        if not self._initialized:
+            raise APIKeyError(message="API Key Manager not initialized")
+
+        try:
+            async with self._session_factory() as session:
+                stmt = select(APIKeyModel)
+                if owner:
+                    stmt = stmt.where(APIKeyModel.user_id == owner)
                 
-            keys.append({
-                "key_id": key_record.key_id,
-                "name": key_record.name,
-                "owner": key_record.owner,
-                "permissions": key_record.permissions,
-                "created_at": key_record.created_at.isoformat(),
-                "expires_at": key_record.expires_at.isoformat() if key_record.expires_at else None,
-                "last_used": key_record.last_used.isoformat() if key_record.last_used else None,
-                "is_active": key_record.is_active
-            })
-        
-        return keys
+                result = await session.execute(stmt)
+                key_records = result.scalars().all()
+                
+                keys = []
+                for key_record in key_records:
+                    keys.append({
+                        "key_id": key_record.id,
+                        "name": key_record.name,
+                        "owner": key_record.user_id,
+                        "permissions": key_record.permissions,
+                        "created_at": key_record.created_at.isoformat(),
+                        "expires_at": key_record.expires_at.isoformat() if key_record.expires_at else None,
+                        "last_used": key_record.last_used.isoformat() if key_record.last_used else None,
+                        "is_active": key_record.is_active
+                    })
+                
+                return keys
+
+        except Exception as e:
+            logger.error(f"Failed to list API keys: {e}")
+            return []
 
     async def _load_keys(self) -> None:
         """Load API keys from persistent storage."""
-        # TODO: Implement database storage for API keys
-        # For now, keys are stored in memory
+        # Keys are now loaded from database on demand
         pass
 
     async def shutdown(self) -> None:
         """Shutdown the API key manager."""
         logger.info("Shutting down API Key Manager")
-        # TODO: Save keys to persistent storage
         self._initialized = False
 
     @property

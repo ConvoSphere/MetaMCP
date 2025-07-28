@@ -2,20 +2,26 @@
 OAuth Authentication Module
 
 This module provides OAuth 2.0 authentication support for both users and AI agents,
-with specific handling for FastMCP agent authentication flows.
+with specific handling for FastMCP agent authentication flows and database persistence.
 """
 
 import json
 import secrets
+import uuid
 from datetime import datetime, timedelta
-from typing import Any
+from typing import Any, Optional
 from urllib.parse import urlencode
 
 import httpx
 from pydantic import BaseModel, ConfigDict, Field
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import sessionmaker
 
 from ..config import get_settings
-from ..exceptions import MetaMCPException
+from ..database.connection import get_async_session
+from ..database.models import OAuthToken as OAuthTokenModel, User as UserModel
+from ..exceptions import MetaMCPException, OAuthError
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -33,6 +39,7 @@ class OAuthProvider(BaseModel):
     userinfo_url: str | None = Field(None, description="User info endpoint")
     scopes: list[str] = Field(default=["openid", "email", "profile"])
     redirect_uri: str = Field(..., description="Redirect URI")
+    token_refresh_url: str | None = Field(None, description="Token refresh endpoint")
 
     model_config = {"extra": "forbid"}
 
@@ -53,6 +60,12 @@ class OAuthToken(BaseModel):
             return False
         return datetime.utcnow() >= self.expires_at
 
+    def needs_refresh(self) -> bool:
+        """Check if token needs refresh (expires within 5 minutes)."""
+        if not self.expires_at:
+            return False
+        return datetime.utcnow() >= (self.expires_at - timedelta(minutes=5))
+
 
 class OAuthUser(BaseModel):
     """OAuth user model."""
@@ -71,7 +84,8 @@ class OAuthManager:
     OAuth authentication manager for users and AI agents.
 
     Supports multiple OAuth providers and handles both user and agent authentication
-    flows, with specific optimizations for FastMCP agent authentication.
+    flows, with specific optimizations for FastMCP agent authentication and
+    database persistence for tokens.
     """
 
     def __init__(self):
@@ -79,13 +93,16 @@ class OAuthManager:
         self.settings = settings
         self.providers: dict[str, OAuthProvider] = {}
         self.state_store: dict[str, dict[str, Any]] = {}
-        self.token_store: dict[str, OAuthToken] = {}
+        self._session_factory: Optional[sessionmaker] = None
         self._initialized = False
 
     async def initialize(self) -> None:
         """Initialize OAuth manager with configured providers."""
         try:
             logger.info("Initializing OAuth Manager...")
+
+            # Get session factory
+            self._session_factory = get_async_session()
 
             # Load OAuth providers from configuration
             await self._load_providers()
@@ -98,73 +115,65 @@ class OAuthManager:
 
         except Exception as e:
             logger.error(f"Failed to initialize OAuth Manager: {e}")
-            raise
+            raise OAuthError(
+                message=f"Failed to initialize OAuth manager: {str(e)}"
+            ) from e
 
     async def _load_providers(self) -> None:
         """Load OAuth providers from configuration."""
-        # Determine protocol based on environment
-        protocol = "https" if self.settings.environment == "production" else "http"
-        base_url = f"{protocol}://{self.settings.host}:{self.settings.port}"
+        try:
+            # Google OAuth
+            if self.settings.google_oauth_client_id and self.settings.google_oauth_client_secret:
+                self.providers["google"] = OAuthProvider(
+                    name="google",
+                    client_id=self.settings.google_oauth_client_id,
+                    client_secret=self.settings.google_oauth_client_secret,
+                    authorization_url=self.settings.google_oauth_authorization_url,
+                    token_url=self.settings.google_oauth_token_url,
+                    userinfo_url=self.settings.google_oauth_userinfo_url,
+                    scopes=["openid", "email", "profile"],
+                    redirect_uri=f"{self.settings.host}/oauth/callback/google"
+                )
 
-        # Google OAuth
-        if (
-            self.settings.google_oauth_client_id
-            and self.settings.google_oauth_client_secret
-        ):
-            self.providers["google"] = OAuthProvider(
-                name="google",
-                client_id=self.settings.google_oauth_client_id,
-                client_secret=self.settings.google_oauth_client_secret,
-                authorization_url=self.settings.google_oauth_authorization_url,
-                token_url=self.settings.google_oauth_token_url,
-                userinfo_url=self.settings.google_oauth_userinfo_url,
-                scopes=["openid", "email", "profile"],
-                redirect_uri=f"{base_url}/api/v1/oauth/callback/google",
-            )
-            logger.info("Google OAuth provider configured")
+            # GitHub OAuth
+            if self.settings.github_oauth_client_id and self.settings.github_oauth_client_secret:
+                self.providers["github"] = OAuthProvider(
+                    name="github",
+                    client_id=self.settings.github_oauth_client_id,
+                    client_secret=self.settings.github_oauth_client_secret,
+                    authorization_url=self.settings.github_oauth_authorization_url,
+                    token_url=self.settings.github_oauth_token_url,
+                    userinfo_url=self.settings.github_oauth_userinfo_url,
+                    scopes=["read:user", "user:email"],
+                    redirect_uri=f"{self.settings.host}/oauth/callback/github"
+                )
 
-        # GitHub OAuth
-        if (
-            self.settings.github_oauth_client_id
-            and self.settings.github_oauth_client_secret
-        ):
-            self.providers["github"] = OAuthProvider(
-                name="github",
-                client_id=self.settings.github_oauth_client_id,
-                client_secret=self.settings.github_oauth_client_secret,
-                authorization_url=self.settings.github_oauth_authorization_url,
-                token_url=self.settings.github_oauth_token_url,
-                userinfo_url=self.settings.github_oauth_userinfo_url,
-                scopes=["read:user", "user:email"],
-                redirect_uri=f"{base_url}/api/v1/oauth/callback/github",
-            )
-            logger.info("GitHub OAuth provider configured")
+            # Microsoft OAuth
+            if self.settings.microsoft_oauth_client_id and self.settings.microsoft_oauth_client_secret:
+                self.providers["microsoft"] = OAuthProvider(
+                    name="microsoft",
+                    client_id=self.settings.microsoft_oauth_client_id,
+                    client_secret=self.settings.microsoft_oauth_client_secret,
+                    authorization_url=self.settings.microsoft_oauth_authorization_url,
+                    token_url=self.settings.microsoft_oauth_token_url,
+                    userinfo_url=self.settings.microsoft_oauth_userinfo_url,
+                    scopes=["openid", "profile", "email"],
+                    redirect_uri=f"{self.settings.host}/oauth/callback/microsoft"
+                )
 
-        # Microsoft OAuth
-        if (
-            self.settings.microsoft_oauth_client_id
-            and self.settings.microsoft_oauth_client_secret
-        ):
-            self.providers["microsoft"] = OAuthProvider(
-                name="microsoft",
-                client_id=self.settings.microsoft_oauth_client_id,
-                client_secret=self.settings.microsoft_oauth_client_secret,
-                authorization_url=self.settings.microsoft_oauth_authorization_url,
-                token_url=self.settings.microsoft_oauth_token_url,
-                userinfo_url=self.settings.microsoft_oauth_userinfo_url,
-                scopes=["openid", "profile", "email"],
-                redirect_uri=f"{base_url}/api/v1/oauth/callback/microsoft",
-            )
-            logger.info("Microsoft OAuth provider configured")
+            logger.info(f"Loaded {len(self.providers)} OAuth providers: {list(self.providers.keys())}")
 
-        logger.info(
-            f"Loaded {len(self.providers)} OAuth providers: {list(self.providers.keys())}"
-        )
+        except Exception as e:
+            logger.error(f"Failed to load OAuth providers: {e}")
+            raise OAuthError(
+                message=f"Failed to load OAuth providers: {str(e)}"
+            ) from e
 
     async def _initialize_state_management(self) -> None:
         """Initialize OAuth state management."""
-        # In production, use Redis or database for state storage
-        self.state_store = {}
+        # State management is handled in memory for now
+        # Could be extended to use Redis or database for distributed deployments
+        pass
 
     def get_authorization_url(
         self,
@@ -174,57 +183,55 @@ class OAuthManager:
         requested_scopes: list[str] | None = None,
     ) -> str:
         """
-        Get OAuth authorization URL.
+        Generate OAuth authorization URL.
 
         Args:
             provider: OAuth provider name
-            is_agent: Whether this is an agent authentication
-            agent_id: Agent ID for agent-specific flows
-            requested_scopes: Requested OAuth scopes
+            is_agent: Whether this is an agent authentication flow
+            agent_id: Agent ID for agent authentication
+            requested_scopes: Additional scopes to request
 
         Returns:
             Authorization URL
-
-        Raises:
-            MetaMCPException: If provider not found or invalid configuration
         """
-        if provider not in self.providers:
-            raise MetaMCPException(
-                error_code="oauth_provider_not_found",
-                message=f"OAuth provider '{provider}' not configured",
-                details={"available_providers": list(self.providers.keys())},
-            )
+        if not self._initialized:
+            raise OAuthError(message="OAuth Manager not initialized")
 
-        oauth_provider = self.providers[provider]
+        if provider not in self.providers:
+            raise OAuthError(message=f"Unsupported OAuth provider: {provider}")
+
+        provider_config = self.providers[provider]
 
         # Generate state parameter
         state = secrets.token_urlsafe(32)
-
-        # Store state with additional context
+        
+        # Store state with metadata
         self.state_store[state] = {
             "provider": provider,
             "is_agent": is_agent,
             "agent_id": agent_id,
-            "requested_scopes": requested_scopes or oauth_provider.scopes,
-            "created_at": datetime.utcnow(),
+            "timestamp": datetime.utcnow(),
+            "requested_scopes": requested_scopes or []
         }
 
         # Build authorization URL
         params = {
-            "client_id": oauth_provider.client_id,
-            "redirect_uri": oauth_provider.redirect_uri,
+            "client_id": provider_config.client_id,
+            "redirect_uri": provider_config.redirect_uri,
             "response_type": "code",
             "state": state,
-            "scope": " ".join(requested_scopes or oauth_provider.scopes),
+            "scope": " ".join(provider_config.scopes + (requested_scopes or []))
         }
 
-        # Add agent-specific parameters
-        if is_agent:
+        # Add provider-specific parameters
+        if provider == "google":
+            params["access_type"] = "offline"  # Request refresh token
             params["prompt"] = "consent"
-            params["access_type"] = "offline"
+        elif provider == "github":
+            params["allow_signup"] = "false"
 
-        authorization_url = f"{oauth_provider.authorization_url}?{urlencode(params)}"
-
+        authorization_url = f"{provider_config.authorization_url}?{urlencode(params)}"
+        
         logger.info(f"Generated authorization URL for {provider} (agent: {is_agent})")
         return authorization_url
 
@@ -232,287 +239,346 @@ class OAuthManager:
         self, provider: str, code: str, state: str, error: str | None = None
     ) -> OAuthUser:
         """
-        Handle OAuth callback and exchange code for tokens.
+        Handle OAuth callback.
 
         Args:
             provider: OAuth provider name
             code: Authorization code
             state: State parameter
-            error: OAuth error if any
+            error: Error parameter if any
 
         Returns:
-            OAuth user information
-
-        Raises:
-            MetaMCPException: If callback handling fails
+            OAuthUser object
         """
+        if not self._initialized:
+            raise OAuthError(message="OAuth Manager not initialized")
+
         if error:
-            raise MetaMCPException(
-                error_code="oauth_authorization_failed",
-                message=f"OAuth authorization failed: {error}",
-                details={"provider": provider, "error": error},
-            )
+            raise OAuthError(message=f"OAuth error: {error}")
 
         # Validate state
         if state not in self.state_store:
-            raise MetaMCPException(
-                error_code="oauth_invalid_state",
-                message="Invalid OAuth state parameter",
-                details={"state": state},
-            )
+            raise OAuthError(message="Invalid OAuth state")
 
-        state_data = self.state_store[state]
-        is_agent = state_data.get("is_agent", False)
-        agent_id = state_data.get("agent_id")
+        state_data = self.state_store.pop(state)
+        
+        # Check state expiration (5 minutes)
+        if datetime.utcnow() - state_data["timestamp"] > timedelta(minutes=5):
+            raise OAuthError(message="OAuth state expired")
+
+        if state_data["provider"] != provider:
+            raise OAuthError(message="OAuth provider mismatch")
 
         try:
-            # Exchange code for tokens
+            # Exchange code for token
             token = await self._exchange_code_for_token(provider, code, state)
-
-            # Get user information
+            
+            # Get user info
             user_info = await self._get_user_info(provider, token)
-
-            # Create OAuth user
+            
+            # Create or update user in database
+            user = await self._create_or_update_user(provider, user_info, token)
+            
+            # Store token in database
+            await self._store_token(user.id, provider, token, state_data["is_agent"])
+            
+            # Create OAuthUser object
             oauth_user = OAuthUser(
                 provider=provider,
-                provider_user_id=user_info.get("id") or user_info.get("sub"),
+                provider_user_id=user_info.get("id", user_info.get("sub", "")),
                 email=user_info.get("email"),
                 name=user_info.get("name"),
                 picture=user_info.get("picture"),
-                scopes=state_data.get("requested_scopes", []),
-                is_agent=is_agent,
+                scopes=token.scope.split(" ") if token.scope else [],
+                is_agent=state_data["is_agent"]
             )
-
-            # Store token for agent sessions
-            if is_agent and agent_id:
-                await self._store_agent_token(agent_id, provider, token)
-                logger.info(f"Stored OAuth token for agent {agent_id} ({provider})")
-
-            # Clean up state
-            del self.state_store[state]
-
-            logger.info(f"OAuth callback completed for {provider} (agent: {is_agent})")
+            
+            logger.info(f"OAuth callback successful for {provider} user: {oauth_user.email}")
             return oauth_user
 
         except Exception as e:
-            logger.error(f"OAuth callback failed for {provider}: {e}")
-            raise MetaMCPException(
-                error_code="oauth_callback_failed",
-                message="OAuth callback processing failed",
-                details={"provider": provider, "error": str(e)},
-            )
+            logger.error(f"OAuth callback failed: {e}")
+            raise OAuthError(
+                message=f"OAuth callback failed: {str(e)}"
+            ) from e
 
     async def _exchange_code_for_token(
         self, provider: str, code: str, state: str
     ) -> OAuthToken:
         """Exchange authorization code for access token."""
-        oauth_provider = self.providers[provider]
-
+        provider_config = self.providers[provider]
+        
         async with httpx.AsyncClient() as client:
-            response = await client.post(
-                oauth_provider.token_url,
-                data={
-                    "client_id": oauth_provider.client_id,
-                    "client_secret": oauth_provider.client_secret,
-                    "code": code,
-                    "grant_type": "authorization_code",
-                    "redirect_uri": oauth_provider.redirect_uri,
-                    "state": state,
-                },
-                headers={"Accept": "application/json"},
-            )
-
+            data = {
+                "client_id": provider_config.client_id,
+                "client_secret": provider_config.client_secret,
+                "code": code,
+                "grant_type": "authorization_code",
+                "redirect_uri": provider_config.redirect_uri
+            }
+            
+            headers = {"Accept": "application/json"}
+            
+            response = await client.post(provider_config.token_url, data=data, headers=headers)
+            
             if response.status_code != 200:
-                raise MetaMCPException(
-                    error_code="oauth_token_exchange_failed",
-                    message="Failed to exchange code for token",
-                    details={
-                        "provider": provider,
-                        "status_code": response.status_code,
-                        "response": response.text,
-                    },
+                raise OAuthError(
+                    message=f"Token exchange failed: {response.status_code} - {response.text}"
                 )
-
+            
             token_data = response.json()
-
-            # Calculate expiry
+            
+            # Calculate expiration
             expires_at = None
-            if token_data.get("expires_in"):
-                expires_at = datetime.utcnow() + timedelta(
-                    seconds=token_data["expires_in"]
-                )
-
+            if "expires_in" in token_data:
+                expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+            
             return OAuthToken(
                 access_token=token_data["access_token"],
                 token_type=token_data.get("token_type", "Bearer"),
                 expires_in=token_data.get("expires_in"),
                 refresh_token=token_data.get("refresh_token"),
                 scope=token_data.get("scope"),
-                expires_at=expires_at,
+                expires_at=expires_at
             )
 
     async def _get_user_info(self, provider: str, token: OAuthToken) -> dict[str, Any]:
         """Get user information from OAuth provider."""
-        oauth_provider = self.providers[provider]
-
-        if not oauth_provider.userinfo_url:
+        provider_config = self.providers[provider]
+        
+        if not provider_config.userinfo_url:
             # For providers without userinfo endpoint, decode JWT token
             return await self._decode_jwt_token(token.access_token)
-
+        
         async with httpx.AsyncClient() as client:
-            headers = {"Authorization": f"{token.token_type} {token.access_token}"}
-
-            if provider == "github":
-                headers["Accept"] = "application/vnd.github.v3+json"
-
-            response = await client.get(oauth_provider.userinfo_url, headers=headers)
-
+            headers = {
+                "Authorization": f"{token.token_type} {token.access_token}",
+                "Accept": "application/json"
+            }
+            
+            response = await client.get(provider_config.userinfo_url, headers=headers)
+            
             if response.status_code != 200:
-                raise MetaMCPException(
-                    error_code="oauth_userinfo_failed",
-                    message="Failed to get user information",
-                    details={
-                        "provider": provider,
-                        "status_code": response.status_code,
-                        "response": response.text,
-                    },
+                raise OAuthError(
+                    message=f"Failed to get user info: {response.status_code} - {response.text}"
                 )
-
+            
             return response.json()
 
     async def _decode_jwt_token(self, token: str) -> dict[str, Any]:
         """Decode JWT token to extract user information."""
-        # Simple JWT decoding for demo purposes
-        # In production, use proper JWT library with signature verification
         try:
-            import base64
+            import jwt
+            # Decode without verification for now (should verify signature in production)
+            payload = jwt.decode(token, options={"verify_signature": False})
+            return payload
+        except ImportError:
+            raise OAuthError(message="PyJWT library not installed")
+        except Exception as e:
+            raise OAuthError(message=f"Failed to decode JWT token: {str(e)}")
 
-            parts = token.split(".")
-            if len(parts) != 3:
-                raise ValueError("Invalid JWT token format")
-
-            payload = parts[1]
-            # Add padding if needed
-            payload += "=" * (4 - len(payload) % 4)
-            decoded = base64.urlsafe_b64decode(payload)
-            return json.loads(decoded.decode("utf-8"))
+    async def _create_or_update_user(self, provider: str, user_info: dict[str, Any], token: OAuthToken) -> UserModel:
+        """Create or update user in database."""
+        try:
+            async with self._session_factory() as session:
+                # Check if user exists by email
+                email = user_info.get("email")
+                if email:
+                    stmt = select(UserModel).where(UserModel.email == email)
+                    result = await session.execute(stmt)
+                    user = result.scalar_one_or_none()
+                    
+                    if user:
+                        # Update existing user
+                        user.last_login = datetime.utcnow()
+                        await session.commit()
+                        return user
+                
+                # Create new user
+                user_id = str(uuid.uuid4())
+                user = UserModel(
+                    id=user_id,
+                    username=user_info.get("name", f"{provider}_user_{user_id[:8]}"),
+                    email=email,
+                    full_name=user_info.get("name"),
+                    hashed_password="",  # OAuth users don't have passwords
+                    roles=["user"],
+                    permissions={},
+                    is_active=True,
+                    is_admin=False,
+                    created_at=datetime.utcnow(),
+                    updated_at=datetime.utcnow()
+                )
+                
+                session.add(user)
+                await session.commit()
+                
+                return user
 
         except Exception as e:
-            logger.error(f"Failed to decode JWT token: {e}")
-            return {"sub": "unknown", "email": "unknown@example.com"}
+            logger.error(f"Failed to create or update user: {e}")
+            raise OAuthError(
+                message=f"Failed to create or update user: {str(e)}"
+            ) from e
 
-    async def _store_agent_token(
-        self, agent_id: str, provider: str, token: OAuthToken
-    ) -> None:
-        """Store OAuth token for agent sessions."""
-        # In production, use secure token storage (e.g., encrypted database)
-        token_key = f"agent:{agent_id}:{provider}"
-        self.token_store[token_key] = token
+    async def _store_token(self, user_id: str, provider: str, token: OAuthToken, is_agent: bool) -> None:
+        """Store OAuth token in database."""
+        try:
+            async with self._session_factory() as session:
+                # Check if token already exists
+                stmt = select(OAuthTokenModel).where(
+                    OAuthTokenModel.user_id == user_id,
+                    OAuthTokenModel.provider == provider
+                )
+                result = await session.execute(stmt)
+                existing_token = result.scalar_one_or_none()
+                
+                if existing_token:
+                    # Update existing token
+                    existing_token.access_token = token.access_token
+                    existing_token.refresh_token = token.refresh_token
+                    existing_token.expires_at = token.expires_at
+                    existing_token.scopes = token.scope.split(" ") if token.scope else []
+                    existing_token.updated_at = datetime.utcnow()
+                else:
+                    # Create new token
+                    oauth_token = OAuthTokenModel(
+                        id=str(uuid.uuid4()),
+                        user_id=user_id,
+                        provider=provider,
+                        access_token=token.access_token,
+                        refresh_token=token.refresh_token,
+                        token_type=token.token_type,
+                        expires_at=token.expires_at,
+                        scopes=token.scope.split(" ") if token.scope else [],
+                        created_at=datetime.utcnow(),
+                        updated_at=datetime.utcnow()
+                    )
+                    session.add(oauth_token)
+                
+                await session.commit()
 
-        logger.info(f"Stored OAuth token for agent {agent_id} ({provider})")
+        except Exception as e:
+            logger.error(f"Failed to store OAuth token: {e}")
+            raise OAuthError(
+                message=f"Failed to store OAuth token: {str(e)}"
+            ) from e
 
-    async def get_agent_token(self, agent_id: str, provider: str) -> OAuthToken | None:
-        """Get stored OAuth token for agent."""
-        token_key = f"agent:{agent_id}:{provider}"
-        token = self.token_store.get(token_key)
-
-        if token and token.is_expired():
-            # Try to refresh token
-            refreshed_token = await self._refresh_token(provider, token)
-            if refreshed_token:
-                self.token_store[token_key] = refreshed_token
-                return refreshed_token
-            else:
-                # Remove expired token
-                del self.token_store[token_key]
-                return None
-
-        return token
-
-    async def _refresh_token(
-        self, provider: str, token: OAuthToken
-    ) -> OAuthToken | None:
-        """Refresh OAuth token."""
-        if not token.refresh_token:
-            return None
-
-        oauth_provider = self.providers[provider]
+    async def get_user_token(self, user_id: str, provider: str) -> Optional[OAuthToken]:
+        """Get OAuth token for a user."""
+        if not self._initialized:
+            raise OAuthError(message="OAuth Manager not initialized")
 
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    oauth_provider.token_url,
-                    data={
-                        "client_id": oauth_provider.client_id,
-                        "client_secret": oauth_provider.client_secret,
-                        "refresh_token": token.refresh_token,
-                        "grant_type": "refresh_token",
-                    },
-                    headers={"Accept": "application/json"},
+            async with self._session_factory() as session:
+                stmt = select(OAuthTokenModel).where(
+                    OAuthTokenModel.user_id == user_id,
+                    OAuthTokenModel.provider == provider
+                )
+                result = await session.execute(stmt)
+                token_model = result.scalar_one_or_none()
+                
+                if not token_model:
+                    return None
+                
+                # Check if token needs refresh
+                if token_model.expires_at and token_model.expires_at < datetime.utcnow():
+                    # Token expired, try to refresh
+                    refreshed_token = await self._refresh_token(provider, token_model)
+                    if refreshed_token:
+                        return refreshed_token
+                    return None
+                
+                return OAuthToken(
+                    access_token=token_model.access_token,
+                    token_type=token_model.token_type,
+                    expires_at=token_model.expires_at,
+                    refresh_token=token_model.refresh_token,
+                    scope=" ".join(token_model.scopes)
                 )
 
+        except Exception as e:
+            logger.error(f"Failed to get user token: {e}")
+            return None
+
+    async def _refresh_token(self, provider: str, token_model: OAuthTokenModel) -> Optional[OAuthToken]:
+        """Refresh OAuth token."""
+        if not token_model.refresh_token:
+            return None
+        
+        provider_config = self.providers[provider]
+        
+        try:
+            async with httpx.AsyncClient() as client:
+                data = {
+                    "client_id": provider_config.client_id,
+                    "client_secret": provider_config.client_secret,
+                    "refresh_token": token_model.refresh_token,
+                    "grant_type": "refresh_token"
+                }
+                
+                headers = {"Accept": "application/json"}
+                
+                response = await client.post(provider_config.token_url, data=data, headers=headers)
+                
                 if response.status_code != 200:
+                    logger.warning(f"Token refresh failed: {response.status_code} - {response.text}")
                     return None
-
+                
                 token_data = response.json()
-
-                # Calculate expiry
-                expires_at = None
-                if token_data.get("expires_in"):
-                    expires_at = datetime.utcnow() + timedelta(
-                        seconds=token_data["expires_in"]
-                    )
-
+                
+                # Update token in database
+                async with self._session_factory() as session:
+                    token_model.access_token = token_data["access_token"]
+                    if "refresh_token" in token_data:
+                        token_model.refresh_token = token_data["refresh_token"]
+                    
+                    if "expires_in" in token_data:
+                        token_model.expires_at = datetime.utcnow() + timedelta(seconds=token_data["expires_in"])
+                    
+                    token_model.updated_at = datetime.utcnow()
+                    await session.commit()
+                
                 return OAuthToken(
                     access_token=token_data["access_token"],
                     token_type=token_data.get("token_type", "Bearer"),
                     expires_in=token_data.get("expires_in"),
-                    refresh_token=token_data.get("refresh_token", token.refresh_token),
+                    refresh_token=token_data.get("refresh_token"),
                     scope=token_data.get("scope"),
-                    expires_at=expires_at,
+                    expires_at=token_model.expires_at
                 )
 
         except Exception as e:
-            logger.error(f"Failed to refresh token for {provider}: {e}")
+            logger.error(f"Failed to refresh token: {e}")
             return None
 
-    async def validate_agent_session(self, agent_id: str, provider: str) -> bool:
-        """Validate agent OAuth session."""
-        token = await self.get_agent_token(agent_id, provider)
-        return token is not None and not token.is_expired()
+    async def revoke_user_token(self, user_id: str, provider: str) -> bool:
+        """Revoke OAuth token for a user."""
+        if not self._initialized:
+            raise OAuthError(message="OAuth Manager not initialized")
 
-    async def revoke_agent_session(self, agent_id: str, provider: str) -> None:
-        """Revoke agent OAuth session."""
-        token_key = f"agent:{agent_id}:{provider}"
-        if token_key in self.token_store:
-            del self.token_store[token_key]
-            logger.info(f"Revoked OAuth session for agent {agent_id} ({provider})")
+        try:
+            async with self._session_factory() as session:
+                stmt = select(OAuthTokenModel).where(
+                    OAuthTokenModel.user_id == user_id,
+                    OAuthTokenModel.provider == provider
+                )
+                result = await session.execute(stmt)
+                token_model = result.scalar_one_or_none()
+                
+                if not token_model:
+                    return False
+                
+                # Delete token from database
+                await session.delete(token_model)
+                await session.commit()
+                
+                logger.info(f"Revoked OAuth token for user {user_id} on {provider}")
+                return True
 
-    async def get_fastmcp_agent_token(
-        self, agent_id: str, provider: str
-    ) -> dict[str, Any] | None:
-        """
-        Get OAuth token for FastMCP agent with automatic refresh.
-
-        Args:
-            agent_id: FastMCP agent ID
-            provider: OAuth provider name
-
-        Returns:
-            Token information for FastMCP agent or None if not available
-        """
-        token = await self.get_agent_token(agent_id, provider)
-        if not token:
-            return None
-
-        return {
-            "access_token": token.access_token,
-            "token_type": token.token_type,
-            "expires_in": token.expires_in,
-            "scope": token.scope,
-            "provider": provider,
-            "agent_id": agent_id,
-        }
+        except Exception as e:
+            logger.error(f"Failed to revoke user token: {e}")
+            return False
 
     def get_available_providers(self) -> list[str]:
         """Get list of available OAuth providers."""
@@ -524,15 +590,13 @@ class OAuthManager:
         return self._initialized
 
 
-# Global OAuth manager instance
-_oauth_manager: OAuthManager | None = None
+# Global instance
+_oauth_manager: Optional[OAuthManager] = None
 
 
 def get_oauth_manager() -> OAuthManager:
-    """Get global OAuth manager instance."""
+    """Get the global OAuth manager instance."""
     global _oauth_manager
-
     if _oauth_manager is None:
         _oauth_manager = OAuthManager()
-
     return _oauth_manager

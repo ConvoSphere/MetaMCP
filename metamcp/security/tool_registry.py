@@ -1,20 +1,26 @@
 """
 Tool Registry Security
 
-This module provides security controls for tool registration and management,
-ensuring only registered developers can manage tools.
+This module provides security and validation for tool registry operations
+including developer registration and verification with database persistence.
 """
 
-from datetime import datetime
-from typing import Optional, List, Dict, Any
+import secrets
+import uuid
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
 
-from ..config import get_settings
-from ..exceptions import AuthorizationError
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import sessionmaker
+
+from ..database.connection import get_async_session
+from ..database.models import Developer as DeveloperModel
+from ..exceptions import ToolRegistryError
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
-settings = get_settings()
 
 
 @dataclass
@@ -32,15 +38,16 @@ class Developer:
 
 class ToolRegistrySecurity:
     """
-    Tool Registry Security Manager.
+    Tool Registry Security for developer registration and verification.
     
-    Controls access to tool registration and management operations.
+    This class provides database-backed developer management with secure
+    registration and verification capabilities.
     """
 
     def __init__(self):
         """Initialize Tool Registry Security."""
-        self.developers: Dict[str, Developer] = {}
         self._initialized = False
+        self._session_factory: Optional[sessionmaker] = None
 
     async def initialize(self) -> None:
         """Initialize the tool registry security."""
@@ -50,19 +57,25 @@ class ToolRegistrySecurity:
         try:
             logger.info("Initializing Tool Registry Security...")
             
-            # Load registered developers
-            await self._load_developers()
+            # Get session factory
+            self._session_factory = get_async_session()
+            
+            # Test database connection
+            async with self._session_factory() as session:
+                # Try to query developers to test connection
+                stmt = select(DeveloperModel).limit(1)
+                await session.execute(stmt)
             
             self._initialized = True
             logger.info("Tool Registry Security initialized successfully")
 
         except Exception as e:
             logger.error(f"Failed to initialize Tool Registry Security: {e}")
-            raise AuthorizationError(
+            raise ToolRegistryError(
                 message=f"Failed to initialize tool registry security: {str(e)}"
-            )
+            ) from e
 
-    def register_developer(self, username: str, email: str, organization: str) -> str:
+    async def register_developer(self, username: str, email: str, organization: str) -> str:
         """
         Register a new developer.
         
@@ -74,51 +87,78 @@ class ToolRegistrySecurity:
         Returns:
             Developer ID
         """
-        # Check if developer already exists
-        for dev in self.developers.values():
-            if dev.email == email or dev.username == username:
-                raise AuthorizationError(
-                    message="Developer already registered with this email or username"
-                )
-        
-        # Generate developer ID
-        developer_id = f"dev_{username}_{datetime.utcnow().strftime('%Y%m%d')}"
-        
-        # Create developer record
-        developer = Developer(
-            developer_id=developer_id,
-            username=username,
-            email=email,
-            organization=organization,
-            is_verified=False,  # Requires manual verification
-            registration_date=datetime.utcnow(),
-            tools_created=[],
-            is_active=True
-        )
-        
-        self.developers[developer_id] = developer
-        
-        logger.info(f"Registered developer: {username} ({organization})")
-        
-        return developer_id
+        if not self._initialized:
+            raise ToolRegistryError(message="Tool Registry Security not initialized")
 
-    def verify_developer(self, developer_id: str) -> bool:
+        try:
+            # Generate unique developer ID
+            developer_id = str(uuid.uuid4())
+            
+            # Generate verification token
+            verification_token = secrets.token_urlsafe(32)
+            verification_expires = datetime.utcnow() + timedelta(days=7)
+            
+            # Create database record
+            async with self._session_factory() as session:
+                developer_model = DeveloperModel(
+                    id=developer_id,
+                    username=username,
+                    email=email,
+                    organization=organization,
+                    is_verified=False,
+                    registration_date=datetime.utcnow(),
+                    tools_created=[],
+                    is_active=True,
+                    verification_token=verification_token,
+                    verification_expires=verification_expires
+                )
+                session.add(developer_model)
+                await session.commit()
+            
+            logger.info(f"Registered developer: {developer_id} ({username})")
+            return developer_id
+
+        except Exception as e:
+            logger.error(f"Failed to register developer: {e}")
+            raise ToolRegistryError(
+                message=f"Failed to register developer: {str(e)}"
+            ) from e
+
+    async def verify_developer(self, developer_id: str) -> bool:
         """
-        Verify a developer (admin operation).
+        Verify a developer.
         
         Args:
             developer_id: Developer ID to verify
             
         Returns:
-            True if developer was verified, False if not found
+            True if developer was verified, False otherwise
         """
-        if developer_id in self.developers:
-            self.developers[developer_id].is_verified = True
-            logger.info(f"Verified developer: {developer_id}")
-            return True
-        return False
+        if not self._initialized:
+            raise ToolRegistryError(message="Tool Registry Security not initialized")
 
-    def can_register_tool(self, developer_id: str) -> bool:
+        try:
+            async with self._session_factory() as session:
+                stmt = select(DeveloperModel).where(DeveloperModel.id == developer_id)
+                result = await session.execute(stmt)
+                developer = result.scalar_one_or_none()
+                
+                if not developer:
+                    return False
+                
+                developer.is_verified = True
+                developer.verification_token = None
+                developer.verification_expires = None
+                await session.commit()
+                
+                logger.info(f"Verified developer: {developer_id}")
+                return True
+
+        except Exception as e:
+            logger.error(f"Failed to verify developer: {e}")
+            return False
+
+    async def can_register_tool(self, developer_id: str) -> bool:
         """
         Check if a developer can register tools.
         
@@ -128,13 +168,26 @@ class ToolRegistrySecurity:
         Returns:
             True if developer can register tools, False otherwise
         """
-        if developer_id not in self.developers:
-            return False
-        
-        developer = self.developers[developer_id]
-        return developer.is_active and developer.is_verified
+        if not self._initialized:
+            raise ToolRegistryError(message="Tool Registry Security not initialized")
 
-    def can_manage_tool(self, developer_id: str, tool_id: str) -> bool:
+        try:
+            async with self._session_factory() as session:
+                stmt = select(DeveloperModel).where(
+                    DeveloperModel.id == developer_id,
+                    DeveloperModel.is_verified == True,
+                    DeveloperModel.is_active == True
+                )
+                result = await session.execute(stmt)
+                developer = result.scalar_one_or_none()
+                
+                return developer is not None
+
+        except Exception as e:
+            logger.error(f"Failed to check developer permissions: {e}")
+            return False
+
+    async def can_manage_tool(self, developer_id: str, tool_id: str) -> bool:
         """
         Check if a developer can manage a specific tool.
         
@@ -145,31 +198,65 @@ class ToolRegistrySecurity:
         Returns:
             True if developer can manage the tool, False otherwise
         """
-        if not self.can_register_tool(developer_id):
-            return False
-        
-        developer = self.developers[developer_id]
-        return tool_id in developer.tools_created
+        if not self._initialized:
+            raise ToolRegistryError(message="Tool Registry Security not initialized")
 
-    def register_tool_creation(self, developer_id: str, tool_id: str) -> bool:
+        try:
+            async with self._session_factory() as session:
+                stmt = select(DeveloperModel).where(
+                    DeveloperModel.id == developer_id,
+                    DeveloperModel.is_verified == True,
+                    DeveloperModel.is_active == True
+                )
+                result = await session.execute(stmt)
+                developer = result.scalar_one_or_none()
+                
+                if not developer:
+                    return False
+                
+                # Check if tool is in developer's tools_created list
+                return tool_id in developer.tools_created
+
+        except Exception as e:
+            logger.error(f"Failed to check tool management permissions: {e}")
+            return False
+
+    async def register_tool_creation(self, developer_id: str, tool_id: str) -> bool:
         """
-        Register that a developer created a tool.
+        Register a tool creation by a developer.
         
         Args:
             developer_id: Developer ID
             tool_id: Tool ID that was created
             
         Returns:
-            True if registration was successful, False otherwise
+            True if tool creation was registered, False otherwise
         """
-        if developer_id in self.developers:
-            if tool_id not in self.developers[developer_id].tools_created:
-                self.developers[developer_id].tools_created.append(tool_id)
-                logger.info(f"Registered tool creation: {tool_id} by {developer_id}")
-            return True
-        return False
+        if not self._initialized:
+            raise ToolRegistryError(message="Tool Registry Security not initialized")
 
-    def get_developer_info(self, developer_id: str) -> Optional[Dict[str, Any]]:
+        try:
+            async with self._session_factory() as session:
+                stmt = select(DeveloperModel).where(DeveloperModel.id == developer_id)
+                result = await session.execute(stmt)
+                developer = result.scalar_one_or_none()
+                
+                if not developer:
+                    return False
+                
+                # Add tool to developer's tools_created list
+                if tool_id not in developer.tools_created:
+                    developer.tools_created.append(tool_id)
+                    await session.commit()
+                
+                logger.info(f"Registered tool creation: {tool_id} by developer: {developer_id}")
+                return True
+
+        except Exception as e:
+            logger.error(f"Failed to register tool creation: {e}")
+            return False
+
+    async def get_developer_info(self, developer_id: str) -> Optional[Dict[str, Any]]:
         """
         Get developer information.
         
@@ -177,26 +264,38 @@ class ToolRegistrySecurity:
             developer_id: Developer ID
             
         Returns:
-            Developer information or None if not found
+            Developer information dictionary or None if not found
         """
-        if developer_id not in self.developers:
-            return None
-        
-        developer = self.developers[developer_id]
-        return {
-            "developer_id": developer.developer_id,
-            "username": developer.username,
-            "email": developer.email,
-            "organization": developer.organization,
-            "is_verified": developer.is_verified,
-            "registration_date": developer.registration_date.isoformat(),
-            "tools_created": developer.tools_created,
-            "is_active": developer.is_active
-        }
+        if not self._initialized:
+            raise ToolRegistryError(message="Tool Registry Security not initialized")
 
-    def list_developers(self, verified_only: bool = False) -> List[Dict[str, Any]]:
+        try:
+            async with self._session_factory() as session:
+                stmt = select(DeveloperModel).where(DeveloperModel.id == developer_id)
+                result = await session.execute(stmt)
+                developer = result.scalar_one_or_none()
+                
+                if not developer:
+                    return None
+                
+                return {
+                    "developer_id": developer.id,
+                    "username": developer.username,
+                    "email": developer.email,
+                    "organization": developer.organization,
+                    "is_verified": developer.is_verified,
+                    "registration_date": developer.registration_date.isoformat(),
+                    "tools_created": developer.tools_created,
+                    "is_active": developer.is_active
+                }
+
+        except Exception as e:
+            logger.error(f"Failed to get developer info: {e}")
+            return None
+
+    async def list_developers(self, verified_only: bool = False) -> List[Dict[str, Any]]:
         """
-        List all developers.
+        List developers.
         
         Args:
             verified_only: Only return verified developers
@@ -204,16 +303,38 @@ class ToolRegistrySecurity:
         Returns:
             List of developer information
         """
-        developers = []
-        for developer in self.developers.values():
-            if verified_only and not developer.is_verified:
-                continue
-                
-            developers.append(self.get_developer_info(developer.developer_id))
-        
-        return developers
+        if not self._initialized:
+            raise ToolRegistryError(message="Tool Registry Security not initialized")
 
-    def deactivate_developer(self, developer_id: str) -> bool:
+        try:
+            async with self._session_factory() as session:
+                stmt = select(DeveloperModel)
+                if verified_only:
+                    stmt = stmt.where(DeveloperModel.is_verified == True)
+                
+                result = await session.execute(stmt)
+                developers = result.scalars().all()
+                
+                developer_list = []
+                for developer in developers:
+                    developer_list.append({
+                        "developer_id": developer.id,
+                        "username": developer.username,
+                        "email": developer.email,
+                        "organization": developer.organization,
+                        "is_verified": developer.is_verified,
+                        "registration_date": developer.registration_date.isoformat(),
+                        "tools_created": developer.tools_created,
+                        "is_active": developer.is_active
+                    })
+                
+                return developer_list
+
+        except Exception as e:
+            logger.error(f"Failed to list developers: {e}")
+            return []
+
+    async def deactivate_developer(self, developer_id: str) -> bool:
         """
         Deactivate a developer.
         
@@ -223,11 +344,27 @@ class ToolRegistrySecurity:
         Returns:
             True if developer was deactivated, False if not found
         """
-        if developer_id in self.developers:
-            self.developers[developer_id].is_active = False
-            logger.info(f"Deactivated developer: {developer_id}")
-            return True
-        return False
+        if not self._initialized:
+            raise ToolRegistryError(message="Tool Registry Security not initialized")
+
+        try:
+            async with self._session_factory() as session:
+                stmt = select(DeveloperModel).where(DeveloperModel.id == developer_id)
+                result = await session.execute(stmt)
+                developer = result.scalar_one_or_none()
+                
+                if not developer:
+                    return False
+                
+                developer.is_active = False
+                await session.commit()
+                
+                logger.info(f"Deactivated developer: {developer_id}")
+                return True
+
+        except Exception as e:
+            logger.error(f"Failed to deactivate developer: {e}")
+            return False
 
     def validate_tool_registration(self, tool_data: Dict[str, Any]) -> bool:
         """
@@ -285,14 +422,12 @@ class ToolRegistrySecurity:
 
     async def _load_developers(self) -> None:
         """Load developers from persistent storage."""
-        # TODO: Implement database storage for developers
-        # For now, developers are stored in memory
+        # Developers are now loaded from database on demand
         pass
 
     async def shutdown(self) -> None:
         """Shutdown the tool registry security."""
         logger.info("Shutting down Tool Registry Security")
-        # TODO: Save developers to persistent storage
         self._initialized = False
 
     @property
