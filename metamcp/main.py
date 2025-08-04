@@ -26,6 +26,7 @@ from .monitoring.health import setup_health_checks
 from .monitoring.metrics import setup_metrics
 from .performance.background_tasks import start_background_tasks, stop_background_tasks
 from .performance.connection_pool import close_database_pool
+from .security.middleware import SecurityMiddleware, RateLimitMiddleware
 from .server import MetaMCPServer
 from .utils.logging import get_logger, setup_logging
 
@@ -150,6 +151,10 @@ def setup_middleware(app: FastAPI) -> None:
             TrustedHostMiddleware,
             allowed_hosts=["localhost", "127.0.0.1", settings.host],
         )
+
+    # Add security middleware
+    app.add_middleware(SecurityMiddleware)
+    app.add_middleware(RateLimitMiddleware)
 
 
 def setup_exception_handlers(app: FastAPI) -> None:

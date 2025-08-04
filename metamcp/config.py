@@ -12,6 +12,38 @@ from typing import Any
 from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings
 
+from .utils.constants import (
+    PASSWORD_MIN_LENGTH,
+    SESSION_TIMEOUT_MINUTES,
+    MAX_LOGIN_ATTEMPTS,
+    LOCKOUT_DURATION_MINUTES,
+    TOKEN_EXPIRY_MINUTES,
+    DEFAULT_RATE_LIMIT_REQUESTS,
+    DEFAULT_RATE_LIMIT_WINDOW,
+    DEFAULT_DB_POOL_SIZE,
+    DEFAULT_DB_MAX_OVERFLOW,
+    DEFAULT_DB_POOL_TIMEOUT,
+    DEFAULT_DB_POOL_RECYCLE,
+    DEFAULT_CACHE_TTL,
+    MAX_CACHE_TTL,
+    DEFAULT_CACHE_MAX_CONNECTIONS,
+    DEFAULT_TOOL_TIMEOUT,
+    DEFAULT_TOOL_RETRY_ATTEMPTS,
+    DEFAULT_TOOL_RETRY_DELAY,
+    DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+    DEFAULT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
+    DEFAULT_CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
+    DEFAULT_VECTOR_DIMENSION,
+    DEFAULT_SIMILARITY_THRESHOLD,
+    DEFAULT_MAX_SEARCH_RESULTS,
+    DEFAULT_METRICS_PORT,
+    DEFAULT_LOG_LEVEL,
+    DEFAULT_LOG_FORMAT,
+    ENVIRONMENT_DEVELOPMENT,
+    ENVIRONMENT_STAGING,
+    ENVIRONMENT_PRODUCTION,
+)
+
 
 class LLMProvider(str, Enum):
     """LLM Provider enumeration."""
@@ -49,15 +81,17 @@ class Settings(BaseSettings):
         default="postgresql://user:password@localhost/metamcp",
         description="Database connection URL",
     )
-    database_pool_size: int = Field(default=10, description="Database pool size")
-    database_max_overflow: int = Field(default=20, description="Database max overflow")
+    database_pool_size: int = Field(default=DEFAULT_DB_POOL_SIZE, description="Database pool size")
+    database_max_overflow: int = Field(default=DEFAULT_DB_MAX_OVERFLOW, description="Database max overflow")
+    database_pool_timeout: int = Field(default=DEFAULT_DB_POOL_TIMEOUT, description="Database connection pool timeout")
+    database_pool_recycle: int = Field(default=DEFAULT_DB_POOL_RECYCLE, description="Database connection pool recycle time")
 
     # Vector Database Settings
     weaviate_url: str = Field(
         default="http://localhost:8080", description="Weaviate vector database URL"
     )
     weaviate_api_key: str | None = Field(default=None, description="Weaviate API key")
-    vector_dimension: int = Field(default=1536, description="Vector dimension")
+    vector_dimension: int = Field(default=DEFAULT_VECTOR_DIMENSION, description="Vector dimension")
 
     # LLM Settings
     llm_provider: LLMProvider = Field(
@@ -77,7 +111,15 @@ class Settings(BaseSettings):
     )
     algorithm: str = Field(default="HS256", description="JWT algorithm")
     access_token_expire_minutes: int = Field(
-        default=30, description="Access token expiry"
+        default=TOKEN_EXPIRY_MINUTES, description="Access token expiry"
+    )
+    
+    # Default Admin Settings (for initial setup only)
+    default_admin_username: str | None = Field(
+        default=None, description="Default admin username (for initial setup)"
+    )
+    default_admin_password: str | None = Field(
+        default=None, description="Default admin password (for initial setup)"
     )
 
     # Security Settings
@@ -85,14 +127,31 @@ class Settings(BaseSettings):
         default="http://localhost:8181", description="Open Policy Agent URL"
     )
     opa_timeout: int = Field(default=5, description="OPA request timeout")
+    
+    # Enhanced Security Settings
+    password_min_length: int = Field(
+        default=PASSWORD_MIN_LENGTH, description="Minimum password length"
+    )
+    password_require_special: bool = Field(
+        default=True, description="Require special characters in passwords"
+    )
+    session_timeout_minutes: int = Field(
+        default=SESSION_TIMEOUT_MINUTES, description="Session timeout in minutes"
+    )
+    max_login_attempts: int = Field(
+        default=MAX_LOGIN_ATTEMPTS, description="Maximum login attempts before lockout"
+    )
+    lockout_duration_minutes: int = Field(
+        default=LOCKOUT_DURATION_MINUTES, description="Account lockout duration in minutes"
+    )
 
     # Logging Settings
-    log_level: str = Field(default="INFO", description="Logging level")
-    log_format: str = Field(default="json", description="Log format (json, text)")
+    log_level: str = Field(default=DEFAULT_LOG_LEVEL, description="Logging level")
+    log_format: str = Field(default=DEFAULT_LOG_FORMAT, description="Log format (json, text)")
 
     # Monitoring Settings
     prometheus_metrics_port: int = Field(
-        default=9090, description="Prometheus metrics port"
+        default=DEFAULT_METRICS_PORT, description="Prometheus metrics port"
     )
 
     # OpenTelemetry Settings
@@ -114,10 +173,10 @@ class Settings(BaseSettings):
 
     # Rate Limiting
     rate_limit_requests: int = Field(
-        default=100, description="Rate limit requests per minute"
+        default=DEFAULT_RATE_LIMIT_REQUESTS, description="Rate limit requests per minute"
     )
     rate_limit_window: int = Field(
-        default=60, description="Rate limit window in seconds"
+        default=DEFAULT_RATE_LIMIT_WINDOW, description="Rate limit window in seconds"
     )
     rate_limit_use_redis: bool = Field(
         default=False, description="Use Redis backend for rate limiting"
@@ -128,13 +187,13 @@ class Settings(BaseSettings):
 
     # Tool Execution Settings
     tool_timeout: int = Field(
-        default=30, description="Timeout for tool execution in seconds"
+        default=DEFAULT_TOOL_TIMEOUT, description="Timeout for tool execution in seconds"
     )
     tool_retry_attempts: int = Field(
-        default=3, description="Number of retry attempts for tool execution"
+        default=DEFAULT_TOOL_RETRY_ATTEMPTS, description="Number of retry attempts for tool execution"
     )
     tool_retry_delay: float = Field(
-        default=1.0, description="Delay between retry attempts in seconds"
+        default=DEFAULT_TOOL_RETRY_DELAY, description="Delay between retry attempts in seconds"
     )
 
     # Circuit Breaker Settings
@@ -142,13 +201,13 @@ class Settings(BaseSettings):
         default=True, description="Enable circuit breaker pattern"
     )
     circuit_breaker_failure_threshold: int = Field(
-        default=5, description="Number of failures before opening circuit"
+        default=DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD, description="Number of failures before opening circuit"
     )
     circuit_breaker_recovery_timeout: int = Field(
-        default=60, description="Seconds to wait before trying half-open"
+        default=DEFAULT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT, description="Seconds to wait before trying half-open"
     )
     circuit_breaker_success_threshold: int = Field(
-        default=2, description="Number of successes to close circuit again"
+        default=DEFAULT_CIRCUIT_BREAKER_SUCCESS_THRESHOLD, description="Number of successes to close circuit again"
     )
 
     # Cache Configuration
@@ -157,28 +216,16 @@ class Settings(BaseSettings):
         default="redis://localhost:6379/1", description="Redis URL for caching"
     )
     cache_default_ttl: int = Field(
-        default=3600, description="Default cache TTL in seconds"
+        default=DEFAULT_CACHE_TTL, description="Default cache TTL in seconds"
     )
     cache_max_ttl: int = Field(
-        default=604800, description="Maximum cache TTL in seconds (1 week)"
+        default=MAX_CACHE_TTL, description="Maximum cache TTL in seconds (1 week)"
     )
     cache_max_connections: int = Field(
-        default=20, description="Maximum Redis connections for cache"
+        default=DEFAULT_CACHE_MAX_CONNECTIONS, description="Maximum Redis connections for cache"
     )
 
     # Performance Configuration
-    database_pool_size: int = Field(
-        default=10, description="Database connection pool size"
-    )
-    database_max_overflow: int = Field(
-        default=20, description="Database connection pool max overflow"
-    )
-    database_pool_timeout: int = Field(
-        default=30, description="Database connection pool timeout"
-    )
-    database_pool_recycle: int = Field(
-        default=3600, description="Database connection pool recycle time"
-    )
     worker_threads: int = Field(
         default=4, description="Number of worker threads for background tasks"
     )
@@ -202,10 +249,10 @@ class Settings(BaseSettings):
         default=True, description="Enable vector search"
     )
     vector_search_similarity_threshold: float = Field(
-        default=0.7, description="Vector search similarity threshold"
+        default=DEFAULT_SIMILARITY_THRESHOLD, description="Vector search similarity threshold"
     )
     vector_search_max_results: int = Field(
-        default=10, description="Max vector search results"
+        default=DEFAULT_MAX_SEARCH_RESULTS, description="Max vector search results"
     )
 
     # Policy Settings

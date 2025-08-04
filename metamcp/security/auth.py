@@ -14,6 +14,8 @@ from passlib.context import CryptContext
 from ..config import get_settings
 from ..exceptions import AuthenticationError
 from ..utils.logging import get_logger
+from ..database.models import User
+from ..database.connection import get_database_session
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -35,23 +37,6 @@ class AuthManager:
         """
         self.settings = settings
         self.pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-        # User storage (in production, this would be a database)
-        self.users: dict[str, dict[str, Any]] = {
-            "admin": {
-                "username": "admin",
-                "hashed_password": self.pwd_context.hash("admin123"),
-                "role": "admin",
-                "permissions": ["read", "write", "execute", "admin"],
-            },
-            "user": {
-                "username": "user",
-                "hashed_password": self.pwd_context.hash("user123"),
-                "role": "user",
-                "permissions": ["read", "execute"],
-            },
-        }
-
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -66,6 +51,9 @@ class AuthManager:
             if not self.settings.secret_key:
                 raise AuthenticationError(message="JWT secret key not configured")
 
+            # Check if default admin user exists, create if not
+            await self._ensure_default_admin_exists()
+
             self._initialized = True
             logger.info("Authentication Manager initialized successfully")
 
@@ -74,6 +62,51 @@ class AuthManager:
             raise AuthenticationError(
                 message=f"Failed to initialize authentication manager: {str(e)}"
             )
+
+    async def _ensure_default_admin_exists(self) -> None:
+        """Ensure default admin user exists in database."""
+        try:
+            async with get_database_session() as session:
+                # Check if admin user exists
+                admin_user = await session.get(User, "admin")
+                
+                if not admin_user:
+                    # Create default admin user from environment variables
+                    admin_username = self.settings.default_admin_username or "admin"
+                    admin_password = self.settings.default_admin_password
+                    
+                    if not admin_password:
+                        logger.warning("No default admin password configured. Admin user not created.")
+                        return
+                    
+                    # Create admin user
+                    admin_user = User(
+                        id=admin_username,
+                        username=admin_username,
+                        hashed_password=self.pwd_context.hash(admin_password),
+                        role="admin",
+                        permissions=["read", "write", "execute", "admin"],
+                        is_active=True,
+                        created_at=datetime.utcnow()
+                    )
+                    
+                    session.add(admin_user)
+                    await session.commit()
+                    logger.info(f"Created default admin user: {admin_username}")
+                    
+        except Exception as e:
+            logger.error(f"Failed to ensure default admin exists: {e}")
+            # Don't fail initialization for this
+
+    async def get_user_by_username(self, username: str) -> User | None:
+        """Get user from database by username."""
+        try:
+            async with get_database_session() as session:
+                user = await session.get(User, username)
+                return user
+        except Exception as e:
+            logger.error(f"Failed to get user {username}: {e}")
+            return None
 
     def verify_password(self, plain_password: str, hashed_password: str) -> bool:
         """Verify a password against its hash."""
@@ -97,16 +130,17 @@ class AuthManager:
         Returns:
             True if password meets strength requirements
         """
-        # Basic password strength validation
-        if len(password) < 8:
+        # Enhanced password strength validation
+        if len(password) < 12:  # Increased minimum length
             return False
 
-        # Check for at least one uppercase, lowercase, and digit
+        # Check for at least one uppercase, lowercase, digit, and special character
         has_upper = any(c.isupper() for c in password)
         has_lower = any(c.islower() for c in password)
         has_digit = any(c.isdigit() for c in password)
+        has_special = any(c in "!@#$%^&*()_+-=[]{}|;:,.<>?" for c in password)
 
-        return has_upper and has_lower and has_digit
+        return has_upper and has_lower and has_digit and has_special
 
     def create_token(
         self, data: dict[str, Any], expires_delta: timedelta | None = None

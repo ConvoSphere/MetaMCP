@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 """
-Environment Variables Validation Script
+Environment Configuration Validator
 
-This script validates the environment configuration for MetaMCP.
-It checks for required variables, validates types, and provides helpful feedback.
+This script validates the environment configuration for security and best practices.
 """
 
 import os
+import secrets
 import sys
-from typing import Any
+from typing import Dict, List, Any
 
-
-def validate_environment() -> dict[str, Any]:
+def validate_environment() -> Dict[str, Any]:
     """
-    Validate the current environment configuration.
-
+    Validate environment configuration for security and best practices.
+    
     Returns:
         Dict containing validation results
     """
@@ -22,215 +21,246 @@ def validate_environment() -> dict[str, Any]:
         "valid": True,
         "errors": [],
         "warnings": [],
-        "missing_required": [],
-        "environment_info": {},
+        "recommendations": [],
+        "environment_info": {}
     }
-
-    try:
-        # Get environment variables
-        env_vars = {
-            "APP_NAME": os.getenv("APP_NAME", "MetaMCP"),
-            "APP_VERSION": os.getenv("APP_VERSION", "1.0.0"),
-            "DEBUG": os.getenv("DEBUG", "false").lower() == "true",
-            "ENVIRONMENT": os.getenv("ENVIRONMENT", "development"),
-            "HOST": os.getenv("HOST", "0.0.0.0"),
-            "PORT": int(os.getenv("PORT", "8000")),
-            "LOG_LEVEL": os.getenv("LOG_LEVEL", "INFO"),
-            "SECRET_KEY": os.getenv(
-                "SECRET_KEY", "your-secret-key-change-in-production"
-            ),
-            "DATABASE_URL": os.getenv("DATABASE_URL"),
-            "WEAVIATE_URL": os.getenv("WEAVIATE_URL"),
-            "REDIS_URL": os.getenv("REDIS_URL"),
-            "OPA_URL": os.getenv("OPA_URL"),
-            "OPENAI_API_KEY": os.getenv("OPENAI_API_KEY"),
-            "VECTOR_SEARCH_ENABLED": os.getenv("VECTOR_SEARCH_ENABLED", "true").lower()
-            == "true",
-            "TELEMETRY_ENABLED": os.getenv("TELEMETRY_ENABLED", "true").lower()
-            == "true",
-            "OTLP_ENDPOINT": os.getenv("OTLP_ENDPOINT"),
-            "ADMIN_ENABLED": os.getenv("ADMIN_ENABLED", "true").lower() == "true",
-            "ADMIN_PORT": int(os.getenv("ADMIN_PORT", "8501")),
+    
+    # Critical security variables
+    critical_vars = {
+        "SECRET_KEY": {
+            "required": True,
+            "min_length": 32,
+            "description": "JWT secret key for token signing"
+        },
+        "DATABASE_URL": {
+            "required": True,
+            "description": "Database connection URL"
+        },
+        "OPENAI_API_KEY": {
+            "required": False,
+            "description": "OpenAI API key for LLM functionality"
         }
-
-        # Environment information
-        results["environment_info"] = {
-            "environment": env_vars["ENVIRONMENT"],
-            "debug": env_vars["DEBUG"],
-            "host": env_vars["HOST"],
-            "port": env_vars["PORT"],
-            "log_level": env_vars["LOG_LEVEL"],
-        }
-
-        # Check for missing required variables
-        required_vars = [
-            "SECRET_KEY",
-            "DATABASE_URL",
-            "WEAVIATE_URL",
-            "REDIS_URL",
-            "OPA_URL",
-        ]
-
-        for var in required_vars:
-            if not env_vars.get(var):
-                results["missing_required"].append(var)
-                results["valid"] = False
-
-        # Check for development-specific warnings
-        if env_vars["ENVIRONMENT"] == "development":
-            if env_vars["DEBUG"]:
-                results["warnings"].append("Debug mode is enabled")
-
-            if env_vars["SECRET_KEY"] == "your-secret-key-change-in-production":
-                results["warnings"].append(
-                    "Using default secret key - change for production"
-                )
-
-        # Check for production-specific requirements
-        if env_vars["ENVIRONMENT"] == "production":
-            if env_vars["DEBUG"]:
-                results["errors"].append("Debug mode should be disabled in production")
-                results["valid"] = False
-
-            if env_vars["SECRET_KEY"] == "your-secret-key-change-in-production":
-                results["errors"].append("Must change default secret key in production")
-                results["valid"] = False
-
-            if not env_vars["OPENAI_API_KEY"]:
-                results["warnings"].append("OpenAI API key not set")
-
-        # Check vector search configuration
-        if env_vars["VECTOR_SEARCH_ENABLED"]:
-            if not env_vars["WEAVIATE_URL"]:
-                results["errors"].append(
-                    "Weaviate URL required when vector search is enabled"
-                )
-                results["valid"] = False
-
-        # Check telemetry configuration
-        if env_vars["TELEMETRY_ENABLED"] and not env_vars["OTLP_ENDPOINT"]:
-            results["warnings"].append(
-                "Telemetry enabled but OTLP endpoint not configured"
-            )
-
-        # Check admin interface
-        if env_vars["ADMIN_ENABLED"]:
-            results["environment_info"]["admin_port"] = env_vars["ADMIN_PORT"]
-
-    except Exception as e:
-        results["valid"] = False
-        results["errors"].append(f"Configuration error: {str(e)}")
-
+    }
+    
+    # Check critical variables
+    for var, config in critical_vars.items():
+        value = os.getenv(var)
+        results["environment_info"][var] = "***HIDDEN***" if "KEY" in var or "SECRET" in var else value
+        
+        if config["required"] and not value:
+            results["errors"].append(f"Required environment variable {var} is not set")
+            results["valid"] = False
+        elif value and "min_length" in config and len(value) < config["min_length"]:
+            results["errors"].append(f"{var} must be at least {config['min_length']} characters long")
+            results["valid"] = False
+    
+    # Security validations
+    validate_security_config(results)
+    
+    # Performance validations
+    validate_performance_config(results)
+    
+    # Database validations
+    validate_database_config(results)
+    
+    # Generate recommendations
+    generate_recommendations(results)
+    
     return results
 
+def validate_security_config(results: Dict[str, Any]) -> None:
+    """Validate security-related configuration."""
+    
+    # Check for weak secret key
+    secret_key = os.getenv("SECRET_KEY")
+    if secret_key and secret_key == "your-secret-key-change-in-production":
+        results["errors"].append("Must change default secret key in production")
+        results["valid"] = False
+    elif secret_key and len(secret_key) < 32:
+        results["warnings"].append("Secret key should be at least 32 characters long")
+    
+    # Check for default admin credentials
+    default_admin_password = os.getenv("DEFAULT_ADMIN_PASSWORD")
+    if default_admin_password and default_admin_password == "your_secure_admin_password_here":
+        results["warnings"].append("Change default admin password before deployment")
+    
+    # Check CORS configuration
+    cors_origins = os.getenv("CORS_ORIGINS", "[]")
+    if cors_origins == '["*"]':
+        results["warnings"].append("CORS is set to allow all origins - restrict in production")
+    
+    # Check debug mode
+    debug_mode = os.getenv("DEBUG", "false").lower() == "true"
+    if debug_mode:
+        results["warnings"].append("Debug mode is enabled - disable in production")
+    
+    # Check environment
+    environment = os.getenv("ENVIRONMENT", "development")
+    if environment == "production":
+        if debug_mode:
+            results["errors"].append("Debug mode should not be enabled in production")
+            results["valid"] = False
+        
+        if cors_origins == '["*"]':
+            results["errors"].append("CORS should not allow all origins in production")
+            results["valid"] = False
 
-def print_validation_results(results: dict[str, Any]) -> None:
-    """
-    Print validation results in a formatted way.
+def validate_performance_config(results: Dict[str, Any]) -> None:
+    """Validate performance-related configuration."""
+    
+    # Check database pool settings
+    try:
+        pool_size = int(os.getenv("DATABASE_POOL_SIZE", "10"))
+        if pool_size < 5:
+            results["warnings"].append("Database pool size is very small - consider increasing")
+        elif pool_size > 50:
+            results["warnings"].append("Database pool size is very large - monitor performance")
+    except ValueError:
+        results["errors"].append("DATABASE_POOL_SIZE must be a valid integer")
+        results["valid"] = False
+    
+    # Check worker settings
+    try:
+        workers = int(os.getenv("WORKERS", "1"))
+        if workers < 1:
+            results["errors"].append("WORKERS must be at least 1")
+            results["valid"] = False
+        elif workers == 1:
+            results["warnings"].append("Single worker mode - consider multiple workers for production")
+    except ValueError:
+        results["errors"].append("WORKERS must be a valid integer")
+        results["valid"] = False
 
-    Args:
-        results: Validation results dictionary
-    """
+def validate_database_config(results: Dict[str, Any]) -> None:
+    """Validate database configuration."""
+    
+    database_url = os.getenv("DATABASE_URL")
+    if database_url:
+        # Check for SQLite in production
+        if "sqlite" in database_url.lower() and os.getenv("ENVIRONMENT") == "production":
+            results["warnings"].append("SQLite is not recommended for production use")
+        
+        # Check for weak passwords in URL
+        if "password" in database_url.lower() and "your_secure_password" in database_url:
+            results["warnings"].append("Change default database password")
+
+def generate_recommendations(results: Dict[str, Any]) -> None:
+    """Generate security and performance recommendations."""
+    
+    recommendations = [
+        "Use environment-specific .env files (.env.production, .env.staging)",
+        "Enable HTTPS in production with proper SSL certificates",
+        "Configure proper logging with log rotation",
+        "Set up monitoring and alerting",
+        "Use Redis for rate limiting and caching in production",
+        "Configure backup strategies for databases",
+        "Set up proper firewall rules",
+        "Use secrets management for sensitive data",
+        "Enable audit logging for security events",
+        "Configure proper CORS origins for production"
+    ]
+    
+    # Add specific recommendations based on current config
+    if os.getenv("ENVIRONMENT") == "production":
+        recommendations.extend([
+            "Disable debug mode and API documentation in production",
+            "Use strong, unique passwords for all services",
+            "Configure proper SSL/TLS certificates",
+            "Set up intrusion detection and monitoring",
+            "Implement proper backup and disaster recovery procedures"
+        ])
+    
+    results["recommendations"] = recommendations
+
+def generate_secure_secret_key() -> str:
+    """Generate a secure secret key."""
+    return secrets.token_urlsafe(32)
+
+def print_validation_results(results: Dict[str, Any]) -> None:
+    """Print validation results in a formatted way."""
+    
     print("=" * 60)
-    print("MetaMCP Environment Validation")
+    print("ENVIRONMENT CONFIGURATION VALIDATION")
     print("=" * 60)
-
-    # Environment information
-    if results["environment_info"]:
-        print("\n📋 Environment Information:")
-        for key, value in results["environment_info"].items():
-            print(f"   {key}: {value}")
-
-    # Errors
+    
+    # Print validation status
+    status = "✅ VALID" if results["valid"] else "❌ INVALID"
+    print(f"Status: {status}")
+    print()
+    
+    # Print errors
     if results["errors"]:
-        print("\n❌ Errors:")
+        print("❌ ERRORS:")
         for error in results["errors"]:
             print(f"   • {error}")
-
-    # Warnings
+        print()
+    
+    # Print warnings
     if results["warnings"]:
-        print("\n⚠️  Warnings:")
+        print("⚠️  WARNINGS:")
         for warning in results["warnings"]:
             print(f"   • {warning}")
+        print()
+    
+    # Print environment info
+    print("📋 ENVIRONMENT VARIABLES:")
+    for var, value in results["environment_info"].items():
+        print(f"   {var}: {value}")
+    print()
+    
+    # Print recommendations
+    if results["recommendations"]:
+        print("💡 RECOMMENDATIONS:")
+        for rec in results["recommendations"]:
+            print(f"   • {rec}")
+        print()
 
-    # Missing required variables
-    if results["missing_required"]:
-        print("\n🔍 Missing Required Variables:")
-        for var in results["missing_required"]:
-            print(f"   • {var}")
+def print_setup_instructions() -> None:
+    """Print setup instructions for missing configuration."""
+    
+    print("🔧 SETUP INSTRUCTIONS:")
+    print()
+    
+    print("1. Generate a secure secret key:")
+    print(f"   export SECRET_KEY={generate_secure_secret_key()}")
+    print()
+    
+    print("2. Set up database connection:")
+    print("   export DATABASE_URL=postgresql://user:password@localhost/metamcp")
+    print()
+    
+    print("3. Configure OpenAI API key (optional):")
+    print("   export OPENAI_API_KEY=your_openai_api_key_here")
+    print()
+    
+    print("4. For production deployment:")
+    print("   export ENVIRONMENT=production")
+    print("   export DEBUG=false")
+    print("   export CORS_ORIGINS='[\"https://yourdomain.com\"]'")
+    print()
 
-    # Overall result
-    print("\n" + "=" * 60)
-    if results["valid"]:
-        print("✅ Environment configuration is valid!")
-    else:
-        print("❌ Environment configuration has issues!")
-    print("=" * 60)
-
-
-def suggest_fixes(results: dict[str, Any]) -> None:
-    """
-    Suggest fixes for validation issues.
-
-    Args:
-        results: Validation results dictionary
-    """
-    if not results["errors"] and not results["missing_required"]:
+def main() -> None:
+    """Main function."""
+    
+    if len(sys.argv) > 1 and sys.argv[1] == "--setup":
+        print_setup_instructions()
         return
-
-    print("\n🔧 Suggested Fixes:")
-
-    # Fix missing required variables
-    if results["missing_required"]:
-        print("\n   Set these environment variables:")
-        for var in results["missing_required"]:
-            if var == "SECRET_KEY":
-                print(f"   export {var}=$(openssl rand -hex 32)")
-            elif var == "DATABASE_URL":
-                print(f"   export {var}=postgresql://user:password@localhost/metamcp")
-            elif var == "WEAVIATE_URL":
-                print(f"   export {var}=http://localhost:8080")
-            elif var == "REDIS_URL":
-                print(f"   export {var}=redis://localhost:6379")
-            elif var == "OPA_URL":
-                print(f"   export {var}=http://localhost:8181")
-
-    # Fix errors
-    if results["errors"]:
-        print("\n   Fix these issues:")
-        for error in results["errors"]:
-            if "Debug mode should be disabled" in error:
-                print("   • Set DEBUG=false for production")
-            elif "Must change default secret key" in error:
-                print("   • Generate a new SECRET_KEY for production")
-            elif "Weaviate URL required" in error:
-                print("   • Set WEAVIATE_URL or disable VECTOR_SEARCH_ENABLED")
-
-
-def main() -> int:
-    """
-    Main function to run environment validation.
-
-    Returns:
-        Exit code (0 for success, 1 for failure)
-    """
-    try:
-        results = validate_environment()
-        print_validation_results(results)
-
-        if results["errors"] or results["missing_required"]:
-            suggest_fixes(results)
-            return 1
-
-        return 0
-
-    except KeyboardInterrupt:
-        print("\n\nValidation interrupted by user")
-        return 1
-    except Exception as e:
-        print(f"\n❌ Validation failed with error: {e}")
-        return 1
-
+    
+    # Validate environment
+    results = validate_environment()
+    
+    # Print results
+    print_validation_results(results)
+    
+    # Exit with appropriate code
+    if not results["valid"]:
+        print("❌ Environment configuration is invalid. Please fix the errors above.")
+        sys.exit(1)
+    else:
+        print("✅ Environment configuration is valid!")
+        if results["warnings"]:
+            print("⚠️  Please review the warnings and recommendations above.")
+        sys.exit(0)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()
