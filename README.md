@@ -1,6 +1,6 @@
 # MetaMCP
 
-**Meta Model Context Protocol** - Ein modulares System für Tool-Komposition und MCP-Management.
+**Meta Model Context Protocol** - Ein modulares System für Tool-Komposition und MCP-Management mit umfassendem API Versioning.
 
 ## 🚀 Schnellstart
 
@@ -41,6 +41,57 @@ docker-compose up -d
 - API: http://localhost:9000
 - Admin: http://localhost:9501
 - Docs: http://localhost:9000/docs
+- API Versions: http://localhost:9000/api/versions
+
+## 🔄 API Versioning
+
+Das MetaMCP System unterstützt umfassendes API Versioning mit folgenden Features:
+
+### Verfügbare Versionen
+
+- **v1**: Initiale API-Version mit Kernfunktionalität
+- **v2**: Erweiterte API-Version mit verbesserten Features
+
+### Version Management
+
+```bash
+# Alle verfügbaren Versionen anzeigen
+curl http://localhost:9000/api/versions
+
+# Spezifische Version verwenden
+curl http://localhost:9000/api/v2/tools
+
+# Zur neuesten Version weiterleiten
+curl http://localhost:9000/api/latest
+```
+
+### Version-spezifische Endpunkte
+
+**v1 Endpunkte:**
+- `/api/v1/auth/*` - Authentifizierung
+- `/api/v1/tools/*` - Tool-Management
+- `/api/v1/health/*` - Health Checks
+- `/api/v1/admin/*` - Admin Interface
+
+**v2 Endpunkte (erweitert):**
+- `/api/v2/auth/*` - Erweiterte Authentifizierung mit Session-Management
+- `/api/v2/tools/*` - Erweitertes Tool-Management mit verbesserter Suche
+- `/api/v2/health/*` - Umfassende Health Checks mit Metriken
+- `/api/v2/analytics/*` - Erweiterte Analytics und Reporting
+
+### Migration von v1 zu v2
+
+```bash
+# v1 (Legacy)
+curl -X POST http://localhost:9000/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "user", "password": "pass"}'
+
+# v2 (Enhanced)
+curl -X POST http://localhost:9000/api/v2/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"username": "user", "password": "pass", "remember_me": true}'
+```
 
 ## 🔒 Sicherheit
 
@@ -81,9 +132,11 @@ python scripts/validate_env.py --setup
 - **Tool Registry**: Zentrale Verwaltung von MCP-Tools
 - **Composition Engine**: Automatische Tool-Komposition
 - **Admin Interface**: Streamlit-basierte Verwaltung
+- **API Versioning**: Umfassendes Versioning-System mit Backward Compatibility
 - **Security**: JWT-Auth, OPA-Policies, Rate Limiting, Input Validation
 - **Monitoring**: Prometheus, Grafana, Logging
 - **Enhanced Security**: SQL Injection Protection, XSS Protection, Path Traversal Protection
+- **Analytics**: Erweiterte Analytics und Performance-Metriken (v2)
 
 ## 🏗️ Architektur
 
@@ -98,6 +151,8 @@ python scripts/validate_env.py --setup
                     │  Services │ Utils       │
                     │  Auth     │ Monitoring  │
                     │  Tools    │ Security    │
+                    │  Version  │ Analytics   │
+                    │  Manager  │ (v2)        │
                     └─────────────────────────┘
 ```
 
@@ -125,6 +180,10 @@ CORS_ORIGINS=["https://yourdomain.com", "https://admin.yourdomain.com"]
 RATE_LIMIT_REQUESTS=100
 RATE_LIMIT_WINDOW=60
 RATE_LIMIT_USE_REDIS=true
+
+# API Versioning
+API_DEFAULT_VERSION=v1
+API_LATEST_VERSION=v2
 ```
 
 ### Produktions-Deployment
@@ -158,6 +217,7 @@ RATE_LIMIT_USE_REDIS=true
 
 ## 📚 Dokumentation
 
+- [API Versioning](docs/api-versioning.md) - Umfassendes API Versioning System
 - [Admin Interface](docs/admin-interface.md) - Verwaltungsoberfläche
 - [API Reference](docs/api.md) - Endpunkt-Dokumentation
 - [Configuration](docs/configuration.md) - Einstellungen
@@ -175,6 +235,7 @@ pytest tests/unit/          # Unit Tests
 pytest tests/integration/   # Integration Tests
 pytest tests/blackbox/      # End-to-End Tests
 pytest tests/ -m security   # Security Tests
+pytest tests/unit/api/test_versioning.py  # API Versioning Tests
 
 # Test-Coverage
 pytest --cov=metamcp --cov-report=html
@@ -186,6 +247,10 @@ pytest --cov=metamcp --cov-report=html
 ```bash
 # API Health Check
 curl http://localhost:9000/health
+
+# Version-spezifische Health Checks
+curl http://localhost:9000/api/v1/health
+curl http://localhost:9000/api/v2/health
 
 # Metrics
 curl http://localhost:9000/metrics
@@ -211,6 +276,7 @@ docker logs grafana
 4. **Implementieren Sie regelmäßige Backups** der Datenbank
 5. **Überwachen Sie Logs** auf verdächtige Aktivitäten
 6. **Halten Sie alle Dependencies aktuell** mit Sicherheitsupdates
+7. **Verwenden Sie die neueste API-Version** für neue Entwicklungen
 
 ## 📄 Lizenz
 

@@ -18,7 +18,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse
 
-from .api import create_api_router
+from .api import create_api_router, get_api_version_manager
 from .cache.redis_cache import close_cache_manager
 from .config import get_settings
 from .exceptions import MetaMCPError
@@ -53,12 +53,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await initialize_database()
         logger.info("Database connection pool initialized")
 
+        # Initialize API Version Manager
+        version_manager = get_api_version_manager()
+        await version_manager.initialize()
+        logger.info("API Version Manager initialized")
+
         # Initialize the MCP server
         mcp_server = MetaMCPServer()
         await mcp_server.initialize()
 
         # Store server instance in app state
         app.state.mcp_server = mcp_server
+        app.state.version_manager = version_manager
 
         # Start service discovery
         await service_discovery.start()
@@ -80,6 +86,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             metadata={
                 "environment": settings.environment,
                 "debug": settings.debug,
+                "api_versions": version_manager.get_active_versions(),
             },
             tags=["api", "mcp", "metamcp"],
         )
@@ -103,38 +110,40 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as e:
         logger.error(f"Failed to start MCP Meta-Server: {e}")
         raise
+
     finally:
-        # Cleanup
         logger.info("Shutting down MCP Meta-Server...")
 
-        # Deregister service
-        await service_discovery.deregister_service("metamcp-api")
-        logger.info("Service deregistered from service discovery")
+        try:
+            # Stop background tasks
+            await stop_background_tasks()
+            logger.info("Background task manager stopped")
 
-        # Stop service discovery
-        await service_discovery.stop()
-        logger.info("Service discovery stopped")
+            # Stop performance monitoring
+            await performance_monitor.stop()
+            logger.info("Performance monitoring stopped")
 
-        # Stop performance monitoring
-        await performance_monitor.stop()
-        logger.info("Performance monitoring stopped")
+            # Stop service discovery
+            await service_discovery.stop()
+            logger.info("Service discovery stopped")
 
-        if hasattr(app.state, "mcp_server"):
-            await app.state.mcp_server._shutdown()
+            # Close database pool
+            await close_database_pool()
+            logger.info("Database connection pool closed")
 
-        # Stop background task manager
-        await stop_background_tasks()
-        logger.info("Background task manager stopped")
+            # Close cache manager
+            await close_cache_manager()
+            logger.info("Cache manager closed")
 
-        # Close cache manager
-        await close_cache_manager()
-        logger.info("Cache manager closed")
+            # Shutdown version manager
+            if hasattr(app.state, 'version_manager'):
+                await app.state.version_manager.shutdown()
+            logger.info("API Version Manager shutdown")
 
-        # Close database connection pool
-        await close_database_pool()
-        logger.info("Database connection pool closed")
+            logger.info("MCP Meta-Server shutdown completed")
 
-        logger.info("MCP Meta-Server shutdown complete")
+        except Exception as e:
+            logger.error(f"Error during shutdown: {e}")
 
 
 def create_app() -> FastAPI:
@@ -147,7 +156,7 @@ def create_app() -> FastAPI:
     # Create FastAPI app with lifespan
     app = FastAPI(
         title="MCP Meta-Server",
-        description="A dynamic MCP Meta-Server for AI agents with semantic tool discovery",
+        description="A dynamic MCP Meta-Server for AI agents with semantic tool discovery and API versioning",
         version="1.0.0",
         lifespan=lifespan,
         docs_url="/docs" if settings.docs_enabled else None,
@@ -161,7 +170,7 @@ def create_app() -> FastAPI:
     # Add exception handlers
     setup_exception_handlers(app)
 
-    # Include API routers
+    # Include API routers with versioning
     api_router = create_api_router()
     app.include_router(api_router)
 
@@ -242,7 +251,7 @@ def setup_signal_handlers() -> None:
     """Setup signal handlers for graceful shutdown."""
 
     def signal_handler(signum, frame):
-        logger.info(f"Received signal {signum}, shutting down...")
+        logger.info(f"Received signal {signum}, initiating shutdown...")
         sys.exit(0)
 
     signal.signal(signal.SIGINT, signal_handler)
@@ -250,59 +259,34 @@ def setup_signal_handlers() -> None:
 
 
 async def run_server() -> None:
-    """
-    Run the MCP Meta-Server.
-
-    This is the main async entry point for running the server.
-    """
-    # Setup logging
+    """Run the FastAPI server."""
     setup_logging()
-
-    # Setup signal handlers
     setup_signal_handlers()
 
-    # Create app
     app = create_app()
 
-    # Configure uvicorn
     config = uvicorn.Config(
         app,
         host=settings.host,
         port=settings.port,
+        workers=settings.workers,
+        reload=settings.reload,
         log_level=settings.log_level.lower(),
         access_log=True,
-        reload=settings.reload and settings.debug,
-        workers=1,  # Single worker for now to maintain state
     )
 
-    # Start server
     server = uvicorn.Server(config)
-
-    try:
-        await server.serve()
-    except Exception as e:
-        logger.error(f"Server error: {e}")
-        raise
+    await server.serve()
 
 
 def main() -> None:
-    """
-    Main entry point for the MCP Meta-Server.
-
-    This function is called when running the server from the command line.
-    """
+    """Main entry point."""
     try:
-        if sys.platform == "win32":
-            # Windows-specific event loop policy
-            asyncio.set_event_loop_policy(asyncio.WindowsProactorEventLoopPolicy())
-
-        # Run the server
         asyncio.run(run_server())
-
     except KeyboardInterrupt:
         logger.info("Server stopped by user")
     except Exception as e:
-        logger.error(f"Failed to start server: {e}")
+        logger.error(f"Server failed to start: {e}")
         sys.exit(1)
 
 
