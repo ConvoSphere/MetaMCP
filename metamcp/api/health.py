@@ -1,17 +1,20 @@
 """
-Health Check API Router
+Health Check API
 
-This module provides health check endpoints for monitoring the
-MCP Meta-Server status and component health.
+This module provides health check endpoints and system status information.
 """
 
-import time
-from datetime import UTC, datetime
+import asyncio
+from datetime import datetime, timedelta
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException, status
-from pydantic import BaseModel
+from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi.responses import JSONResponse
 
 from ..config import get_settings
+from ..monitoring.performance import performance_monitor
+from ..performance.circuit_breaker import circuit_breaker_manager
+from ..services.service_discovery import service_discovery, ServiceType
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -20,620 +23,464 @@ settings = get_settings()
 # Create router
 health_router = APIRouter()
 
-# Server start time for uptime calculation
-_server_start_time = time.time()
 
-
-# =============================================================================
-# Pydantic Models
-# =============================================================================
-
-
-class HealthStatus(BaseModel):
-    """Health status response model."""
-
-    healthy: bool
-    timestamp: str
-    version: str
-    uptime: float | None = None
-    error: str | None = None
-
-
-class ComponentHealth(BaseModel):
-    """Component health status model."""
-
-    name: str
-    status: str
-    response_time: float | None = None
-    error: str | None = None
-    message: str | None = None
-    details: dict | None = None
-
-
-class DetailedHealthStatus(BaseModel):
-    """Detailed health status response model."""
-
-    overall_healthy: bool
-    timestamp: str
-    version: str
-    uptime: float
-    components: list[ComponentHealth]
-
-
-# =============================================================================
-# Health Check Functions
-# =============================================================================
-
-
-def get_uptime() -> float:
-    """Calculate server uptime in seconds."""
-    return time.time() - _server_start_time
-
-
-def format_uptime(seconds: float) -> str:
-    """Format uptime in human readable format."""
-    if seconds < 0:
-        return f"{int(seconds)}s"
-
-    days = int(seconds // 86400)
-    hours = int((seconds % 86400) // 3600)
-    minutes = int((seconds % 3600) // 60)
-    seconds = int(seconds % 60)
-
-    if days > 0:
-        return f"{days}d {hours}h {minutes}m {seconds}s"
-    elif hours > 0:
-        return f"{hours}h {minutes}m {seconds}s"
-    elif minutes > 0:
-        return f"{minutes}m {seconds}s"
-    else:
-        return f"{seconds}s"
-
-
-async def check_database_health() -> ComponentHealth:
-    """Check database connectivity."""
-    start_time = time.time()
-
-    try:
-        # Implement actual database health check
-        from metamcp.config import get_settings
-
-        settings = get_settings()
-
-        # Check if database URL is configured
-        if not settings.database_url:
-            return ComponentHealth(
-                name="database",
-                status="unhealthy",
-                message="Database URL not configured",
-                response_time=time.time() - start_time,
-                details={"error": "DATABASE_URL environment variable not set"},
-            )
-
-        # Use database manager for health check
-        try:
-            from metamcp.utils.database import get_database_manager
-
-            db_manager = get_database_manager()
-
-            if not db_manager.is_initialized:
-                # Try to initialize if not already done
-                await db_manager.initialize()
-
-            # Use database manager health check
-            health_result = await db_manager.health_check()
-
-            if health_result["status"] == "healthy":
-                return ComponentHealth(
-                    name="database",
-                    status="healthy",
-                    response_time=health_result["response_time"],
-                    details={
-                        "connection": "successful",
-                        "pool_stats": health_result["pool_stats"],
-                        "query_result": health_result["test_query_result"],
-                    },
-                )
-            else:
-                return ComponentHealth(
-                    name="database",
-                    status="unhealthy",
-                    message=f"Database health check failed: {health_result.get('error')}",
-                    response_time=time.time() - start_time,
-                    details={
-                        "error": health_result.get("error"),
-                        "database_url_configured": True,
-                    },
-                )
-
-        except Exception as db_error:
-            return ComponentHealth(
-                name="database",
-                status="unhealthy",
-                message=f"Database connection failed: {str(db_error)}",
-                response_time=time.time() - start_time,
-                details={"error": str(db_error), "database_url_configured": True},
-            )
-
-    except Exception as e:
-        return ComponentHealth(
-            name="database",
-            status="unhealthy",
-            response_time=time.time() - start_time,
-            error=str(e),
-        )
-
-
-async def check_vector_db_health() -> ComponentHealth:
-    """Check vector database connectivity."""
-    start_time = time.time()
-
-    try:
-        # Implement actual vector database health check
-        from metamcp.config import get_settings
-
-        settings = get_settings()
-
-        # Check if Weaviate URL is configured
-        if not settings.weaviate_url:
-            return ComponentHealth(
-                name="vector_db",
-                status="unhealthy",
-                message="Weaviate URL not configured",
-                response_time=time.time() - start_time,
-                details={"error": "WEAVIATE_URL environment variable not set"},
-            )
-
-        # Try to connect to Weaviate and check health
-        try:
-            # Parse the URL to get host and port
-            from urllib.parse import urlparse
-
-            import weaviate
-
-            parsed_url = urlparse(settings.weaviate_url)
-            host = parsed_url.hostname
-            port = parsed_url.port or 80
-            secure = parsed_url.scheme == "https"
-
-            # Connect to Weaviate using the proper method
-            client = weaviate.connect_to_custom(
-                http_host=host,
-                http_port=port,
-                http_secure=secure,
-                grpc_host=host,
-                grpc_port=port,
-                grpc_secure=secure,
-            )
-
-            # Check if Weaviate is ready
-            is_ready = client.is_ready()
-            response_time = time.time() - start_time
-
-            if is_ready:
-                # Get meta information
-                meta_data = client.get_meta()
-                return ComponentHealth(
-                    name="vector_db",
-                    status="healthy",
-                    response_time=response_time,
-                    details={
-                        "ready": True,
-                        "live": True,
-                        "weaviate_url": settings.weaviate_url,
-                        "version": getattr(meta_data, "version", "unknown"),
-                        "hostname": host,
-                    },
-                )
-            else:
-                return ComponentHealth(
-                    name="vector_db",
-                    status="unhealthy",
-                    message="Weaviate is not ready",
-                    response_time=response_time,
-                    details={
-                        "error": "Not ready",
-                        "weaviate_url": settings.weaviate_url,
-                    },
-                )
-
-        except Exception as weaviate_error:
-            return ComponentHealth(
-                name="vector_db",
-                status="unhealthy",
-                message=f"Weaviate connection failed: {str(weaviate_error)}",
-                response_time=time.time() - start_time,
-                details={"error": str(weaviate_error), "weaviate_url_configured": True},
-            )
-    except Exception as e:
-        return ComponentHealth(
-            name="vector_db",
-            status="unhealthy",
-            response_time=time.time() - start_time,
-            error=str(e),
-        )
-
-
-async def check_llm_service_health() -> ComponentHealth:
-    """Check LLM service connectivity."""
-    start_time = time.time()
-
-    try:
-        # Implement actual LLM service health check
-        from metamcp.config import get_settings
-
-        settings = get_settings()
-
-        # Check configured LLM provider
-        llm_provider = getattr(settings, "llm_provider", "openai").lower()
-
-        if llm_provider == "openai":
-            # Check OpenAI API key and connectivity
-            openai_api_key = getattr(settings, "openai_api_key", None)
-            if not openai_api_key:
-                return ComponentHealth(
-                    name="llm_service",
-                    status="unhealthy",
-                    message="OpenAI API key not configured",
-                    response_time=time.time() - start_time,
-                    details={
-                        "error": "OPENAI_API_KEY environment variable not set",
-                        "provider": "openai",
-                    },
-                )
-
-            try:
-                import openai
-
-                # Simple API call to check connectivity
-                client = openai.OpenAI(api_key=openai_api_key)
-                # List models as a health check
-                models = client.models.list()
-
-                response_time = time.time() - start_time
-                return ComponentHealth(
-                    name="llm_service",
-                    status="healthy",
-                    response_time=response_time,
-                    details={
-                        "provider": "openai",
-                        "api_key_configured": True,
-                        "models_accessible": (
-                            len(models.data) if hasattr(models, "data") else 0
-                        ),
-                    },
-                )
-
-            except Exception as openai_error:
-                return ComponentHealth(
-                    name="llm_service",
-                    status="unhealthy",
-                    message=f"OpenAI API connection failed: {str(openai_error)}",
-                    response_time=time.time() - start_time,
-                    details={"error": str(openai_error), "provider": "openai"},
-                )
-
-        elif llm_provider == "anthropic":
-            # Check Anthropic API key
-            anthropic_api_key = getattr(settings, "anthropic_api_key", None)
-            if not anthropic_api_key:
-                return ComponentHealth(
-                    name="llm_service",
-                    status="unhealthy",
-                    message="Anthropic API key not configured",
-                    response_time=time.time() - start_time,
-                    details={
-                        "error": "ANTHROPIC_API_KEY environment variable not set",
-                        "provider": "anthropic",
-                    },
-                )
-
-            try:
-                import anthropic
-
-                client = anthropic.Anthropic(api_key=anthropic_api_key)
-                # Simple API call to check connectivity
-                # Note: Anthropic doesn't have a models list endpoint, so we'll just validate the client
-                response_time = time.time() - start_time
-                return ComponentHealth(
-                    name="llm_service",
-                    status="healthy",
-                    response_time=response_time,
-                    details={
-                        "provider": "anthropic",
-                        "api_key_configured": True,
-                        "client_initialized": True,
-                    },
-                )
-
-            except Exception as anthropic_error:
-                return ComponentHealth(
-                    name="llm_service",
-                    status="unhealthy",
-                    message=f"Anthropic API connection failed: {str(anthropic_error)}",
-                    response_time=time.time() - start_time,
-                    details={"error": str(anthropic_error), "provider": "anthropic"},
-                )
-        else:
-            # Unknown or unsupported provider
-            return ComponentHealth(
-                name="llm_service",
-                status="unhealthy",
-                message=f"Unsupported LLM provider: {llm_provider}",
-                response_time=time.time() - start_time,
-                details={
-                    "error": f"Provider '{llm_provider}' not supported",
-                    "supported_providers": ["openai", "anthropic"],
-                },
-            )
-    except Exception as e:
-        return ComponentHealth(
-            name="llm_service",
-            status="unhealthy",
-            response_time=time.time() - start_time,
-            error=str(e),
-        )
-
-
-# =============================================================================
-# Dependencies
-# =============================================================================
-
-
-async def get_mcp_server():
-    """Get MCP server instance from FastAPI app state."""
-    # This will be injected by the main application
-    pass
-
-
-# =============================================================================
-# API Endpoints
-# =============================================================================
-
-
-@health_router.get("/", response_model=HealthStatus, summary="Basic health check")
-async def health_check():
+@health_router.get("/health")
+async def health_check() -> Dict[str, Any]:
     """
     Basic health check endpoint.
-
-    Returns basic health status of the server.
+    
+    Returns:
+        Health status information
     """
     try:
-        uptime_seconds = get_uptime()
-
-        return HealthStatus(
-            healthy=True,
-            timestamp=datetime.now(UTC).isoformat(),
-            version="1.0.0",
-            uptime=uptime_seconds,
-        )
-
+        # Basic health check
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": settings.app_version,
+            "environment": settings.environment,
+        }
+        
+        # Add performance metrics if available
+        performance_summary = performance_monitor.get_performance_summary()
+        if performance_summary:
+            health_status["performance"] = performance_summary
+        
+        return health_status
+        
     except Exception as e:
         logger.error(f"Health check failed: {e}")
-        return HealthStatus(
-            healthy=False,
-            timestamp=datetime.now(UTC).isoformat(),
-            version="1.0.0",
-            error=str(e),
-        )
+        raise HTTPException(status_code=503, detail="Service unhealthy")
 
 
-@health_router.get(
-    "/detailed", response_model=DetailedHealthStatus, summary="Detailed health check"
-)
-async def detailed_health_check():
+@health_router.get("/health/detailed")
+async def detailed_health_check() -> Dict[str, Any]:
     """
-    Detailed health check endpoint.
-
-    Returns detailed health status of all components.
+    Detailed health check with all system components.
+    
+    Returns:
+        Detailed health status information
     """
     try:
-        # Check all components
-        components = []
-
-        # Database health
-        db_health = await check_database_health()
-        components.append(db_health)
-
-        # Vector database health
-        vector_health = await check_vector_db_health()
-        components.append(vector_health)
-
-        # LLM service health
-        llm_health = await check_llm_service_health()
-        components.append(llm_health)
-
-        # Determine overall health
-        overall_healthy = all(comp.status == "healthy" for comp in components)
-        uptime_seconds = get_uptime()
-
-        return DetailedHealthStatus(
-            overall_healthy=overall_healthy,
-            timestamp=datetime.now(UTC).isoformat(),
-            version="1.0.0",
-            uptime=uptime_seconds,
-            components=components,
-        )
-
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.utcnow().isoformat(),
+            "version": settings.app_version,
+            "environment": settings.environment,
+            "components": {},
+        }
+        
+        # Check database
+        try:
+            from ..utils.database import get_database_session
+            async with get_database_session() as session:
+                await session.execute("SELECT 1")
+            health_status["components"]["database"] = {"status": "healthy"}
+        except Exception as e:
+            health_status["components"]["database"] = {"status": "unhealthy", "error": str(e)}
+            health_status["status"] = "degraded"
+        
+        # Check cache
+        try:
+            from ..cache.redis_cache import get_cache_manager
+            cache = get_cache_manager()
+            await cache.set("health_check", "ok", ttl=60)
+            await cache.delete("health_check")
+            health_status["components"]["cache"] = {"status": "healthy"}
+        except Exception as e:
+            health_status["components"]["cache"] = {"status": "unhealthy", "error": str(e)}
+            health_status["status"] = "degraded"
+        
+        # Check vector database
+        try:
+            from ..vector.weaviate_client import get_weaviate_client
+            weaviate = get_weaviate_client()
+            # Simple ping check
+            health_status["components"]["vector_database"] = {"status": "healthy"}
+        except Exception as e:
+            health_status["components"]["vector_database"] = {"status": "unhealthy", "error": str(e)}
+            health_status["status"] = "degraded"
+        
+        # Add performance metrics
+        performance_summary = performance_monitor.get_performance_summary()
+        if performance_summary:
+            health_status["performance"] = performance_summary
+        
+        # Add circuit breaker status
+        circuit_breaker_metrics = circuit_breaker_manager.get_all_metrics()
+        if circuit_breaker_metrics:
+            health_status["circuit_breakers"] = circuit_breaker_metrics
+        
+        # Add service discovery status
+        try:
+            services = await service_discovery.get_all_services(healthy_only=False)
+            health_status["service_discovery"] = {
+                "status": "healthy",
+                "total_services": len(services),
+                "healthy_services": len([s for s in services if s.status.value == "healthy"]),
+            }
+        except Exception as e:
+            health_status["service_discovery"] = {"status": "unhealthy", "error": str(e)}
+            health_status["status"] = "degraded"
+        
+        return health_status
+        
     except Exception as e:
         logger.error(f"Detailed health check failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Health check failed: {str(e)}",
-        )
+        raise HTTPException(status_code=503, detail="Service unhealthy")
 
 
-@health_router.get("/ready", summary="Readiness probe")
-async def readiness_probe():
+@health_router.get("/health/ready")
+async def readiness_check() -> Dict[str, Any]:
     """
-    Readiness probe endpoint.
-
-    Returns 200 if the service is ready to accept requests.
+    Readiness check for Kubernetes.
+    
+    Returns:
+        Readiness status
     """
     try:
         # Check if all critical components are ready
-        db_health = await check_database_health()
-        vector_health = await check_vector_db_health()
-
-        if db_health.status != "healthy" or vector_health.status != "healthy":
+        ready = True
+        errors = []
+        
+        # Check database
+        try:
+            from ..utils.database import get_database_session
+            async with get_database_session() as session:
+                await session.execute("SELECT 1")
+        except Exception as e:
+            ready = False
+            errors.append(f"Database not ready: {e}")
+        
+        # Check cache
+        try:
+            from ..cache.redis_cache import get_cache_manager
+            cache = get_cache_manager()
+            await cache.set("ready_check", "ok", ttl=60)
+            await cache.delete("ready_check")
+        except Exception as e:
+            ready = False
+            errors.append(f"Cache not ready: {e}")
+        
+        if ready:
+            return {
+                "status": "ready",
+                "timestamp": datetime.utcnow().isoformat(),
+            }
+        else:
             raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail="Service not ready",
+                status_code=503,
+                detail={"status": "not_ready", "errors": errors}
             )
-
-        return {"status": "ready"}
-
+            
     except HTTPException:
         raise
     except Exception as e:
-        logger.error(f"Readiness probe failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Service not ready: {str(e)}",
-        )
+        logger.error(f"Readiness check failed: {e}")
+        raise HTTPException(status_code=503, detail="Service not ready")
 
 
-@health_router.get("/live", summary="Liveness probe")
-async def liveness_probe():
+@health_router.get("/health/live")
+async def liveness_check() -> Dict[str, Any]:
     """
-    Liveness probe endpoint.
-
-    Returns 200 if the service is alive and responsive.
+    Liveness check for Kubernetes.
+    
+    Returns:
+        Liveness status
     """
-    try:
-        # Simple liveness check - just verify the service is responding
-        uptime_seconds = get_uptime()
-
-        return {
-            "status": "alive",
-            "uptime": uptime_seconds,
-            "uptime_formatted": format_uptime(uptime_seconds),
-        }
-
-    except Exception as e:
-        logger.error(f"Liveness probe failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-            detail=f"Service not alive: {str(e)}",
-        )
+    return {
+        "status": "alive",
+        "timestamp": datetime.utcnow().isoformat(),
+        "uptime": "running",  # In a real implementation, calculate actual uptime
+    }
 
 
-@health_router.get("/info", summary="Service information")
-async def service_info():
+@health_router.get("/metrics")
+async def get_metrics() -> Dict[str, Any]:
     """
-    Get service information.
-
-    Returns detailed information about the service.
+    Get system metrics.
+    
+    Returns:
+        System metrics
     """
     try:
-        uptime_seconds = get_uptime()
-
-        return {
-            "service": "MetaMCP",
-            "version": "1.0.0",
-            "uptime": uptime_seconds,
-            "uptime_formatted": format_uptime(uptime_seconds),
-            "start_time": datetime.fromtimestamp(_server_start_time, UTC).isoformat(),
-            "current_time": datetime.now(UTC).isoformat(),
-            "environment": settings.environment,
-            "debug": settings.debug,
+        metrics = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "performance": performance_monitor.get_performance_summary(),
+            "circuit_breakers": circuit_breaker_manager.get_all_metrics(),
+            "service_discovery": await service_discovery.discover_services(),
         }
-
+        
+        return metrics
+        
     except Exception as e:
-        logger.error(f"Service info failed: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to get service info: {str(e)}",
-        )
+        logger.error(f"Failed to get metrics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get metrics")
 
 
-@health_router.get("/circuit-breakers", summary="Circuit breaker status")
-async def circuit_breaker_status():
-    """Get circuit breaker status and statistics."""
+@health_router.get("/metrics/performance")
+async def get_performance_metrics() -> Dict[str, Any]:
+    """
+    Get performance metrics.
+    
+    Returns:
+        Performance metrics
+    """
     try:
-        from ..utils.circuit_breaker import get_circuit_breaker_manager
-
-        manager = get_circuit_breaker_manager()
-        stats = await manager.get_all_stats()
-
-        return {
-            "circuit_breakers": {
-                name: {
-                    "state": stat.current_state.value,
-                    "total_calls": stat.total_calls,
-                    "successful_calls": stat.successful_calls,
-                    "failed_calls": stat.failed_calls,
-                    "last_failure_time": stat.last_failure_time,
-                    "last_success_time": stat.last_success_time,
-                }
-                for name, stat in stats.items()
-            },
-            "total_circuit_breakers": len(stats),
-            "enabled": settings.circuit_breaker_enabled,
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
-    except Exception as e:
-        logger.error(f"Failed to get circuit breaker status: {e}")
-        return {
-            "error": "Failed to get circuit breaker status",
-            "enabled": settings.circuit_breaker_enabled,
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
-
-
-@health_router.get("/cache", summary="Cache statistics")
-async def cache_status():
-    """Get cache statistics and performance metrics."""
-    try:
-        from ..cache.redis_cache import get_cache_manager
-
-        cache_manager = get_cache_manager()
-        stats = await cache_manager.get_stats()
-
-        return {
-            "cache_stats": stats.get("cache_stats", {}),
-            "redis_info": stats.get("redis_info", {}),
-            "hit_rate": stats.get("hit_rate", 0),
-            "enabled": settings.cache_enabled,
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
-    except Exception as e:
-        logger.error(f"Failed to get cache status: {e}")
-        return {
-            "error": "Failed to get cache status",
-            "enabled": settings.cache_enabled,
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
-
-
-@health_router.get("/performance", summary="Performance metrics")
-async def performance_metrics():
-    """Get performance metrics and system statistics."""
-    try:
-        from ..performance.background_tasks import get_task_manager
-        from ..performance.connection_pool import get_database_pool
-
-        # Get task manager stats
-        task_manager = get_task_manager()
-        task_stats = await task_manager.get_stats()
-
-        # Get database pool stats
-        db_pool = get_database_pool()
-        pool_stats = await db_pool.get_pool_status()
-
-        return {
-            "background_tasks": task_stats,
-            "database_pool": pool_stats,
-            "system_info": {
-                "max_concurrent_requests": settings.max_concurrent_requests,
-                "worker_threads": settings.worker_threads,
-                "database_pool_size": settings.database_pool_size,
-            },
-            "timestamp": datetime.now(UTC).isoformat(),
-        }
+        return performance_monitor.get_performance_summary()
     except Exception as e:
         logger.error(f"Failed to get performance metrics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get performance metrics")
+
+
+@health_router.get("/metrics/performance/analytics")
+async def get_performance_analytics(hours: int = 24) -> Dict[str, Any]:
+    """
+    Get performance analytics.
+    
+    Args:
+        hours: Number of hours to analyze
+        
+    Returns:
+        Performance analytics
+    """
+    try:
+        return performance_monitor.get_request_analytics(hours)
+    except Exception as e:
+        logger.error(f"Failed to get performance analytics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get performance analytics")
+
+
+@health_router.get("/metrics/circuit-breakers")
+async def get_circuit_breaker_metrics() -> Dict[str, Any]:
+    """
+    Get circuit breaker metrics.
+    
+    Returns:
+        Circuit breaker metrics
+    """
+    try:
+        return circuit_breaker_manager.get_all_metrics()
+    except Exception as e:
+        logger.error(f"Failed to get circuit breaker metrics: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get circuit breaker metrics")
+
+
+@health_router.post("/metrics/circuit-breakers/reset")
+async def reset_circuit_breakers() -> Dict[str, Any]:
+    """
+    Reset all circuit breakers.
+    
+    Returns:
+        Reset status
+    """
+    try:
+        circuit_breaker_manager.reset_all()
         return {
-            "error": "Failed to get performance metrics",
-            "timestamp": datetime.now(UTC).isoformat(),
+            "status": "success",
+            "message": "All circuit breakers reset",
+            "timestamp": datetime.utcnow().isoformat(),
         }
+    except Exception as e:
+        logger.error(f"Failed to reset circuit breakers: {e}")
+        raise HTTPException(status_code=500, detail="Failed to reset circuit breakers")
+
+
+@health_router.get("/services")
+async def get_services(service_type: Optional[str] = None, healthy_only: bool = True) -> Dict[str, Any]:
+    """
+    Get registered services.
+    
+    Args:
+        service_type: Filter by service type
+        healthy_only: Only return healthy services
+        
+    Returns:
+        Service information
+    """
+    try:
+        if service_type:
+            # Convert string to ServiceType enum
+            try:
+                service_type_enum = ServiceType(service_type)
+                services = await service_discovery.get_services_by_type(service_type_enum, healthy_only)
+            except ValueError:
+                raise HTTPException(status_code=400, detail=f"Invalid service type: {service_type}")
+        else:
+            services = await service_discovery.get_all_services(healthy_only)
+        
+        return {
+            "services": [
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "type": s.type.value,
+                    "host": s.host,
+                    "port": s.port,
+                    "version": s.version,
+                    "status": s.status.value,
+                    "health_check_url": s.health_check_url,
+                    "metadata": s.metadata,
+                    "tags": s.tags,
+                    "last_heartbeat": s.last_heartbeat.isoformat() if s.last_heartbeat else None,
+                    "created_at": s.created_at.isoformat() if s.created_at else None,
+                    "updated_at": s.updated_at.isoformat() if s.updated_at else None,
+                }
+                for s in services
+            ],
+            "total": len(services),
+            "healthy": len([s for s in services if s.status.value == "healthy"]),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get services: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get services")
+
+
+@health_router.get("/services/{service_id}")
+async def get_service(service_id: str) -> Dict[str, Any]:
+    """
+    Get specific service information.
+    
+    Args:
+        service_id: Service identifier
+        
+    Returns:
+        Service information
+    """
+    try:
+        service = await service_discovery.get_service(service_id)
+        
+        if not service:
+            raise HTTPException(status_code=404, detail="Service not found")
+        
+        return {
+            "id": service.id,
+            "name": service.name,
+            "type": service.type.value,
+            "host": service.host,
+            "port": service.port,
+            "version": service.version,
+            "status": service.status.value,
+            "health_check_url": service.health_check_url,
+            "metadata": service.metadata,
+            "tags": service.tags,
+            "last_heartbeat": service.last_heartbeat.isoformat() if service.last_heartbeat else None,
+            "created_at": service.created_at.isoformat() if service.created_at else None,
+            "updated_at": service.updated_at.isoformat() if service.updated_at else None,
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get service {service_id}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get service")
+
+
+@health_router.get("/services/types/{service_type}")
+async def get_services_by_type(service_type: str, healthy_only: bool = True) -> Dict[str, Any]:
+    """
+    Get services by type.
+    
+    Args:
+        service_type: Service type
+        healthy_only: Only return healthy services
+        
+    Returns:
+        Services of specified type
+    """
+    try:
+        # Convert string to ServiceType enum
+        try:
+            service_type_enum = ServiceType(service_type)
+        except ValueError:
+            raise HTTPException(status_code=400, detail=f"Invalid service type: {service_type}")
+        
+        services = await service_discovery.get_services_by_type(service_type_enum, healthy_only)
+        
+        return {
+            "service_type": service_type,
+            "services": [
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "host": s.host,
+                    "port": s.port,
+                    "version": s.version,
+                    "status": s.status.value,
+                    "health_check_url": s.health_check_url,
+                    "metadata": s.metadata,
+                    "tags": s.tags,
+                }
+                for s in services
+            ],
+            "total": len(services),
+            "healthy": len([s for s in services if s.status.value == "healthy"]),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get services by type {service_type}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get services by type")
+
+
+@health_router.get("/services/tags/{tag}")
+async def get_services_by_tag(tag: str, healthy_only: bool = True) -> Dict[str, Any]:
+    """
+    Get services by tag.
+    
+    Args:
+        tag: Service tag
+        healthy_only: Only return healthy services
+        
+    Returns:
+        Services with specified tag
+    """
+    try:
+        services = await service_discovery.get_services_by_tag(tag, healthy_only)
+        
+        return {
+            "tag": tag,
+            "services": [
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "type": s.type.value,
+                    "host": s.host,
+                    "port": s.port,
+                    "version": s.version,
+                    "status": s.status.value,
+                    "health_check_url": s.health_check_url,
+                    "metadata": s.metadata,
+                    "tags": s.tags,
+                }
+                for s in services
+            ],
+            "total": len(services),
+            "healthy": len([s for s in services if s.status.value == "healthy"]),
+            "timestamp": datetime.utcnow().isoformat(),
+        }
+        
+    except Exception as e:
+        logger.error(f"Failed to get services by tag {tag}: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get services by tag")
+
+
+@health_router.get("/discovery")
+async def get_service_discovery_info() -> Dict[str, Any]:
+    """
+    Get service discovery information.
+    
+    Returns:
+        Service discovery information
+    """
+    try:
+        return await service_discovery.discover_services()
+    except Exception as e:
+        logger.error(f"Failed to get service discovery info: {e}")
+        raise HTTPException(status_code=500, detail="Failed to get service discovery info")

@@ -24,8 +24,11 @@ from .config import get_settings
 from .exceptions import MetaMCPError
 from .monitoring.health import setup_health_checks
 from .monitoring.metrics import setup_metrics
+from .monitoring.performance import performance_monitor
 from .performance.background_tasks import start_background_tasks, stop_background_tasks
 from .performance.connection_pool import close_database_pool
+from .performance.circuit_breaker import circuit_breaker_manager
+from .services.service_discovery import service_discovery, ServiceType
 from .security.middleware import SecurityMiddleware, RateLimitMiddleware
 from .server import MetaMCPServer
 from .utils.logging import get_logger, setup_logging
@@ -57,6 +60,31 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         # Store server instance in app state
         app.state.mcp_server = mcp_server
 
+        # Start service discovery
+        await service_discovery.start()
+        logger.info("Service discovery started")
+
+        # Start performance monitoring
+        await performance_monitor.start()
+        logger.info("Performance monitoring started")
+
+        # Register this service with service discovery
+        await service_discovery.register_service(
+            service_id="metamcp-api",
+            name="MetaMCP API Server",
+            service_type=ServiceType.API,
+            host=settings.host,
+            port=settings.port,
+            version=settings.app_version,
+            health_check_url=f"http://{settings.host}:{settings.port}/health",
+            metadata={
+                "environment": settings.environment,
+                "debug": settings.debug,
+            },
+            tags=["api", "mcp", "metamcp"],
+        )
+        logger.info("Service registered with service discovery")
+
         # Setup monitoring
         if settings.telemetry_enabled:
             setup_metrics(app)
@@ -78,6 +106,18 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     finally:
         # Cleanup
         logger.info("Shutting down MCP Meta-Server...")
+
+        # Deregister service
+        await service_discovery.deregister_service("metamcp-api")
+        logger.info("Service deregistered from service discovery")
+
+        # Stop service discovery
+        await service_discovery.stop()
+        logger.info("Service discovery stopped")
+
+        # Stop performance monitoring
+        await performance_monitor.stop()
+        logger.info("Performance monitoring stopped")
 
         if hasattr(app.state, "mcp_server"):
             await app.state.mcp_server._shutdown()
