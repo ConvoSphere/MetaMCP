@@ -40,9 +40,20 @@ services:
       - OPENAI_EMBEDDING_MODEL=${OPENAI_EMBEDDING_MODEL:-text-embedding-ada-002}
       
       # Authentication Settings
-      - SECRET_KEY=${SECRET_KEY:-your-secret-key-change-in-production}
+      - SECRET_KEY=${SECRET_KEY}
       - ALGORITHM=HS256
       - ACCESS_TOKEN_EXPIRE_MINUTES=30
+      
+      # Default Admin Settings (for initial setup only)
+      - DEFAULT_ADMIN_USERNAME=${DEFAULT_ADMIN_USERNAME:-}
+      - DEFAULT_ADMIN_PASSWORD=${DEFAULT_ADMIN_PASSWORD:-}
+      
+      # Enhanced Security Settings
+      - PASSWORD_MIN_LENGTH=12
+      - PASSWORD_REQUIRE_SPECIAL=true
+      - SESSION_TIMEOUT_MINUTES=60
+      - MAX_LOGIN_ATTEMPTS=5
+      - LOCKOUT_DURATION_MINUTES=30
       
       # Security Settings
       - OPA_URL=http://opa:8181

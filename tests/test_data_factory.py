@@ -223,59 +223,44 @@ class TestDataFactory:
             )
         return data
 
-    def create_security_test_data(self) -> dict:
-        """Create security test data."""
-        return {
-            "sql_injection_payloads": [
-                "'; DROP TABLE users; --",
-                "' OR '1'='1",
-                "'; INSERT INTO users VALUES ('hacker', 'password'); --",
-                "admin'--",
-                "admin' OR '1'='1'--",
-                "'; UPDATE users SET password='hacked' WHERE id=1; --",
-            ],
-            "xss_payloads": [
-                "<script>alert('XSS')</script>",
-                "<img src=x onerror=alert('XSS')>",
-                "javascript:alert('XSS')",
-                "<iframe src=javascript:alert('XSS')></iframe>",
-                "<svg onload=alert('XSS')></svg>",
-                "';alert('XSS');//",
-            ],
-            "path_traversal_payloads": [
-                "../../../etc/passwd",
-                "..\\..\\..\\windows\\system32\\config\\sam",
-                "....//....//....//etc/passwd",
-                "/etc/passwd",
-                "C:\\Windows\\System32\\config\\sam",
-                "../../../proc/self/environ",
-            ],
-            "invalid_tokens": [
-                "invalid.token.here",
-                "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.invalid",
-                "",
-                None,
-                "Bearer invalid",
-                "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiJ0ZXN0In0.invalid",
-            ],
-            "weak_passwords": [
-                "123",
-                "password",
-                "admin",
-                "qwerty",
-                "123456",
-                "password123",
-                "admin123",
-            ],
-            "malicious_inputs": [
-                "<script>alert('XSS')</script>",
-                "'; DROP TABLE users; --",
-                "../../../etc/passwd",
-                "javascript:alert('XSS')",
-                "admin' OR '1'='1'--",
-                "<img src=x onerror=alert('XSS')>",
-            ],
-        }
+    # Test data for security testing
+    SECURITY_TEST_DATA = {
+        "sql_injection_attempts": [
+            "'; DROP TABLE users; --",
+            "'; DELETE FROM users; --",
+            "'; UPDATE users SET role='admin'; --",
+            "'; INSERT INTO users VALUES ('attacker', 'password'); --",
+            "'; ALTER TABLE users ADD COLUMN hacked BOOLEAN; --",
+        ],
+        "xss_attempts": [
+            "<script>alert('XSS')</script>",
+            "<img src=x onerror=alert('XSS')>",
+            "javascript:alert('XSS')",
+            "<svg onload=alert('XSS')>",
+            "';alert('XSS');//",
+        ],
+        "path_traversal_attempts": [
+            "../../../etc/passwd",
+            "..\\..\\..\\windows\\system32\\config\\sam",
+            "....//....//....//etc/passwd",
+            "%2e%2e%2f%2e%2e%2f%2e%2e%2fetc%2fpasswd",
+            "..%252f..%252f..%252fetc%252fpasswd",
+        ],
+        "command_injection_attempts": [
+            "; rm -rf /",
+            "| cat /etc/passwd",
+            "&& whoami",
+            "`id`",
+            "$(whoami)",
+        ],
+        "no_sql_injection_attempts": [
+            '{"$where": "1==1"}',
+            '{"$ne": null}',
+            '{"$gt": ""}',
+            '{"$regex": ".*"}',
+            '{"$exists": true}',
+        ],
+    }
 
     def create_load_test_data(self, num_users: int = 10, num_tools: int = 50) -> dict:
         """Create load test data."""
