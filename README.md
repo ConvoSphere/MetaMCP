@@ -1,6 +1,6 @@
 # MetaMCP
 
-**Meta Model Context Protocol** - Ein modulares System für Tool-Komposition und MCP-Management mit umfassendem API Versioning.
+**Meta Model Context Protocol** - Ein modulares System für Tool-Komposition und MCP-Management mit umfassendem API Versioning und erweiterten Transport-Funktionalitäten.
 
 ## 🚀 Schnellstart
 
@@ -25,8 +25,11 @@ python scripts/validate_env.py
 
 ### Start
 ```bash
-# Backend
+# Backend (WebSocket/HTTP)
 python -m metamcp.main
+
+# Stdio Transport (für Container/CLI)
+python -m metamcp.mcp.server --stdio
 
 # Admin Interface (optional)
 python scripts/start_admin.py
@@ -42,6 +45,58 @@ docker-compose up -d
 - Admin: http://localhost:9501
 - Docs: http://localhost:9000/docs
 - API Versions: http://localhost:9000/api/versions
+- MCP WebSocket: ws://localhost:9000/mcp/ws
+
+## 🔄 MCP Transport-Funktionalitäten
+
+### Verfügbare Transport-Layer
+
+- **WebSocket**: Vollständige MCP-Protokoll-Unterstützung über WebSocket
+- **HTTP**: REST-basierte MCP-Kommunikation
+- **stdio**: Standard-Ein-/Ausgabe für Container und CLI-Tools
+
+### Transport-Verwendung
+
+**WebSocket Transport:**
+```bash
+# WebSocket Server starten
+python -m metamcp.mcp.server --websocket --port 8080
+
+# Client-Verbindung
+wscat -c ws://localhost:8080/mcp/ws
+```
+
+**Stdio Transport:**
+```bash
+# Stdio Server starten
+python -m metamcp.mcp.server --stdio
+
+# Mit Test Client
+python -m metamcp.mcp.server --stdio | python scripts/test_stdio_mcp.py
+```
+
+**HTTP Transport:**
+```bash
+# HTTP Endpoints verfügbar unter
+curl http://localhost:9000/mcp/tools
+curl http://localhost:9000/mcp/tools/test_tool/execute
+```
+
+### Streaming-Support
+
+Das System unterstützt Streaming-Antworten für lange laufende Operationen:
+
+```python
+# Streaming Tool Execution
+async for chunk in mcp_server._handle_call_tool_streaming("tool_name", args):
+    print(f"Chunk: {chunk}")
+
+# Progress Updates
+await mcp_server.send_progress_update("op_id", 75.0, "Processing...")
+
+# Event Broadcasting
+await mcp_server.broadcast_event("tool_executed", {"tool": "name"})
+```
 
 ## 🔄 API Versioning
 
@@ -133,6 +188,8 @@ python scripts/validate_env.py --setup
 - **Composition Engine**: Automatische Tool-Komposition
 - **Admin Interface**: Streamlit-basierte Verwaltung
 - **API Versioning**: Umfassendes Versioning-System mit Backward Compatibility
+- **MCP Transport**: WebSocket, HTTP und stdio Transport-Layer
+- **Streaming Support**: Bidirektionale Kommunikation und Streaming-Antworten
 - **Security**: JWT-Auth, OPA-Policies, Rate Limiting, Input Validation
 - **Monitoring**: Prometheus, Grafana, Logging
 - **Enhanced Security**: SQL Injection Protection, XSS Protection, Path Traversal Protection
@@ -153,6 +210,12 @@ python scripts/validate_env.py --setup
                     │  Tools    │ Security    │
                     │  Version  │ Analytics   │
                     │  Manager  │ (v2)        │
+                    └─────────────────────────┘
+                          │
+                    ┌─────────────────────────┐
+                    │    MCP Transport Layer  │
+                    │  WebSocket │ HTTP       │
+                    │  stdio     │ Streaming  │
                     └─────────────────────────┘
 ```
 
@@ -184,6 +247,11 @@ RATE_LIMIT_USE_REDIS=true
 # API Versioning
 API_DEFAULT_VERSION=v1
 API_LATEST_VERSION=v2
+
+# MCP Transport
+MCP_STDIO_ENABLED=true
+MCP_STREAMING_ENABLED=true
+MCP_WEBSOCKET_PORT=8080
 ```
 
 ### Produktions-Deployment
@@ -218,6 +286,7 @@ API_LATEST_VERSION=v2
 ## 📚 Dokumentation
 
 - [API Versioning](docs/api-versioning.md) - Umfassendes API Versioning System
+- [MCP Transport Implementation](docs/mcp-transport-implementation.md) - Transport-Layer Features
 - [Admin Interface](docs/admin-interface.md) - Verwaltungsoberfläche
 - [API Reference](docs/api.md) - Endpunkt-Dokumentation
 - [Configuration](docs/configuration.md) - Einstellungen
@@ -237,6 +306,13 @@ pytest tests/blackbox/      # End-to-End Tests
 pytest tests/ -m security   # Security Tests
 pytest tests/unit/api/test_versioning.py  # API Versioning Tests
 
+# MCP Transport Tests
+pytest tests/blackbox/mcp_api/test_protocol.py::TestMCPConcurrency -v  # Concurrency Tests
+pytest tests/blackbox/mcp_api/test_protocol.py::TestMCPStress -v       # Stress Tests
+
+# Stdio Transport Tests
+python scripts/test_stdio_mcp.py
+
 # Test-Coverage
 pytest --cov=metamcp --cov-report=html
 ```
@@ -252,6 +328,9 @@ curl http://localhost:9000/health
 curl http://localhost:9000/api/v1/health
 curl http://localhost:9000/api/v2/health
 
+# MCP Transport Health Check
+curl http://localhost:9000/mcp/health
+
 # Metrics
 curl http://localhost:9000/metrics
 ```
@@ -264,6 +343,9 @@ docker logs metamcp-server
 # Monitoring Logs
 docker logs prometheus
 docker logs grafana
+
+# MCP Transport Logs
+docker logs metamcp-server | grep "MCP\|stdio\|websocket"
 ```
 
 ## 🚨 Sicherheitswarnungen
@@ -277,6 +359,7 @@ docker logs grafana
 5. **Überwachen Sie Logs** auf verdächtige Aktivitäten
 6. **Halten Sie alle Dependencies aktuell** mit Sicherheitsupdates
 7. **Verwenden Sie die neueste API-Version** für neue Entwicklungen
+8. **Konfigurieren Sie Transport-Sicherheit** für MCP-Verbindungen
 
 ## 📄 Lizenz
 
