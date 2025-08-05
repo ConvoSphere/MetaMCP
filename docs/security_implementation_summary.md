@@ -258,7 +258,7 @@ Die Implementierung stellt eine solide Grundlage für produktionsreife Sicherhei
 
 ## 📚 Weiterführende Ressourcen
 
-- [Security Features Documentation](docs/security_features.md)
-- [Policy Testing Guide](docs/security_features.md#policy-testing)
-- [Rate Limiting Best Practices](docs/security_features.md#rate-limiting)
-- [API Reference](docs/api_reference.md)
+- [Security Features Documentation](security_features.md)
+- [Policy Testing Guide](security_features.md#policy-testing)
+- [Rate Limiting Best Practices](security_features.md#rate-limiting)
+- [API Reference](api.md)
