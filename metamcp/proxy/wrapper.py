@@ -5,6 +5,9 @@ This module provides the main wrapper functionality for arbitrary MCP servers,
 adding MetaMCP's enhanced features like semantic search, security, and monitoring.
 """
 
+import asyncio
+import json
+import subprocess
 from dataclasses import dataclass
 from typing import Any
 
@@ -39,6 +42,83 @@ class WrappedServerConfig:
     metadata: dict[str, Any] = None
 
 
+class StdioMCPConnection:
+    """Manages stdio-based MCP server connections."""
+
+    def __init__(self, command: str, timeout: int = 30):
+        """Initialize stdio connection."""
+        self.command = command
+        self.timeout = timeout
+        self.process: subprocess.Popen | None = None
+        self._connected = False
+
+    async def connect(self) -> None:
+        """Start the stdio MCP server process."""
+        try:
+            # Split command into list for subprocess
+            cmd_parts = self.command.split()
+
+            self.process = subprocess.Popen(
+                cmd_parts,
+                stdin=subprocess.PIPE,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                text=True,
+                bufsize=1,  # Line buffered
+            )
+
+            self._connected = True
+            logger.info(f"Started stdio MCP server: {self.command}")
+
+        except Exception as e:
+            logger.error(f"Failed to start stdio MCP server: {e}")
+            raise ProxyError(f"Stdio connection failed: {str(e)}")
+
+    async def send_message(self, message: dict[str, Any]) -> dict[str, Any]:
+        """Send JSON-RPC message to stdio server."""
+        if not self.process or not self._connected:
+            raise ProxyError("Stdio connection not established")
+
+        try:
+            # Send message
+            message_str = json.dumps(message) + "\n"
+            self.process.stdin.write(message_str)
+            self.process.stdin.flush()
+
+            # Read response
+            response_line = self.process.stdout.readline()
+            if not response_line:
+                raise ProxyError("No response from stdio server")
+
+            response = json.loads(response_line.strip())
+            return response
+
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON response from stdio server: {e}")
+            raise ProxyError(f"Invalid JSON response: {str(e)}")
+        except Exception as e:
+            logger.error(f"Stdio communication error: {e}")
+            raise ProxyError(f"Stdio communication failed: {str(e)}")
+
+    async def disconnect(self) -> None:
+        """Disconnect from stdio server."""
+        if self.process:
+            try:
+                self.process.terminate()
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+            finally:
+                self.process = None
+                self._connected = False
+                logger.info("Disconnected from stdio MCP server")
+
+    @property
+    def is_connected(self) -> bool:
+        """Check if stdio connection is active."""
+        return self._connected and self.process is not None
+
+
 class MCPProxyWrapper:
     """
     Proxy wrapper for arbitrary MCP servers.
@@ -50,6 +130,7 @@ class MCPProxyWrapper:
     def __init__(self):
         """Initialize the MCP proxy wrapper."""
         self.wrapped_servers: dict[str, WrappedServerConfig] = {}
+        self.stdio_connections: dict[str, StdioMCPConnection] = {}
         self.fastmcp: FastMCP | None = None
         self.auth_manager: AuthManager | None = None
         self.policy_engine: PolicyEngine | None = None
@@ -129,6 +210,8 @@ class MCPProxyWrapper:
                 await self._test_http_connection(config)
             elif config.transport == "websocket":
                 await self._test_websocket_connection(config)
+            elif config.transport == "stdio":
+                await self._test_stdio_connection(config)
             else:
                 raise ProxyError(f"Unsupported transport: {config.transport}")
 
@@ -158,6 +241,15 @@ class MCPProxyWrapper:
                 pass
         except Exception as e:
             raise ProxyError(f"WebSocket connection failed: {str(e)}")
+
+    async def _test_stdio_connection(self, config: WrappedServerConfig) -> None:
+        """Test stdio connection to MCP server."""
+        try:
+            connection = StdioMCPConnection(config.endpoint)
+            await connection.connect()
+            await connection.disconnect()
+        except Exception as e:
+            raise ProxyError(f"Stdio connection failed: {str(e)}")
 
     async def _register_server_tools(
         self, server_id: str, config: WrappedServerConfig
@@ -190,6 +282,8 @@ class MCPProxyWrapper:
                 return await self._get_http_server_tools(config)
             elif config.transport == "websocket":
                 return await self._get_websocket_server_tools(config)
+            elif config.transport == "stdio":
+                return await self._get_stdio_server_tools(config)
             else:
                 raise ProxyError(
                     f"Unsupported transport for tool discovery: {config.transport}"
@@ -241,6 +335,28 @@ class MCPProxyWrapper:
                 raise ProxyError(f"WebSocket tools/list failed: {result['error']}")
 
             return result.get("result", {}).get("tools", [])
+
+    async def _get_stdio_server_tools(
+        self, config: WrappedServerConfig
+    ) -> list[dict[str, Any]]:
+        """Get tools from Stdio MCP server."""
+        if not config.auth_required or not config.auth_token:
+            raise ProxyError("Stdio server requires authentication token")
+
+        connection = StdioMCPConnection(config.endpoint, config.timeout)
+        await connection.connect()
+
+        try:
+            # Send tools/list request
+            request = {"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": {}}
+            response = await connection.send_message(request)
+
+            if "error" in response:
+                raise ProxyError(f"Stdio tools/list failed: {response['error']}")
+
+            return response.get("result", {}).get("tools", [])
+        finally:
+            await connection.disconnect()
 
     def _wrap_tool(
         self, tool: dict[str, Any], server_id: str, config: WrappedServerConfig
@@ -321,6 +437,8 @@ class MCPProxyWrapper:
                 return await self._execute_http_tool(tool_name, config, args)
             elif config.transport == "websocket":
                 return await self._execute_websocket_tool(tool_name, config, args)
+            elif config.transport == "stdio":
+                return await self._execute_stdio_tool(tool_name, config, args)
             else:
                 raise ProxyError(
                     f"Unsupported transport for tool execution: {config.transport}"
@@ -382,6 +500,34 @@ class MCPProxyWrapper:
                 )
 
             return result.get("result")
+
+    async def _execute_stdio_tool(
+        self, tool_name: str, config: WrappedServerConfig, args: dict[str, Any]
+    ) -> Any:
+        """Execute tool via Stdio."""
+        if not config.auth_required or not config.auth_token:
+            raise ProxyError("Stdio server requires authentication token")
+
+        connection = StdioMCPConnection(config.endpoint, config.timeout)
+        await connection.connect()
+
+        try:
+            request = {
+                "jsonrpc": "2.0",
+                "id": 1,
+                "method": "tools/call",
+                "params": {"name": tool_name, "arguments": args},
+            }
+            response = await connection.send_message(request)
+
+            if "error" in response:
+                raise ToolExecutionError(
+                    f"Stdio tool execution failed: {response['error']}"
+                )
+
+            return response.get("result")
+        finally:
+            await connection.disconnect()
 
     async def _handle_list_tools(self) -> list[Tool]:
         """Handle list tools request."""
