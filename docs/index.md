@@ -1,51 +1,115 @@
-# MetaMCP Dokumentation
+# MetaMCP Documentation
 
-Übersicht der MetaMCP-Dokumentation.
+Welcome to the MetaMCP documentation! This comprehensive guide will help you understand, install, configure, and use the Meta Model Context Protocol system.
 
-## 🚀 Schnellstart
+## 🚀 Quick Navigation
 
-- [Installation & Start](README.md) - Erste Schritte
-- [API Reference](api.md) - REST API Dokumentation
-- [Admin Interface](admin-interface.md) - Verwaltungsoberfläche
+### For New Users
+- **[Quick Start Guide](getting-started/quick-start.md)** - Get up and running in minutes
+- **[Proxy Quick Start](getting-started/proxy-quick-start.md)** - Learn about proxy functionality
+- **[User Guide](user-guide/api-reference.md)** - Complete user documentation
 
-## 🔧 Konfiguration
+### For Developers
+- **[Development Setup](developer-guide/development-setup.md)** - Set up your development environment
+- **[Architecture Overview](developer-guide/architecture.md)** - Understand the system design
+- **[Contributing Guidelines](development/contributing.md)** - How to contribute to the project
 
-- [Configuration](configuration.md) - Umgebungsvariablen & Einstellungen
-- [Environment Setup](configuration.md#production) - Production Setup
+### For System Administrators
+- **[Configuration Reference](configuration.md)** - Complete configuration options
+- **[Production Setup](monitoring/production-setup.md)** - Deploy to production
+- **[Security Features](security.md)** - Security best practices
 
-## 🛠️ Entwicklung
+## 📚 Documentation Sections
 
-- [Development Guide](development.md) - Entwickler-Guide
-- [Testing](development.md#tests) - Test-Strategien
-- [Architecture](development.md#architecture) - System-Architektur
+### Getting Started
+Essential guides to get you started with MetaMCP:
+- **Quick Start**: Basic installation and first steps
+- **Proxy Quick Start**: Understanding and using proxy functionality
+- **Configuration**: Setting up your environment
 
-## 📊 Monitoring
+### User Guide
+Complete user documentation for all features:
+- **API Reference**: Complete API documentation
+- **Proxy Wrapper**: Advanced proxy usage
+- **Security**: Security features and best practices
 
-- [Health Checks](api.md#monitoring) - System-Status
-- [Metrics](api.md#monitoring) - Prometheus Metriken
-- [Logging](development.md#debugging) - Log-Management
+### Developer Guide
+Comprehensive development documentation:
+- **Development Setup**: Environment setup for developers
+- **Code Structure**: Understanding the codebase
+- **Architecture**: System design and components
+- **Proxy Development**: Building custom proxies
+- **Testing**: Testing strategies and guidelines
 
-## 🔒 Security
+### API Documentation
+Complete API reference:
+- **REST API**: HTTP API endpoints
+- **WebSocket API**: Real-time communication
+- **MCP Protocol**: Model Context Protocol implementation
 
-- [Authentication](api.md#authentication) - JWT-Auth
-- [Authorization](admin-interface.md#security) - Rollen & Berechtigungen
-- [Policies](configuration.md#security) - OPA-Policies
+### Monitoring & Operations
+Production deployment and monitoring:
+- **Overview**: Monitoring architecture
+- **Production Setup**: Production deployment guide
+- **Telemetry**: Metrics and observability
 
-## 🚀 Deployment
+### Reference
+Technical reference materials:
+- **Configuration**: All configuration options
+- **Environment Variables**: Environment variable reference
+- **Proxy API**: Proxy-specific API documentation
 
-- [Docker](README.md#docker) - Container-Deployment
-- [Production](configuration.md#production) - Production-Konfiguration
-- [Kubernetes](admin-interface.md#kubernetes) - K8s-Deployment
+## 🔧 Key Features
 
-## 📚 API Docs
+### MCP Transport Support
+- **WebSocket**: Full MCP protocol over WebSocket
+- **HTTP**: REST-based MCP communication
+- **stdio**: Standard I/O for containers and CLI tools
 
-- **Interactive Docs**: http://localhost:9000/docs
-- **OpenAPI Spec**: http://localhost:9000/openapi.json
-- **Health Check**: http://localhost:9000/api/v1/health
+### Advanced Features
+- **OAuth Integration**: Multi-provider authentication
+- **API Versioning**: Comprehensive version management
+- **Security**: Enterprise-grade security features
+- **Monitoring**: Built-in observability and telemetry
 
-## 🎯 Quick Links
+### Developer Experience
+- **Comprehensive Testing**: Unit, integration, and performance tests
+- **CI/CD Pipeline**: Automated testing and deployment
+- **Documentation**: Auto-generated API documentation
 
-- **Admin Interface**: http://localhost:9501
-- **Grafana Dashboard**: http://localhost:3000 (admin/admin)
-- **Prometheus**: http://localhost:9090
-- **Weaviate**: http://localhost:9088 
+## 🛠️ Installation Options
+
+### Local Development
+```bash
+git clone https://github.com/lichtbaer/MetaMCP.git
+cd MetaMCP
+pip install -r requirements.txt
+```
+
+### Docker Deployment
+```bash
+docker-compose up -d
+```
+
+### Production Deployment
+See the [Production Setup Guide](monitoring/production-setup.md) for detailed instructions.
+
+## 📖 Additional Resources
+
+- **[Composition Improvements](composition-improvements.md)**: Advanced composition features
+- **[Roadmap](roadmap.md)**: Future development plans
+- **[Development Analysis](development/analysis/DOCUMENTATION_WORKFLOW_CHANGES.md)**: Technical analysis and implementation details
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guidelines](development/contributing.md) for details on how to get involved.
+
+## 📞 Support
+
+- **GitHub Issues**: [Report bugs or request features](https://github.com/lichtbaer/MetaMCP/issues)
+- **Discord**: [Join our community](https://discord.gg/metamcp)
+- **Documentation**: This site is always up to date with the latest features
+
+---
+
+*Last updated: {{ git.date }}* 

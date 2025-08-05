@@ -305,7 +305,5 @@ GET /api/v2/analytics/errors
 
 For questions about API versioning:
 
-- Check the [API Documentation](/docs/api.md)
-- Review [Migration Guides](/docs/migration.md)
+- Check the [API Documentation](api.md)
 - Contact the development team
-- Monitor [Release Notes](/docs/releases.md)

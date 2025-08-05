@@ -124,8 +124,15 @@ nav:
     - Testing: developer-guide/testing.md
   - Development:
     - Contributing: development/contributing.md
+    - Documentation Structure: development/documentation-structure.md
+    - Analysis:
+      - Documentation Workflow Changes: development/analysis/DOCUMENTATION_WORKFLOW_CHANGES.md
+      - GitHub Actions Analysis: development/analysis/GITHUB_ACTIONS_ANALYSIS.md
+      - Implementation Summary: development/analysis/IMPLEMENTATION_SUMMARY.md
   - API:
     - API Documentation: api/index.md
+    - API Versioning: api-versioning.md
+    - Legacy API: api.md
   - OAuth:
     - FastMCP Integration: oauth/fastmcp-integration.md
   - Monitoring:
@@ -133,9 +140,19 @@ nav:
     - Production Setup: monitoring/production-setup.md
     - Telemetry: monitoring/telemetry.md
   - Reference:
-    - Configuration: reference/configuration.md
+    - Configuration: configuration.md
     - Environment Variables: reference/environment-variables.md
     - Proxy API: reference/proxy-api.md
+    - Reference Configuration: reference/configuration.md
+    - Admin Interface: admin-interface.md
+  - Security:
+    - Security Overview: security.md
+    - Security Features: security_features.md
+    - Security Implementation: security_implementation_summary.md
+  - MCP Features:
+    - Advanced Features: mcp-advanced-features.md
+    - Transport Implementation: mcp-transport-implementation.md
   - Additional:
     - Composition Improvements: composition-improvements.md
+    - Development Guide: development.md
     - Roadmap: roadmap.md 
