@@ -37,7 +37,7 @@ class SystemStatusV2(BaseModel):
 class UserManagementV2(BaseModel):
     """Enhanced user management model."""
     user_id: str
-    action: str = Field(..., regex="^(activate|deactivate|suspend|delete)$")
+    action: str = Field(..., pattern="^(activate|deactivate|suspend|delete)$")
     reason: Optional[str] = None
 
 @admin_router.get("/system/status", response_model=SystemStatusV2)

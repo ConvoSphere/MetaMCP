@@ -53,7 +53,7 @@ class WorkflowExecutionV2(BaseModel):
     workflow_id: str
     input_data: Dict[str, Any] = Field(default_factory=dict)
     timeout: Optional[int] = None
-    priority: str = Field(default="normal", regex="^(low|normal|high)$")
+    priority: str = Field(default="normal", pattern="^(low|normal|high)$")
     tags: List[str] = Field(default_factory=list)
 
 @composition_router.post("/workflows", response_model=WorkflowResponseV2)

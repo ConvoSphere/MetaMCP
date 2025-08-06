@@ -24,7 +24,7 @@ class RedisCache:
 
     def __init__(self, redis_url: str = None):
         """Initialize Redis cache."""
-        self.redis_url = redis_url or settings.redis_url
+        self.redis_url = redis_url or settings.cache_redis_url
         self._redis = None
         self._lock = asyncio.Lock()
         self._connection_pool = None

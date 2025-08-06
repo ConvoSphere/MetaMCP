@@ -45,18 +45,14 @@ def create_engine():
     return engine
 
 
-def create_async_engine():
+def create_async_engine_instance():
     """Create async database engine."""
     database_url = get_database_url()
     
     if database_url.startswith("sqlite"):
         # Convert to async SQLite URL
         async_url = database_url.replace("sqlite:///", "sqlite+aiosqlite:///")
-        engine = create_async_engine(
-            async_url,
-            connect_args={"check_same_thread": False},
-            echo=settings.debug,
-        )
+        engine = create_async_engine(async_url)
     else:
         # PostgreSQL/MySQL async configuration
         async_url = database_url.replace("postgresql://", "postgresql+asyncpg://")
@@ -66,7 +62,6 @@ def create_async_engine():
             max_overflow=settings.database_max_overflow,
             pool_timeout=settings.database_pool_timeout,
             pool_recycle=settings.database_pool_recycle,
-            echo=settings.debug,
         )
     
     return engine
@@ -81,7 +76,7 @@ def get_session():
 
 def get_async_session():
     """Get async database session factory."""
-    engine = create_async_engine()
+    engine = create_async_engine_instance()
     AsyncSessionLocal = async_sessionmaker(
         engine, class_=AsyncSession, expire_on_commit=False
     )

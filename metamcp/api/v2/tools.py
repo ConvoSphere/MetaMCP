@@ -27,7 +27,7 @@ class ToolCreateV2(BaseModel):
     """Enhanced tool creation model."""
     name: str = Field(..., min_length=1, max_length=255)
     description: str = Field(..., min_length=1)
-    endpoint: str = Field(..., regex=r"^https?://")
+    endpoint: str = Field(..., pattern=r"^https?://")
     category: Optional[str] = None
     capabilities: List[str] = Field(default_factory=list)
     security_level: int = Field(default=0, ge=0, le=10)
@@ -76,7 +76,7 @@ class ToolExecutionV2(BaseModel):
     tool_id: str
     arguments: Dict[str, Any]
     timeout: Optional[int] = None
-    priority: str = Field(default="normal", regex="^(low|normal|high)$")
+    priority: str = Field(default="normal", pattern="^(low|normal|high)$")
 
 @tools_router.post("/", response_model=ToolResponseV2)
 async def create_tool_v2(
@@ -133,8 +133,8 @@ async def list_tools_v2(
     tags: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    sort_by: str = Query("name", regex="^(name|created_at|usage_count|security_level)$"),
-    sort_order: str = Query("asc", regex="^(asc|desc)$")
+    sort_by: str = Query("name", pattern="^(name|created_at|usage_count|security_level)$"),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$")
 ):
     """
     Enhanced tool listing endpoint with advanced filtering and sorting.
