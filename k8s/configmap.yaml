@@ -1,0 +1,110 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: metamcp-config
+  namespace: metamcp
+  labels:
+    app: metamcp
+    component: config
+data:
+  # Application Settings
+  APP_NAME: "MetaMCP"
+  APP_VERSION: "1.0.0"
+  DEBUG: "false"
+  ENVIRONMENT: "production"
+  
+  # Server Settings
+  HOST: "0.0.0.0"
+  PORT: "8000"
+  WORKERS: "4"
+  
+  # Database Settings
+  DATABASE_POOL_SIZE: "20"
+  DATABASE_MAX_OVERFLOW: "40"
+  DATABASE_POOL_TIMEOUT: "30"
+  DATABASE_POOL_RECYCLE: "3600"
+  
+  # Vector Database Settings
+  VECTOR_DIMENSION: "1536"
+  
+  # LLM Settings
+  LLM_PROVIDER: "openai"
+  OPENAI_MODEL: "gpt-4"
+  OPENAI_EMBEDDING_MODEL: "text-embedding-ada-002"
+  
+  # Authentication Settings
+  ALGORITHM: "HS256"
+  ACCESS_TOKEN_EXPIRE_MINUTES: "30"
+  
+  # Enhanced Security Settings
+  PASSWORD_MIN_LENGTH: "12"
+  PASSWORD_REQUIRE_SPECIAL: "true"
+  SESSION_TIMEOUT_MINUTES: "60"
+  MAX_LOGIN_ATTEMPTS: "5"
+  LOCKOUT_DURATION_MINUTES: "30"
+  
+  # Security Settings
+  OPA_TIMEOUT: "5"
+  
+  # Logging Settings
+  LOG_LEVEL: "INFO"
+  LOG_FORMAT: "json"
+  
+  # Monitoring Settings
+  PROMETHEUS_METRICS_PORT: "9090"
+  
+  # OpenTelemetry Settings
+  OTLP_INSECURE: "false"
+  TELEMETRY_ENABLED: "true"
+  
+  # CORS Settings
+  CORS_ORIGINS: '["https://metamcp.example.com", "https://admin.metamcp.example.com"]'
+  CORS_ALLOW_CREDENTIALS: "true"
+  
+  # Rate Limiting
+  RATE_LIMIT_REQUESTS: "100"
+  RATE_LIMIT_WINDOW: "60"
+  RATE_LIMIT_USE_REDIS: "true"
+  
+  # Tool Execution Settings
+  TOOL_TIMEOUT: "300"
+  TOOL_RETRY_ATTEMPTS: "3"
+  TOOL_RETRY_DELAY: "1.0"
+  
+  # Circuit Breaker Settings
+  CIRCUIT_BREAKER_ENABLED: "true"
+  CIRCUIT_BREAKER_FAILURE_THRESHOLD: "5"
+  CIRCUIT_BREAKER_RECOVERY_TIMEOUT: "60"
+  CIRCUIT_BREAKER_SUCCESS_THRESHOLD: "2"
+  
+  # Cache Configuration
+  CACHE_ENABLED: "true"
+  CACHE_DEFAULT_TTL: "300"
+  CACHE_MAX_TTL: "604800"
+  CACHE_MAX_CONNECTIONS: "10"
+  
+  # Performance Configuration
+  WORKER_THREADS: "4"
+  MAX_CONCURRENT_REQUESTS: "100"
+  
+  # Tool Registry Settings
+  TOOL_REGISTRY_ENABLED: "true"
+  TOOL_REGISTRY_AUTO_DISCOVERY: "true"
+  TOOL_REGISTRY_CACHE_TTL: "300"
+  
+  # Vector Search Settings
+  VECTOR_SEARCH_ENABLED: "true"
+  VECTOR_SEARCH_SIMILARITY_THRESHOLD: "0.7"
+  VECTOR_SEARCH_MAX_RESULTS: "10"
+  
+  # Policy Settings
+  POLICY_ENFORCEMENT_ENABLED: "true"
+  POLICY_DEFAULT_ALLOW: "false"
+  
+  # Admin Settings
+  ADMIN_ENABLED: "true"
+  ADMIN_PORT: "9501"
+  
+  # Development Settings
+  RELOAD: "false"
+  DOCS_ENABLED: "true"

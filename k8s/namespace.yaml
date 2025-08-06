@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metamcp
+  labels:
+    name: metamcp
+    app: metamcp
+    environment: production
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: metamcp-monitoring
+  labels:
+    name: metamcp-monitoring
+    app: metamcp
+    environment: production
