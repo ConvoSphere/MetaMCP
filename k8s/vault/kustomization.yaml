@@ -1,0 +1,73 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: vault
+  namespace: vault
+
+resources:
+  # Core infrastructure
+  - namespace.yaml
+  - configmap.yaml
+  - pvc.yaml
+  - rbac.yaml
+  
+  # Vault deployment
+  - deployment.yaml
+  - service.yaml
+  - ingress.yaml
+  
+  # External Secrets Operator
+  - external-secrets.yaml
+  
+  # Vault initialization
+  - vault-init.yaml
+  
+  # Secret store configuration
+  - secret-store.yaml
+
+commonLabels:
+  app: vault
+  version: v1.15.0
+  environment: production
+
+commonAnnotations:
+  meta.helm.sh/release-name: vault
+  meta.helm.sh/release-namespace: vault
+
+images:
+  - name: vault
+    newTag: "1.15.0"
+  - name: ghcr.io/external-secrets/external-secrets
+    newTag: "v0.9.5"
+
+configMapGenerator:
+  - name: vault-config
+    behavior: merge
+    literals:
+      - LOG_LEVEL=info
+      - UI=true
+
+patches:
+  - target:
+      kind: Deployment
+      name: vault
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "256Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "250m"
+
+vars:
+  - name: VAULT_ADDR
+    objref:
+      kind: Service
+      name: vault
+      apiVersion: v1
+    fieldref:
+      fieldpath: metadata.name

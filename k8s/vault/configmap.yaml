@@ -1,0 +1,65 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-config
+  namespace: vault
+  labels:
+    app: vault
+    component: config
+data:
+  vault.hcl: |
+    # Vault Configuration
+    ui = true
+    
+    # Storage backend (using file storage for demo, use Consul/etcd in production)
+    storage "file" {
+      path = "/vault/file"
+    }
+    
+    # HTTP listener
+    listener "tcp" {
+      address     = "0.0.0.0:8200"
+      tls_disable = 1  # Disable TLS for demo, enable in production
+    }
+    
+    # API address
+    api_addr = "http://0.0.0.0:8200"
+    
+    # Cluster address
+    cluster_addr = "https://0.0.0.0:8201"
+    
+    # Disable mlock for demo (enable in production)
+    disable_mlock = true
+    
+    # Log level
+    log_level = "info"
+    
+    # Default lease TTL
+    default_lease_ttl = "168h"
+    
+    # Max lease TTL
+    max_lease_ttl = "720h"
+    
+    # Enable audit logging
+    audit "file" {
+      file_path = "/vault/audit/audit.log"
+    }
+    
+    # Enable telemetry
+    telemetry {
+      prometheus_retention_time = "24h"
+      disable_hostname = true
+    }
+    
+    # Enable HA mode (for production)
+    # ha_storage "consul" {
+    #   address = "consul:8500"
+    #   path    = "vault/"
+    #   service = "vault"
+    # }
+    
+    # Enable auto-unseal (for production)
+    # seal "awskms" {
+    #   region     = "us-west-2"
+    #   kms_key_id = "alias/vault-unseal"
+    # }

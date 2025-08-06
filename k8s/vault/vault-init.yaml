@@ -1,0 +1,303 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: vault-init
+  namespace: vault
+  labels:
+    app: vault
+    component: init
+spec:
+  template:
+    metadata:
+      labels:
+        app: vault
+        component: init
+    spec:
+      serviceAccountName: vault-service-account
+      restartPolicy: OnFailure
+      containers:
+      - name: vault-init
+        image: vault:1.15.0
+        imagePullPolicy: IfNotPresent
+        command: ["/bin/sh"]
+        args:
+        - -c
+        - |
+          # Wait for Vault to be ready
+          echo "Waiting for Vault to be ready..."
+          until vault status; do
+            sleep 5
+          done
+          
+          # Initialize Vault if not already initialized
+          if ! vault status | grep -q "Initialized.*true"; then
+            echo "Initializing Vault..."
+            vault operator init -key-shares=5 -key-threshold=3 -format=json > /tmp/init-keys.json
+            
+            # Store root token and keys (in production, use proper secret management)
+            echo "Vault initialized. Root token and keys stored in /tmp/init-keys.json"
+          else
+            echo "Vault already initialized"
+          fi
+          
+          # Unseal Vault
+          echo "Unsealing Vault..."
+          # In production, use auto-unseal or proper key management
+          # For demo, we'll use the first 3 keys
+          if [ -f /tmp/init-keys.json ]; then
+            KEYS=$(cat /tmp/init-keys.json | jq -r '.keys[0:3][]')
+            for key in $KEYS; do
+              vault operator unseal $key
+            done
+          fi
+          
+          # Login with root token
+          if [ -f /tmp/init-keys.json ]; then
+            ROOT_TOKEN=$(cat /tmp/init-keys.json | jq -r '.root_token')
+            vault login $ROOT_TOKEN
+          fi
+          
+          # Enable Kubernetes auth
+          echo "Enabling Kubernetes auth..."
+          vault auth enable kubernetes
+          
+          # Configure Kubernetes auth
+          vault write auth/kubernetes/config \
+            kubernetes_host="https://kubernetes.default.svc.cluster.local" \
+            kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+            token_reviewer_jwt=@/var/run/secrets/kubernetes.io/serviceaccount/token
+          
+          # Create policy for MetaMCP
+          echo "Creating MetaMCP policy..."
+          vault policy write metamcp-policy - <<EOF
+          # MetaMCP Application Policy
+          path "secret/data/metamcp/*" {
+            capabilities = ["read"]
+          }
+          
+          path "secret/metadata/metamcp/*" {
+            capabilities = ["read"]
+          }
+          
+          # Allow reading own secrets
+          path "secret/data/metamcp/{{identity.entity.aliases.auth_kubernetes_*.metadata.service_account_name}}/*" {
+            capabilities = ["read", "update"]
+          }
+          
+          # Allow listing secrets
+          path "secret/metadata/metamcp" {
+            capabilities = ["list"]
+          }
+          
+          # Allow reading auth info
+          path "auth/kubernetes/role/metamcp-role" {
+            capabilities = ["read"]
+          }
+          EOF
+          
+          # Create Kubernetes role for MetaMCP
+          echo "Creating Kubernetes role..."
+          vault write auth/kubernetes/role/metamcp-role \
+            bound_service_account_names=metamcp-service-account \
+            bound_service_account_namespaces=metamcp \
+            policies=metamcp-policy \
+            ttl=1h
+          
+          # Enable KV secrets engine
+          echo "Enabling KV secrets engine..."
+          vault secrets enable -path=secret kv-v2
+          
+          # Create initial secrets for MetaMCP
+          echo "Creating initial secrets..."
+          
+          # Database secrets
+          vault kv put secret/metamcp/database \
+            url="postgresql://metamcp:metamcp@postgres:5432/metamcp"
+          
+          # Auth secrets
+          vault kv put secret/metamcp/auth \
+            secret_key="$(openssl rand -base64 32)"
+          
+          # LLM secrets
+          vault kv put secret/metamcp/llm \
+            openai_api_key="" \
+            openai_base_url=""
+          
+          # Vector database secrets
+          vault kv put secret/metamcp/vector \
+            weaviate_api_key=""
+          
+          # OAuth secrets
+          vault kv put secret/metamcp/oauth \
+            google_client_id="" \
+            google_client_secret="" \
+            github_client_id="" \
+            github_client_secret="" \
+            microsoft_client_id="" \
+            microsoft_client_secret=""
+          
+          # Cache secrets
+          vault kv put secret/metamcp/cache \
+            redis_url="redis://redis:6379/1" \
+            rate_limit_redis_url="redis://redis:6379/2"
+          
+          echo "Vault initialization completed successfully!"
+        env:
+        - name: VAULT_ADDR
+          value: "http://vault:8200"
+        - name: VAULT_SKIP_VERIFY
+          value: "true"
+        volumeMounts:
+        - name: vault-init-script
+          mountPath: /tmp/init-keys.json
+          subPath: init-keys.json
+        - name: vault-init-script
+          mountPath: /tmp/init.sh
+          subPath: init.sh
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
+      volumes:
+      - name: vault-init-script
+        configMap:
+          name: vault-init-script
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vault-init-script
+  namespace: vault
+  labels:
+    app: vault
+    component: init
+data:
+  init.sh: |
+    #!/bin/bash
+    set -euo pipefail
+    
+    # Wait for Vault to be ready
+    echo "Waiting for Vault to be ready..."
+    until vault status; do
+      sleep 5
+    done
+    
+    # Initialize Vault if not already initialized
+    if ! vault status | grep -q "Initialized.*true"; then
+      echo "Initializing Vault..."
+      vault operator init -key-shares=5 -key-threshold=3 -format=json > /tmp/init-keys.json
+      
+      # Store root token and keys (in production, use proper secret management)
+      echo "Vault initialized. Root token and keys stored in /tmp/init-keys.json"
+    else
+      echo "Vault already initialized"
+    fi
+    
+    # Unseal Vault
+    echo "Unsealing Vault..."
+    # In production, use auto-unseal or proper key management
+    # For demo, we'll use the first 3 keys
+    if [ -f /tmp/init-keys.json ]; then
+      KEYS=$(cat /tmp/init-keys.json | jq -r '.keys[0:3][]')
+      for key in $KEYS; do
+        vault operator unseal $key
+      done
+    fi
+    
+    # Login with root token
+    if [ -f /tmp/init-keys.json ]; then
+      ROOT_TOKEN=$(cat /tmp/init-keys.json | jq -r '.root_token')
+      vault login $ROOT_TOKEN
+    fi
+    
+    # Enable Kubernetes auth
+    echo "Enabling Kubernetes auth..."
+    vault auth enable kubernetes
+    
+    # Configure Kubernetes auth
+    vault write auth/kubernetes/config \
+      kubernetes_host="https://kubernetes.default.svc.cluster.local" \
+      kubernetes_ca_cert=@/var/run/secrets/kubernetes.io/serviceaccount/ca.crt \
+      token_reviewer_jwt=@/var/run/secrets/kubernetes.io/serviceaccount/token
+    
+    # Create policy for MetaMCP
+    echo "Creating MetaMCP policy..."
+    vault policy write metamcp-policy - <<EOF
+    # MetaMCP Application Policy
+    path "secret/data/metamcp/*" {
+      capabilities = ["read"]
+    }
+    
+    path "secret/metadata/metamcp/*" {
+      capabilities = ["read"]
+    }
+    
+    # Allow reading own secrets
+    path "secret/data/metamcp/{{identity.entity.aliases.auth_kubernetes_*.metadata.service_account_name}}/*" {
+      capabilities = ["read", "update"]
+    }
+    
+    # Allow listing secrets
+    path "secret/metadata/metamcp" {
+      capabilities = ["list"]
+    }
+    
+    # Allow reading auth info
+    path "auth/kubernetes/role/metamcp-role" {
+      capabilities = ["read"]
+    }
+    EOF
+    
+    # Create Kubernetes role for MetaMCP
+    echo "Creating Kubernetes role..."
+    vault write auth/kubernetes/role/metamcp-role \
+      bound_service_account_names=metamcp-service-account \
+      bound_service_account_namespaces=metamcp \
+      policies=metamcp-policy \
+      ttl=1h
+    
+    # Enable KV secrets engine
+    echo "Enabling KV secrets engine..."
+    vault secrets enable -path=secret kv-v2
+    
+    # Create initial secrets for MetaMCP
+    echo "Creating initial secrets..."
+    
+    # Database secrets
+    vault kv put secret/metamcp/database \
+      url="postgresql://metamcp:metamcp@postgres:5432/metamcp"
+    
+    # Auth secrets
+    vault kv put secret/metamcp/auth \
+      secret_key="$(openssl rand -base64 32)"
+    
+    # LLM secrets
+    vault kv put secret/metamcp/llm \
+      openai_api_key="" \
+      openai_base_url=""
+    
+    # Vector database secrets
+    vault kv put secret/metamcp/vector \
+      weaviate_api_key=""
+    
+    # OAuth secrets
+    vault kv put secret/metamcp/oauth \
+      google_client_id="" \
+      google_client_secret="" \
+      github_client_id="" \
+      github_client_secret="" \
+      microsoft_client_id="" \
+      microsoft_client_secret=""
+    
+    # Cache secrets
+    vault kv put secret/metamcp/cache \
+      redis_url="redis://redis:6379/1" \
+      rate_limit_redis_url="redis://redis:6379/2"
+    
+    echo "Vault initialization completed successfully!"
+  init-keys.json: "{}"

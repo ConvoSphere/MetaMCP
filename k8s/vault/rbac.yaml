@@ -1,0 +1,47 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: vault-service-account
+  namespace: vault
+  labels:
+    app: vault
+    component: rbac
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: vault-role
+  namespace: vault
+  labels:
+    app: vault
+    component: rbac
+rules:
+# Allow Vault to read its own configuration
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+# Allow Vault to read service endpoints
+- apiGroups: [""]
+  resources: ["endpoints", "services"]
+  verbs: ["get", "list", "watch"]
+# Allow Vault to read events for debugging
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: vault-role-binding
+  namespace: vault
+  labels:
+    app: vault
+    component: rbac
+subjects:
+- kind: ServiceAccount
+  name: vault-service-account
+  namespace: vault
+roleRef:
+  kind: Role
+  name: vault-role
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,119 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vault
+  namespace: vault
+  labels:
+    app: vault
+    component: server
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vault
+      component: server
+  template:
+    metadata:
+      labels:
+        app: vault
+        component: server
+      annotations:
+        vault.hashicorp.com/agent-inject: "false"
+    spec:
+      serviceAccountName: vault-service-account
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 100
+        runAsGroup: 1000
+        fsGroup: 1000
+      containers:
+      - name: vault
+        image: vault:1.15.0
+        imagePullPolicy: IfNotPresent
+        command: ["vault"]
+        args: ["server", "-config=/vault/config/vault.hcl"]
+        ports:
+        - name: http
+          containerPort: 8200
+          protocol: TCP
+        - name: https-internal
+          containerPort: 8201
+          protocol: TCP
+        env:
+        - name: VAULT_CACERT
+          value: "/vault/userconfig/vault-ha-tls/vault.ca"
+        - name: VAULT_SKIP_VERIFY
+          value: "true"
+        - name: VAULT_ADDR
+          value: "http://127.0.0.1:8200"
+        - name: VAULT_API_ADDR
+          value: "http://0.0.0.0:8200"
+        - name: VAULT_CLUSTER_ADDR
+          value: "https://0.0.0.0:8201"
+        - name: VAULT_DISABLE_MLOCK
+          value: "true"
+        - name: VAULT_LOG_LEVEL
+          value: "info"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+        livenessProbe:
+          httpGet:
+            path: /v1/sys/health
+            port: 8200
+            httpHeaders:
+            - name: X-Vault-Token
+              value: "root"  # Only for demo, use proper token in production
+          initialDelaySeconds: 30
+          periodSeconds: 10
+          timeoutSeconds: 5
+          failureThreshold: 3
+        readinessProbe:
+          httpGet:
+            path: /v1/sys/health
+            port: 8200
+            httpHeaders:
+            - name: X-Vault-Token
+              value: "root"  # Only for demo, use proper token in production
+          initialDelaySeconds: 15
+          periodSeconds: 5
+          timeoutSeconds: 3
+          failureThreshold: 3
+        volumeMounts:
+        - name: vault-config
+          mountPath: /vault/config
+          readOnly: true
+        - name: vault-file
+          mountPath: /vault/file
+        - name: vault-audit
+          mountPath: /vault/audit
+        - name: vault-userconfig
+          mountPath: /vault/userconfig
+          readOnly: true
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 100
+          runAsGroup: 1000
+          capabilities:
+            drop:
+              - ALL
+      volumes:
+      - name: vault-config
+        configMap:
+          name: vault-config
+      - name: vault-file
+        persistentVolumeClaim:
+          claimName: vault-file-pvc
+      - name: vault-audit
+        persistentVolumeClaim:
+          claimName: vault-audit-pvc
+      - name: vault-userconfig
+        secret:
+          secretName: vault-ha-tls
+          optional: true
