@@ -15,7 +15,7 @@ from ..config import get_settings
 from ..exceptions import AuthenticationError
 from ..utils.logging import get_logger
 from ..database.models import User
-from ..database.connection import get_database_session
+from ..database.connection import get_async_session
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -66,7 +66,8 @@ class AuthManager:
     async def _ensure_default_admin_exists(self) -> None:
         """Ensure default admin user exists in database."""
         try:
-            async with get_database_session() as session:
+            async_session = get_async_session()
+            async with async_session() as session:
                 # Check if admin user exists
                 admin_user = await session.get(User, "admin")
                 
@@ -101,7 +102,8 @@ class AuthManager:
     async def get_user_by_username(self, username: str) -> User | None:
         """Get user from database by username."""
         try:
-            async with get_database_session() as session:
+            async_session = get_async_session()
+            async with async_session() as session:
                 user = await session.get(User, username)
                 return user
         except Exception as e:

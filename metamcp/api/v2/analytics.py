@@ -25,8 +25,8 @@ security = HTTPBearer()
 # Analytics models for v2
 class AnalyticsRequestV2(BaseModel):
     """Analytics request model."""
-    metric: str = Field(..., regex="^(usage|performance|errors|users|tools)$")
-    time_range: str = Field(..., regex="^(1h|24h|7d|30d|90d)$")
+    metric: str = Field(..., pattern="^(usage|performance|errors|users|tools)$")
+    time_range: str = Field(..., pattern="^(1h|24h|7d|30d|90d)$")
     filters: Optional[Dict[str, Any]] = None
 
 class UsageMetricsV2(BaseModel):
@@ -196,7 +196,7 @@ async def get_analytics_dashboard_v2(
 
 @analytics_router.get("/export")
 async def export_analytics_v2(
-    format: str = Query("json", regex="^(json|csv|excel)$"),
+    format: str = Query("json", pattern="^(json|csv|excel)$"),
     date_from: Optional[datetime] = Query(None),
     date_to: Optional[datetime] = Query(None),
     credentials: HTTPAuthorizationCredentials = Depends(security)

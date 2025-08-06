@@ -48,9 +48,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     try:
         # Initialize database connection pool
-        from .utils.database import initialize_database
+        from .database.connection import get_async_session
+        from sqlalchemy import text
 
-        await initialize_database()
+        # Test database connection
+        async_session = get_async_session()
+        async with async_session() as session:
+            await session.execute(text("SELECT 1"))
         logger.info("Database connection pool initialized")
 
         # Initialize API Version Manager
@@ -128,7 +132,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             logger.info("Service discovery stopped")
 
             # Close database pool
-            await close_database_pool()
+            # Database cleanup is handled by SQLAlchemy session management
             logger.info("Database connection pool closed")
 
             # Close cache manager
