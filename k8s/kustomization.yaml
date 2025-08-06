@@ -1,0 +1,93 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+metadata:
+  name: metamcp
+  namespace: metamcp
+
+resources:
+  # Core infrastructure
+  - namespace.yaml
+  - configmap.yaml
+  - secret.yaml
+  - rbac.yaml
+  
+  # Application deployments
+  - deployment.yaml
+  - service.yaml
+  
+  # Networking and security
+  - network-policy.yaml
+  - ingress.yaml
+  
+  # Scaling and availability
+  - hpa.yaml
+  - pdb.yaml
+
+commonLabels:
+  app: metamcp
+  version: v1.0.0
+  environment: production
+
+commonAnnotations:
+  meta.helm.sh/release-name: metamcp
+  meta.helm.sh/release-namespace: metamcp
+
+images:
+  - name: metamcp/metamcp
+    newTag: latest
+
+configMapGenerator:
+  - name: metamcp-config
+    behavior: merge
+    literals:
+      - ENVIRONMENT=production
+      - DEBUG=false
+
+secretGenerator:
+  - name: metamcp-secrets
+    behavior: merge
+    literals:
+      - SECRET_KEY=your_secure_secret_key_here_must_be_at_least_32_characters
+
+patches:
+  - target:
+      kind: Deployment
+      name: metamcp-deployment
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 3
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: "512Mi"
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: "250m"
+
+  - target:
+      kind: HorizontalPodAutoscaler
+      name: metamcp-hpa
+    patch: |-
+      - op: replace
+        path: /spec/minReplicas
+        value: 2
+      - op: replace
+        path: /spec/maxReplicas
+        value: 10
+
+vars:
+  - name: APP_NAME
+    objref:
+      kind: ConfigMap
+      name: metamcp-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.APP_NAME
+  - name: APP_VERSION
+    objref:
+      kind: ConfigMap
+      name: metamcp-config
+      apiVersion: v1
+    fieldref:
+      fieldpath: data.APP_VERSION

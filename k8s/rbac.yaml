@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: metamcp-service-account
+  namespace: metamcp
+  labels:
+    app: metamcp
+    component: rbac
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: metamcp-role
+  namespace: metamcp
+  labels:
+    app: metamcp
+    component: rbac
+rules:
+# Allow pods to read their own metadata
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch"]
+# Allow pods to read configmaps and secrets
+- apiGroups: [""]
+  resources: ["configmaps", "secrets"]
+  verbs: ["get", "list", "watch"]
+# Allow pods to read endpoints for service discovery
+- apiGroups: [""]
+  resources: ["endpoints", "services"]
+  verbs: ["get", "list", "watch"]
+# Allow pods to read events for debugging
+- apiGroups: [""]
+  resources: ["events"]
+  verbs: ["get", "list", "watch"]
+# Allow pods to read namespaces
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: metamcp-role-binding
+  namespace: metamcp
+  labels:
+    app: metamcp
+    component: rbac
+subjects:
+- kind: ServiceAccount
+  name: metamcp-service-account
+  namespace: metamcp
+roleRef:
+  kind: Role
+  name: metamcp-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Cluster-wide permissions for service discovery
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: metamcp-cluster-role
+  labels:
+    app: metamcp
+    component: rbac
+rules:
+# Allow reading nodes for topology awareness
+- apiGroups: [""]
+  resources: ["nodes"]
+  verbs: ["get", "list", "watch"]
+# Allow reading cluster-wide resources
+- apiGroups: [""]
+  resources: ["namespaces"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: metamcp-cluster-role-binding
+  labels:
+    app: metamcp
+    component: rbac
+subjects:
+- kind: ServiceAccount
+  name: metamcp-service-account
+  namespace: metamcp
+roleRef:
+  kind: ClusterRole
+  name: metamcp-cluster-role
+  apiGroup: rbac.authorization.k8s.io
