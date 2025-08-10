@@ -344,14 +344,14 @@ jobs:
     - name: Generate SBOM (Syft)
       uses: anchore/sbom-action@v0
       with:
-        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
         format: spdx-json
         output-file: sbom.spdx.json
 
     - name: Scan image with Trivy
       uses: aquasecurity/trivy-action@0.24.0
       with:
-        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
         format: 'table'
         vuln-type: 'os,library'
         severity: 'CRITICAL,HIGH'
@@ -369,6 +369,7 @@ jobs:
       if: ${{ secrets.COSIGN_KEY != '' && secrets.COSIGN_PASSWORD != '' }}
       env:
         COSIGN_EXPERIMENTAL: '1'
+        COSIGN_KEY: ${{ secrets.COSIGN_KEY }}
       run: |
         echo "${{ secrets.COSIGN_PASSWORD }}" | cosign sign --key env://COSIGN_KEY ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
       shell: bash
