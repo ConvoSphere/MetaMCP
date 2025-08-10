@@ -13,6 +13,11 @@ RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# Optimize Python runtime
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PIP_NO_CACHE_DIR=1
+
 # Copy requirements and install Python dependencies
 COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
@@ -33,6 +38,7 @@ WORKDIR /app
 
 # Copy Python packages from builder
 COPY --from=builder /root/.local /home/metamcp/.local
+RUN chown -R metamcp:metamcp /home/metamcp
 
 # Copy application code
 COPY . .

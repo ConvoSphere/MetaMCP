@@ -33,7 +33,7 @@ opa-client==0.1.0
 
 # Caching
 redis==5.0.1
-aioredis==2.0.1
+# aioredis is deprecated; use redis (asyncio) package instead
 
 # Testing
 pytest==7.4.3

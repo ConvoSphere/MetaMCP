@@ -5,6 +5,8 @@ This module provides security middleware for input validation,
 request sanitization, and security headers.
 """
 
+from __future__ import annotations
+
 import re
 import json
 from typing import Any, Dict, List
@@ -16,6 +18,12 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from ..config import get_settings
 from ..utils.logging import get_logger
+
+try:
+    # Prefer redis.asyncio (available in redis>=4.2)
+    from redis.asyncio import Redis as AsyncRedis  # type: ignore
+except Exception:  # pragma: no cover
+    AsyncRedis = None  # type: ignore
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -84,7 +92,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             # Process request
             response = await call_next(request)
             
-            # Add security headers
+            # Add security headers (stricter in production)
             response = self._add_security_headers(response)
             
             return response
@@ -312,10 +320,23 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
-        response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        response.headers["Content-Security-Policy"] = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
+        
+        # Only set HSTS if not in debug (assumes HTTPS in prod behind LB)
+        if not self.settings.debug:
+            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
+        
+        # Harden CSP in production; allow unsafe-inline/eval only in debug
+        if self.settings.debug:
+            csp = ("default-src 'self'; "
+                   "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                   "style-src 'self' 'unsafe-inline';")
+        else:
+            csp = ("default-src 'self'; "
+                   "script-src 'self'; "
+                   "style-src 'self'; ")
+        response.headers["Content-Security-Policy"] = csp
         
         return response
 
@@ -328,20 +349,39 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
         self.settings = get_settings()
-        self.request_counts = {}
+        self.request_counts: dict[str, list[int]] = {}
+        
+        # Lazy Redis client for distributed rate limiting
+        self._redis: AsyncRedis | None = None
+        if self.settings.rate_limit_use_redis and AsyncRedis is not None:
+            try:
+                self._redis = AsyncRedis.from_url(
+                    self.settings.rate_limit_redis_url,
+                    encoding="utf-8",
+                    decode_responses=True,
+                    health_check_interval=30,
+                )
+            except Exception as e:  # pragma: no cover
+                logger.error(f"Failed to initialize Redis for rate limiting: {e}")
+                self._redis = None
 
     async def dispatch(self, request: Request, call_next):
         """Process request through rate limiting middleware."""
         client_ip = self._get_client_ip(request)
         
-        # Check rate limit
-        if not self._check_rate_limit(client_ip):
+        # Check rate limit (Redis preferred)
+        allowed, limit, remaining, reset = await self._check_rate_limit(client_ip)
+        if not allowed:
             return JSONResponse(
                 status_code=429,
+                headers=self._rate_limit_headers(limit, remaining, reset),
                 content={"error": "Rate limit exceeded"}
             )
             
         response = await call_next(request)
+        # Attach rate limit headers on successful responses too
+        for k, v in self._rate_limit_headers(limit, remaining, reset).items():
+            response.headers[k] = v
         return response
 
     def _get_client_ip(self, request: Request) -> str:
@@ -357,28 +397,50 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             
         return request.client.host if request.client else "unknown"
 
-    def _check_rate_limit(self, client_ip: str) -> bool:
-        """Check if client has exceeded rate limit."""
-        # Simple in-memory rate limiting (use Redis in production)
+    async def _check_rate_limit(self, client_ip: str) -> tuple[bool, int, int, int]:
+        """Check if client has exceeded rate limit.
+        Returns (allowed, limit, remaining, reset_epoch_seconds).
+        """
+        limit = self.settings.rate_limit_requests
+        window = self.settings.rate_limit_window
         current_time = int(time.time())
-        window_start = current_time - self.settings.rate_limit_window
-        
+        window_start = current_time - (current_time % window)
+        reset = window_start + window
+
+        # Distributed rate limiting using Redis if available
+        if self._redis is not None:
+            key = f"rl:{client_ip}:{window_start}:{window}"
+            try:
+                # Use INCR with expiry for atomic counter per window
+                count = await self._redis.incr(key)
+                if count == 1:
+                    await self._redis.expire(key, window)
+                remaining = max(0, limit - count)
+                return (count <= limit, limit, remaining, reset)
+            except Exception as e:  # pragma: no cover
+                logger.error(f"Redis rate limiting failed, falling back to memory: {e}")
+                # fall back to memory
+
+        # Fallback: in-memory per-process
         if client_ip not in self.request_counts:
             self.request_counts[client_ip] = []
-            
         # Remove old requests outside the window
         self.request_counts[client_ip] = [
-            timestamp for timestamp in self.request_counts[client_ip]
-            if timestamp > window_start
+            ts for ts in self.request_counts[client_ip] if ts > current_time - window
         ]
-        
-        # Check if limit exceeded
-        if len(self.request_counts[client_ip]) >= self.settings.rate_limit_requests:
-            return False
-            
-        # Add current request
+        if len(self.request_counts[client_ip]) >= limit:
+            remaining = 0
+            return (False, limit, remaining, reset)
         self.request_counts[client_ip].append(current_time)
-        return True
+        remaining = max(0, limit - len(self.request_counts[client_ip]))
+        return (True, limit, remaining, reset)
+
+    def _rate_limit_headers(self, limit: int, remaining: int, reset: int) -> dict[str, str]:
+        return {
+            "X-RateLimit-Limit": str(limit),
+            "X-RateLimit-Remaining": str(remaining),
+            "X-RateLimit-Reset": str(reset),
+        }
 
 
 # Import time module for rate limiting

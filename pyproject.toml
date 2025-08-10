@@ -93,9 +93,9 @@ monitoring = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/metamcp/metamcp"
+Homepage = "https://github.com/lichtbaer/MetaMCP"
 Documentation = "https://metamcp.readthedocs.io"
-Repository = "https://github.com/metamcp/metamcp"
+Repository = "https://github.com/lichtbaer/MetaMCP"
 "Bug Tracker" = "https://github.com/metamcp/metamcp/issues"
 Changelog = "https://github.com/metamcp/metamcp/blob/main/CHANGELOG.md"
 

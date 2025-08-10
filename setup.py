@@ -8,7 +8,7 @@ import os
 # Read version from __init__.py
 import re
 
-from setuptools import find_packages, setup
+from setuptools import find_packages, setup  # type: ignore
 
 with open(os.path.join("metamcp", "__init__.py")) as f:
     content = f.read()
@@ -38,12 +38,12 @@ setup(
     description="A dynamic MCP Meta-Server for AI agents with semantic tool discovery",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/your-org/MetaMCP",
+    url="https://github.com/lichtbaer/MetaMCP",
     project_urls={
-        "Bug Tracker": "https://github.com/your-org/MetaMCP/issues",
+        "Bug Tracker": "https://github.com/lichtbaer/MetaMCP/issues",
         "Documentation": "https://metamcp.readthedocs.io/",
-        "Source Code": "https://github.com/your-org/MetaMCP",
-        "Changelog": "https://github.com/your-org/MetaMCP/blob/main/CHANGELOG.md",
+        "Source Code": "https://github.com/lichtbaer/MetaMCP",
+        "Changelog": "https://github.com/lichtbaer/MetaMCP/blob/main/CHANGELOG.md",
     },
     packages=find_packages(exclude=["tests*", "docs*", "examples*"]),
     classifiers=[
@@ -63,7 +63,7 @@ setup(
         "Topic :: Software Development :: Libraries :: Python Modules",
         "Topic :: System :: Distributed Computing",
     ],
-    python_requires=">=3.8",
+    python_requires=">=3.11",
     install_requires=requirements,
     extras_require={
         "dev": [
