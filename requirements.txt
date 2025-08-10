@@ -16,7 +16,7 @@ aiosqlite==0.19.0
 asyncpg==0.29.0
 
 # Vector database
-weaviate-client==4.16.4
+weaviate-client==4.16.4  # keep aligned with metamcp/vector/client.py (v4 API)
 
 # LLM and AI
 openai==1.3.7
@@ -29,11 +29,10 @@ structlog==23.2.0
 psutil==5.9.6
 
 # Security
-opa-client==0.1.0
-
+# OPA client removed (unused); re-add if needed
 # Caching
 redis==5.0.1
-aioredis==2.0.1
+# aioredis is deprecated; use redis (asyncio) package instead
 
 # Testing
 pytest==7.4.3

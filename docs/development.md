@@ -6,7 +6,7 @@ Entwickler-Guide für MetaMCP.
 
 ```bash
 # Repository klonen
-git clone https://github.com/metamcp/metamcp.git
+git clone https://github.com/lichtbaer/MetaMCP.git
 cd metamcp
 
 # Virtual Environment

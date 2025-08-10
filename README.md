@@ -6,7 +6,7 @@
 
 ### Installation
 ```bash
-git clone https://github.com/metamcp/metamcp.git
+git clone https://github.com/lichtbaer/MetaMCP.git
 cd metamcp
 pip install -r requirements.txt
 ```
