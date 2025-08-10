@@ -41,14 +41,14 @@ This project adheres to the Contributor Covenant Code of Conduct. By participati
 2. Clone your fork locally:
 
 ```bash
-git clone https://github.com/your-username/MetaMCP.git
+git clone https://github.com/lichtbaer/MetaMCP.git
 cd MetaMCP
 ```
 
 3. Add the upstream repository:
 
 ```bash
-git remote add upstream https://github.com/original-owner/MetaMCP.git
+git remote add upstream https://github.com/lichtbaer/MetaMCP.git
 ```
 
 ## Development Setup

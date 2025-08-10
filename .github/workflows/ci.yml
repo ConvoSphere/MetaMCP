@@ -341,6 +341,38 @@ jobs:
         cache-to: type=gha,mode=max
         platforms: linux/amd64,linux/arm64
 
+    - name: Generate SBOM (Syft)
+      uses: anchore/sbom-action@v0
+      with:
+        image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+        format: spdx-json
+        output-file: sbom.spdx.json
+
+    - name: Scan image with Trivy
+      uses: aquasecurity/trivy-action@0.24.0
+      with:
+        image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.version }}
+        format: 'table'
+        vuln-type: 'os,library'
+        severity: 'CRITICAL,HIGH'
+        ignore-unfixed: true
+      continue-on-error: true
+
+    - name: Upload build artifacts (SBOM & scan)
+      uses: actions/upload-artifact@v4
+      with:
+        name: image-security-${{ github.sha }}
+        path: |
+          sbom.spdx.json
+
+    - name: Cosign sign image (optional)
+      if: ${{ secrets.COSIGN_KEY != '' && secrets.COSIGN_PASSWORD != '' }}
+      env:
+        COSIGN_EXPERIMENTAL: '1'
+      run: |
+        echo "${{ secrets.COSIGN_PASSWORD }}" | cosign sign --key env://COSIGN_KEY ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+      shell: bash
+
   # Deploy to Staging
   deploy-staging:
     name: Deploy to Staging
