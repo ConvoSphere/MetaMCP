@@ -39,8 +39,15 @@ class User(Base):
     permissions = Column(JSON, nullable=False, default=dict)
     is_active = Column(Boolean, default=True, nullable=False)
     is_admin = Column(Boolean, default=False, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
     created_by = Column(String(36), nullable=True)
     last_login = Column(DateTime(timezone=True), nullable=True)
 
@@ -64,7 +71,9 @@ class APIKey(Base):
     name = Column(String(255), nullable=False)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
     permissions = Column(JSON, nullable=False, default=list)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
     expires_at = Column(DateTime(timezone=True), nullable=True)
     last_used = Column(DateTime(timezone=True), nullable=True)
     is_active = Column(Boolean, default=True, nullable=False)
@@ -86,7 +95,9 @@ class Developer(Base):
     email = Column(String(255), unique=True, nullable=False, index=True)
     organization = Column(String(255), nullable=True)
     is_verified = Column(Boolean, default=False, nullable=False)
-    registration_date = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    registration_date = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
     tools_created = Column(JSON, nullable=False, default=list)
     is_active = Column(Boolean, default=True, nullable=False)
     verification_token = Column(String(255), nullable=True)
@@ -106,14 +117,23 @@ class OAuthToken(Base):
 
     id = Column(String(36), primary_key=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    provider = Column(String(50), nullable=False, index=True)  # google, github, microsoft
+    provider = Column(
+        String(50), nullable=False, index=True
+    )  # google, github, microsoft
     access_token = Column(Text, nullable=False)
     refresh_token = Column(Text, nullable=True)
     token_type = Column(String(50), nullable=False, default="Bearer")
     expires_at = Column(DateTime(timezone=True), nullable=True)
     scopes = Column(JSON, nullable=False, default=list)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
     # Relationships
     user = relationship("User", back_populates="oauth_tokens")
@@ -140,8 +160,15 @@ class Tool(Base):
     author = Column(String(255), nullable=True)
     tags = Column(JSON, nullable=False, default=list)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
     created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
     developer_id = Column(String(36), ForeignKey("developers.id"), nullable=True)
 
@@ -168,15 +195,15 @@ class ToolVersion(Base):
     changelog = Column(Text, nullable=True)
     is_deprecated = Column(Boolean, default=False, nullable=False)
     deprecation_date = Column(DateTime(timezone=True), nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
     created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
 
     # Relationships
     tool = relationship("Tool", back_populates="versions")
 
-    __table_args__ = (
-        UniqueConstraint('tool_id', 'version', name='uq_tool_version'),
-    )
+    __table_args__ = (UniqueConstraint("tool_id", "version", name="uq_tool_version"),)
 
     def __repr__(self) -> str:
         return f"<ToolVersion(id='{self.id}', tool_id='{self.tool_id}', version='{self.version}')>"
@@ -193,8 +220,15 @@ class Workflow(Base):
     definition = Column(JSON, nullable=False)
     version = Column(String(50), default="1.0.0", nullable=False)
     is_active = Column(Boolean, default=True, nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
     created_by = Column(String(36), ForeignKey("users.id"), nullable=False)
 
     # Relationships
@@ -210,13 +244,19 @@ class WorkflowExecution(Base):
     __tablename__ = "workflow_executions"
 
     id = Column(String(36), primary_key=True)
-    workflow_id = Column(String(36), ForeignKey("workflows.id"), nullable=False, index=True)
+    workflow_id = Column(
+        String(36), ForeignKey("workflows.id"), nullable=False, index=True
+    )
     user_id = Column(String(36), ForeignKey("users.id"), nullable=False, index=True)
-    status = Column(String(50), nullable=False, index=True)  # running, completed, failed, cancelled
+    status = Column(
+        String(50), nullable=False, index=True
+    )  # running, completed, failed, cancelled
     input_data = Column(JSON, nullable=True)
     output_data = Column(JSON, nullable=True)
     error_message = Column(Text, nullable=True)
-    started_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    started_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
     completed_at = Column(DateTime(timezone=True), nullable=True)
     execution_time = Column(Integer, nullable=True)  # milliseconds
 
@@ -240,7 +280,9 @@ class ExecutionHistory(Base):
     status = Column(String(50), nullable=False, index=True)  # success, failed, timeout
     error_message = Column(Text, nullable=True)
     execution_time = Column(Integer, nullable=True)  # milliseconds
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
 
     # Relationships
     tool = relationship("Tool", back_populates="executions")
@@ -258,13 +300,19 @@ class SearchHistory(Base):
     id = Column(String(36), primary_key=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
     query = Column(Text, nullable=False)
-    search_type = Column(String(50), nullable=False, index=True)  # semantic, keyword, hybrid
+    search_type = Column(
+        String(50), nullable=False, index=True
+    )  # semantic, keyword, hybrid
     max_results = Column(Integer, nullable=False)
     similarity_threshold = Column(Integer, nullable=True)  # stored as percentage
     result_count = Column(Integer, nullable=False)
     duration = Column(Integer, nullable=True)  # milliseconds
-    status = Column(String(50), nullable=False, index=True)  # completed, failed, timeout
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    status = Column(
+        String(50), nullable=False, index=True
+    )  # completed, failed, timeout
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
 
     def __repr__(self) -> str:
         return f"<SearchHistory(id='{self.id}', query='{self.query[:50]}...', status='{self.status}')>"
@@ -279,8 +327,15 @@ class VectorEmbedding(Base):
     tool_id = Column(String(36), ForeignKey("tools.id"), nullable=False, index=True)
     embedding = Column(JSON, nullable=False)  # List of floats
     embedding_metadata = Column(JSON, nullable=False, default=dict)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
     def __repr__(self) -> str:
         return f"<VectorEmbedding(id='{self.id}', tool_id='{self.tool_id}')>"
@@ -301,13 +356,15 @@ class AuditLog(Base):
     user_agent = Column(Text, nullable=True)
     success = Column(Boolean, nullable=False, default=True)
     error_message = Column(Text, nullable=True)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
 
     # Index for efficient querying
     __table_args__ = (
-        Index('idx_audit_logs_user_action', 'user_id', 'action'),
-        Index('idx_audit_logs_resource', 'resource_type', 'resource_id'),
-        Index('idx_audit_logs_created_at', 'created_at'),
+        Index("idx_audit_logs_user_action", "user_id", "action"),
+        Index("idx_audit_logs_resource", "resource_type", "resource_id"),
+        Index("idx_audit_logs_created_at", "created_at"),
     )
 
     def __repr__(self) -> str:
@@ -321,19 +378,28 @@ class ResourceLimit(Base):
 
     id = Column(String(36), primary_key=True)
     user_id = Column(String(36), ForeignKey("users.id"), nullable=True, index=True)
-    resource_type = Column(String(50), nullable=False, index=True)  # api_calls, tool_executions, etc.
+    resource_type = Column(
+        String(50), nullable=False, index=True
+    )  # api_calls, tool_executions, etc.
     limit_value = Column(Integer, nullable=False)
     current_usage = Column(Integer, nullable=False, default=0)
     reset_period = Column(String(20), nullable=False)  # daily, monthly, etc.
     reset_at = Column(DateTime(timezone=True), nullable=False)
-    created_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False)
-    updated_at = Column(DateTime(timezone=True), default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), default=lambda: datetime.now(UTC), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(UTC),
+        onupdate=lambda: datetime.now(UTC),
+        nullable=False,
+    )
 
     # Relationships
     user = relationship("User")
 
     __table_args__ = (
-        UniqueConstraint('user_id', 'resource_type', name='uq_user_resource_limit'),
+        UniqueConstraint("user_id", "resource_type", name="uq_user_resource_limit"),
     )
 
     def __repr__(self) -> str:

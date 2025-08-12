@@ -125,32 +125,36 @@ async def get_users(
     try:
         data = get_user_management_data()
         users = data.get("users", [])
-        
+
         # Apply filters
         if search:
-            users = [u for u in users if search.lower() in u.get("username", "").lower() 
-                    or search.lower() in u.get("email", "").lower()]
-        
+            users = [
+                u
+                for u in users
+                if search.lower() in u.get("username", "").lower()
+                or search.lower() in u.get("email", "").lower()
+            ]
+
         if role:
             users = [u for u in users if role in u.get("roles", [])]
-            
+
         if is_active is not None:
             users = [u for u in users if u.get("is_active") == is_active]
-        
+
         # Pagination
         total = len(users)
         start = (page - 1) * limit
         end = start + limit
         paginated_users = users[start:end]
-        
+
         return {
             "users": paginated_users,
             "pagination": {
                 "page": page,
                 "limit": limit,
                 "total": total,
-                "pages": (total + limit - 1) // limit
-            }
+                "pages": (total + limit - 1) // limit,
+            },
         }
     except Exception as e:
         logger.error(f"Error getting user data: {e}")
@@ -172,7 +176,7 @@ async def create_user(user_data: UserCreateRequest):
                 "is_active": user_data.is_active,
                 "is_admin": user_data.is_admin,
             },
-            "admin"
+            "admin",
         )
         return {"user_id": user_id, "message": "User created successfully"}
     except Exception as e:
@@ -201,7 +205,7 @@ async def update_user(user_id: str, user_data: UserUpdateRequest):
         user = auth_service._get_user_by_id(user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Update fields
         update_data = {}
         if user_data.email is not None:
@@ -216,10 +220,10 @@ async def update_user(user_id: str, user_data: UserUpdateRequest):
             update_data["is_active"] = user_data.is_active
         if user_data.is_admin is not None:
             update_data["is_admin"] = user_data.is_admin
-        
+
         # Update user (this would need to be implemented in AuthService)
         # await auth_service.update_user(user_id, update_data)
-        
+
         return {"message": "User updated successfully"}
     except Exception as e:
         logger.error(f"Error updating user {user_id}: {e}")
@@ -234,10 +238,10 @@ async def delete_user(user_id: str):
         user = auth_service._get_user_by_id(user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # Delete user (this would need to be implemented in AuthService)
         # await auth_service.delete_user(user_id)
-        
+
         return {"message": "User deleted successfully"}
     except Exception as e:
         logger.error(f"Error deleting user {user_id}: {e}")
@@ -257,32 +261,36 @@ async def get_tools(
     try:
         data = get_tool_management_data()
         tools = data.get("tools", [])
-        
+
         # Apply filters
         if search:
-            tools = [t for t in tools if search.lower() in t.get("name", "").lower() 
-                    or search.lower() in t.get("description", "").lower()]
-        
+            tools = [
+                t
+                for t in tools
+                if search.lower() in t.get("name", "").lower()
+                or search.lower() in t.get("description", "").lower()
+            ]
+
         if status:
             tools = [t for t in tools if t.get("status") == status]
-            
+
         if is_active is not None:
             tools = [t for t in tools if t.get("is_active") == is_active]
-        
+
         # Pagination
         total = len(tools)
         start = (page - 1) * limit
         end = start + limit
         paginated_tools = tools[start:end]
-        
+
         return {
             "tools": paginated_tools,
             "pagination": {
                 "page": page,
                 "limit": limit,
                 "total": total,
-                "pages": (total + limit - 1) // limit
-            }
+                "pages": (total + limit - 1) // limit,
+            },
         }
     except Exception as e:
         logger.error(f"Error getting tool data: {e}")
@@ -332,7 +340,7 @@ async def update_tool(tool_id: str, tool_data: ToolUpdateRequest):
         tool = await tool_service.get_tool(tool_id)
         if not tool:
             raise HTTPException(status_code=404, detail="Tool not found")
-        
+
         # Update fields
         update_data = {}
         if tool_data.name is not None:
@@ -351,10 +359,10 @@ async def update_tool(tool_id: str, tool_data: ToolUpdateRequest):
             update_data["metadata"] = tool_data.metadata
         if tool_data.is_active is not None:
             update_data["is_active"] = tool_data.is_active
-        
+
         # Update tool
         await tool_service.update_tool(tool_id, update_data)
-        
+
         return {"message": "Tool updated successfully"}
     except Exception as e:
         logger.error(f"Error updating tool {tool_id}: {e}")
@@ -369,10 +377,10 @@ async def delete_tool(tool_id: str):
         tool = await tool_service.get_tool(tool_id)
         if not tool:
             raise HTTPException(status_code=404, detail="Tool not found")
-        
+
         # Delete tool
         await tool_service.delete_tool(tool_id)
-        
+
         return {"message": "Tool deleted successfully"}
     except Exception as e:
         logger.error(f"Error deleting tool {tool_id}: {e}")
@@ -395,19 +403,19 @@ async def get_logs(
                 "timestamp": "2025-07-27T06:42:23Z",
                 "level": "INFO",
                 "message": "Admin API started",
-                "module": "admin.api"
+                "module": "admin.api",
             },
             {
-                "timestamp": "2025-07-27T06:42:20Z", 
+                "timestamp": "2025-07-27T06:42:20Z",
                 "level": "WARNING",
                 "message": "Deprecated datetime.utcnow() used",
-                "module": "admin.interface"
-            }
+                "module": "admin.interface",
+            },
         ]
-        
+
         if level:
             logs = [log for log in logs if log["level"] == level.upper()]
-        
+
         return {"logs": logs[:limit]}
     except Exception as e:
         logger.error(f"Error getting logs: {e}")

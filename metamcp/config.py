@@ -81,17 +81,28 @@ class Settings(BaseSettings):
         default="postgresql://user:password@localhost/metamcp",
         description="Database connection URL",
     )
-    database_pool_size: int = Field(default=DEFAULT_DB_POOL_SIZE, description="Database pool size")
-    database_max_overflow: int = Field(default=DEFAULT_DB_MAX_OVERFLOW, description="Database max overflow")
-    database_pool_timeout: int = Field(default=DEFAULT_DB_POOL_TIMEOUT, description="Database connection pool timeout")
-    database_pool_recycle: int = Field(default=DEFAULT_DB_POOL_RECYCLE, description="Database connection pool recycle time")
+    database_pool_size: int = Field(
+        default=DEFAULT_DB_POOL_SIZE, description="Database pool size"
+    )
+    database_max_overflow: int = Field(
+        default=DEFAULT_DB_MAX_OVERFLOW, description="Database max overflow"
+    )
+    database_pool_timeout: int = Field(
+        default=DEFAULT_DB_POOL_TIMEOUT, description="Database connection pool timeout"
+    )
+    database_pool_recycle: int = Field(
+        default=DEFAULT_DB_POOL_RECYCLE,
+        description="Database connection pool recycle time",
+    )
 
     # Vector Database Settings
     weaviate_url: str = Field(
         default="http://localhost:8080", description="Weaviate vector database URL"
     )
     weaviate_api_key: str | None = Field(default=None, description="Weaviate API key")
-    vector_dimension: int = Field(default=DEFAULT_VECTOR_DIMENSION, description="Vector dimension")
+    vector_dimension: int = Field(
+        default=DEFAULT_VECTOR_DIMENSION, description="Vector dimension"
+    )
 
     # LLM Settings
     llm_provider: LLMProvider = Field(
@@ -113,7 +124,7 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(
         default=TOKEN_EXPIRY_MINUTES, description="Access token expiry"
     )
-    
+
     # Default Admin Settings (for initial setup only)
     default_admin_username: str | None = Field(
         default=None, description="Default admin username (for initial setup)"
@@ -127,7 +138,7 @@ class Settings(BaseSettings):
         default="http://localhost:8181", description="Open Policy Agent URL"
     )
     opa_timeout: int = Field(default=5, description="OPA request timeout")
-    
+
     # Enhanced Security Settings
     password_min_length: int = Field(
         default=PASSWORD_MIN_LENGTH, description="Minimum password length"
@@ -142,12 +153,15 @@ class Settings(BaseSettings):
         default=MAX_LOGIN_ATTEMPTS, description="Maximum login attempts before lockout"
     )
     lockout_duration_minutes: int = Field(
-        default=LOCKOUT_DURATION_MINUTES, description="Account lockout duration in minutes"
+        default=LOCKOUT_DURATION_MINUTES,
+        description="Account lockout duration in minutes",
     )
 
     # Logging Settings
     log_level: str = Field(default=DEFAULT_LOG_LEVEL, description="Logging level")
-    log_format: str = Field(default=DEFAULT_LOG_FORMAT, description="Log format (json, text)")
+    log_format: str = Field(
+        default=DEFAULT_LOG_FORMAT, description="Log format (json, text)"
+    )
 
     # Monitoring Settings
     prometheus_metrics_port: int = Field(
@@ -173,7 +187,8 @@ class Settings(BaseSettings):
 
     # Rate Limiting
     rate_limit_requests: int = Field(
-        default=DEFAULT_RATE_LIMIT_REQUESTS, description="Rate limit requests per minute"
+        default=DEFAULT_RATE_LIMIT_REQUESTS,
+        description="Rate limit requests per minute",
     )
     rate_limit_window: int = Field(
         default=DEFAULT_RATE_LIMIT_WINDOW, description="Rate limit window in seconds"
@@ -187,13 +202,16 @@ class Settings(BaseSettings):
 
     # Tool Execution Settings
     tool_timeout: int = Field(
-        default=DEFAULT_TOOL_TIMEOUT, description="Timeout for tool execution in seconds"
+        default=DEFAULT_TOOL_TIMEOUT,
+        description="Timeout for tool execution in seconds",
     )
     tool_retry_attempts: int = Field(
-        default=DEFAULT_TOOL_RETRY_ATTEMPTS, description="Number of retry attempts for tool execution"
+        default=DEFAULT_TOOL_RETRY_ATTEMPTS,
+        description="Number of retry attempts for tool execution",
     )
     tool_retry_delay: float = Field(
-        default=DEFAULT_TOOL_RETRY_DELAY, description="Delay between retry attempts in seconds"
+        default=DEFAULT_TOOL_RETRY_DELAY,
+        description="Delay between retry attempts in seconds",
     )
 
     # Circuit Breaker Settings
@@ -201,13 +219,16 @@ class Settings(BaseSettings):
         default=True, description="Enable circuit breaker pattern"
     )
     circuit_breaker_failure_threshold: int = Field(
-        default=DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD, description="Number of failures before opening circuit"
+        default=DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD,
+        description="Number of failures before opening circuit",
     )
     circuit_breaker_recovery_timeout: int = Field(
-        default=DEFAULT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT, description="Seconds to wait before trying half-open"
+        default=DEFAULT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
+        description="Seconds to wait before trying half-open",
     )
     circuit_breaker_success_threshold: int = Field(
-        default=DEFAULT_CIRCUIT_BREAKER_SUCCESS_THRESHOLD, description="Number of successes to close circuit again"
+        default=DEFAULT_CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
+        description="Number of successes to close circuit again",
     )
 
     # Cache Configuration
@@ -222,7 +243,8 @@ class Settings(BaseSettings):
         default=MAX_CACHE_TTL, description="Maximum cache TTL in seconds (1 week)"
     )
     cache_max_connections: int = Field(
-        default=DEFAULT_CACHE_MAX_CONNECTIONS, description="Maximum Redis connections for cache"
+        default=DEFAULT_CACHE_MAX_CONNECTIONS,
+        description="Maximum Redis connections for cache",
     )
 
     # Performance Configuration
@@ -249,7 +271,8 @@ class Settings(BaseSettings):
         default=True, description="Enable vector search"
     )
     vector_search_similarity_threshold: float = Field(
-        default=DEFAULT_SIMILARITY_THRESHOLD, description="Vector search similarity threshold"
+        default=DEFAULT_SIMILARITY_THRESHOLD,
+        description="Vector search similarity threshold",
     )
     vector_search_max_results: int = Field(
         default=DEFAULT_MAX_SEARCH_RESULTS, description="Max vector search results"

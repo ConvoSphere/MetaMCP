@@ -26,6 +26,7 @@ logger = get_logger(__name__)
 @dataclass
 class Developer:
     """Developer model."""
+
     developer_id: str
     username: str
     email: str
@@ -39,7 +40,7 @@ class Developer:
 class ToolRegistrySecurity:
     """
     Tool Registry Security for developer registration and verification.
-    
+
     This class provides database-backed developer management with secure
     registration and verification capabilities.
     """
@@ -56,16 +57,16 @@ class ToolRegistrySecurity:
 
         try:
             logger.info("Initializing Tool Registry Security...")
-            
+
             # Get session factory
             self._session_factory = get_async_session()
-            
+
             # Test database connection
             async with self._session_factory() as session:
                 # Try to query developers to test connection
                 stmt = select(DeveloperModel).limit(1)
                 await session.execute(stmt)
-            
+
             self._initialized = True
             logger.info("Tool Registry Security initialized successfully")
 
@@ -75,15 +76,17 @@ class ToolRegistrySecurity:
                 message=f"Failed to initialize tool registry security: {str(e)}"
             ) from e
 
-    async def register_developer(self, username: str, email: str, organization: str) -> str:
+    async def register_developer(
+        self, username: str, email: str, organization: str
+    ) -> str:
         """
         Register a new developer.
-        
+
         Args:
             username: Developer username
             email: Developer email
             organization: Developer organization
-            
+
         Returns:
             Developer ID
         """
@@ -93,11 +96,11 @@ class ToolRegistrySecurity:
         try:
             # Generate unique developer ID
             developer_id = str(uuid.uuid4())
-            
+
             # Generate verification token
             verification_token = secrets.token_urlsafe(32)
             verification_expires = datetime.utcnow() + timedelta(days=7)
-            
+
             # Create database record
             async with self._session_factory() as session:
                 developer_model = DeveloperModel(
@@ -110,11 +113,11 @@ class ToolRegistrySecurity:
                     tools_created=[],
                     is_active=True,
                     verification_token=verification_token,
-                    verification_expires=verification_expires
+                    verification_expires=verification_expires,
                 )
                 session.add(developer_model)
                 await session.commit()
-            
+
             logger.info(f"Registered developer: {developer_id} ({username})")
             return developer_id
 
@@ -127,10 +130,10 @@ class ToolRegistrySecurity:
     async def verify_developer(self, developer_id: str) -> bool:
         """
         Verify a developer.
-        
+
         Args:
             developer_id: Developer ID to verify
-            
+
         Returns:
             True if developer was verified, False otherwise
         """
@@ -142,15 +145,15 @@ class ToolRegistrySecurity:
                 stmt = select(DeveloperModel).where(DeveloperModel.id == developer_id)
                 result = await session.execute(stmt)
                 developer = result.scalar_one_or_none()
-                
+
                 if not developer:
                     return False
-                
+
                 developer.is_verified = True
                 developer.verification_token = None
                 developer.verification_expires = None
                 await session.commit()
-                
+
                 logger.info(f"Verified developer: {developer_id}")
                 return True
 
@@ -161,10 +164,10 @@ class ToolRegistrySecurity:
     async def can_register_tool(self, developer_id: str) -> bool:
         """
         Check if a developer can register tools.
-        
+
         Args:
             developer_id: Developer ID to check
-            
+
         Returns:
             True if developer can register tools, False otherwise
         """
@@ -176,11 +179,11 @@ class ToolRegistrySecurity:
                 stmt = select(DeveloperModel).where(
                     DeveloperModel.id == developer_id,
                     DeveloperModel.is_verified == True,
-                    DeveloperModel.is_active == True
+                    DeveloperModel.is_active == True,
                 )
                 result = await session.execute(stmt)
                 developer = result.scalar_one_or_none()
-                
+
                 return developer is not None
 
         except Exception as e:
@@ -190,11 +193,11 @@ class ToolRegistrySecurity:
     async def can_manage_tool(self, developer_id: str, tool_id: str) -> bool:
         """
         Check if a developer can manage a specific tool.
-        
+
         Args:
             developer_id: Developer ID to check
             tool_id: Tool ID to check
-            
+
         Returns:
             True if developer can manage the tool, False otherwise
         """
@@ -206,14 +209,14 @@ class ToolRegistrySecurity:
                 stmt = select(DeveloperModel).where(
                     DeveloperModel.id == developer_id,
                     DeveloperModel.is_verified == True,
-                    DeveloperModel.is_active == True
+                    DeveloperModel.is_active == True,
                 )
                 result = await session.execute(stmt)
                 developer = result.scalar_one_or_none()
-                
+
                 if not developer:
                     return False
-                
+
                 # Check if tool is in developer's tools_created list
                 return tool_id in developer.tools_created
 
@@ -224,11 +227,11 @@ class ToolRegistrySecurity:
     async def register_tool_creation(self, developer_id: str, tool_id: str) -> bool:
         """
         Register a tool creation by a developer.
-        
+
         Args:
             developer_id: Developer ID
             tool_id: Tool ID that was created
-            
+
         Returns:
             True if tool creation was registered, False otherwise
         """
@@ -240,16 +243,18 @@ class ToolRegistrySecurity:
                 stmt = select(DeveloperModel).where(DeveloperModel.id == developer_id)
                 result = await session.execute(stmt)
                 developer = result.scalar_one_or_none()
-                
+
                 if not developer:
                     return False
-                
+
                 # Add tool to developer's tools_created list
                 if tool_id not in developer.tools_created:
                     developer.tools_created.append(tool_id)
                     await session.commit()
-                
-                logger.info(f"Registered tool creation: {tool_id} by developer: {developer_id}")
+
+                logger.info(
+                    f"Registered tool creation: {tool_id} by developer: {developer_id}"
+                )
                 return True
 
         except Exception as e:
@@ -259,10 +264,10 @@ class ToolRegistrySecurity:
     async def get_developer_info(self, developer_id: str) -> Optional[Dict[str, Any]]:
         """
         Get developer information.
-        
+
         Args:
             developer_id: Developer ID
-            
+
         Returns:
             Developer information dictionary or None if not found
         """
@@ -274,10 +279,10 @@ class ToolRegistrySecurity:
                 stmt = select(DeveloperModel).where(DeveloperModel.id == developer_id)
                 result = await session.execute(stmt)
                 developer = result.scalar_one_or_none()
-                
+
                 if not developer:
                     return None
-                
+
                 return {
                     "developer_id": developer.id,
                     "username": developer.username,
@@ -286,20 +291,22 @@ class ToolRegistrySecurity:
                     "is_verified": developer.is_verified,
                     "registration_date": developer.registration_date.isoformat(),
                     "tools_created": developer.tools_created,
-                    "is_active": developer.is_active
+                    "is_active": developer.is_active,
                 }
 
         except Exception as e:
             logger.error(f"Failed to get developer info: {e}")
             return None
 
-    async def list_developers(self, verified_only: bool = False) -> List[Dict[str, Any]]:
+    async def list_developers(
+        self, verified_only: bool = False
+    ) -> List[Dict[str, Any]]:
         """
         List developers.
-        
+
         Args:
             verified_only: Only return verified developers
-            
+
         Returns:
             List of developer information
         """
@@ -311,23 +318,25 @@ class ToolRegistrySecurity:
                 stmt = select(DeveloperModel)
                 if verified_only:
                     stmt = stmt.where(DeveloperModel.is_verified == True)
-                
+
                 result = await session.execute(stmt)
                 developers = result.scalars().all()
-                
+
                 developer_list = []
                 for developer in developers:
-                    developer_list.append({
-                        "developer_id": developer.id,
-                        "username": developer.username,
-                        "email": developer.email,
-                        "organization": developer.organization,
-                        "is_verified": developer.is_verified,
-                        "registration_date": developer.registration_date.isoformat(),
-                        "tools_created": developer.tools_created,
-                        "is_active": developer.is_active
-                    })
-                
+                    developer_list.append(
+                        {
+                            "developer_id": developer.id,
+                            "username": developer.username,
+                            "email": developer.email,
+                            "organization": developer.organization,
+                            "is_verified": developer.is_verified,
+                            "registration_date": developer.registration_date.isoformat(),
+                            "tools_created": developer.tools_created,
+                            "is_active": developer.is_active,
+                        }
+                    )
+
                 return developer_list
 
         except Exception as e:
@@ -337,10 +346,10 @@ class ToolRegistrySecurity:
     async def deactivate_developer(self, developer_id: str) -> bool:
         """
         Deactivate a developer.
-        
+
         Args:
             developer_id: Developer ID to deactivate
-            
+
         Returns:
             True if developer was deactivated, False if not found
         """
@@ -352,13 +361,13 @@ class ToolRegistrySecurity:
                 stmt = select(DeveloperModel).where(DeveloperModel.id == developer_id)
                 result = await session.execute(stmt)
                 developer = result.scalar_one_or_none()
-                
+
                 if not developer:
                     return False
-                
+
                 developer.is_active = False
                 await session.commit()
-                
+
                 logger.info(f"Deactivated developer: {developer_id}")
                 return True
 
@@ -369,42 +378,46 @@ class ToolRegistrySecurity:
     def validate_tool_registration(self, tool_data: Dict[str, Any]) -> bool:
         """
         Validate tool registration data.
-        
+
         Args:
             tool_data: Tool registration data
-            
+
         Returns:
             True if tool data is valid, False otherwise
         """
         required_fields = ["name", "description", "version", "author"]
-        
+
         # Check required fields
         for field in required_fields:
             if field not in tool_data or not tool_data[field]:
                 logger.warning(f"Missing required field: {field}")
                 return False
-        
+
         # Validate security level
         security_level = tool_data.get("security_level", 0)
-        if not isinstance(security_level, int) or security_level < 0 or security_level > 10:
+        if (
+            not isinstance(security_level, int)
+            or security_level < 0
+            or security_level > 10
+        ):
             logger.warning(f"Invalid security level: {security_level}")
             return False
-        
+
         # Validate version format
         version = tool_data.get("version", "")
         if not self._is_valid_version(version):
             logger.warning(f"Invalid version format: {version}")
             return False
-        
+
         return True
 
     def _is_valid_version(self, version: str) -> bool:
         """
         Check if version string is valid.
-        
+
         Args:
             version: Version string to validate
-            
+
         Returns:
             True if version is valid, False otherwise
         """
@@ -412,7 +425,7 @@ class ToolRegistrySecurity:
         parts = version.split(".")
         if len(parts) < 2 or len(parts) > 3:
             return False
-        
+
         try:
             for part in parts:
                 int(part)

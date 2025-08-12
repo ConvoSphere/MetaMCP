@@ -51,7 +51,7 @@ DEFAULT_DB_POOL_RECYCLE = 3600
 
 # Cache
 DEFAULT_CACHE_TTL = 3600  # 1 hour
-MAX_CACHE_TTL = 604800    # 1 week
+MAX_CACHE_TTL = 604800  # 1 week
 DEFAULT_CACHE_MAX_CONNECTIONS = 20
 
 # =============================================================================
@@ -118,7 +118,7 @@ METRICS_UPDATE_INTERVAL = 60  # seconds
 
 # Health Check
 HEALTH_CHECK_INTERVAL = 30  # seconds
-HEALTH_CHECK_TIMEOUT = 10   # seconds
+HEALTH_CHECK_TIMEOUT = 10  # seconds
 HEALTH_CHECK_RETRIES = 3
 
 # Logging
@@ -214,9 +214,9 @@ CACHE_PREFIX_RATE_LIMIT = "rate_limit:"
 CACHE_PREFIX_HEALTH = "health:"
 
 # Cache TTL Values
-CACHE_TTL_USER = 3600      # 1 hour
-CACHE_TTL_SESSION = 1800   # 30 minutes
-CACHE_TTL_TOOL = 300       # 5 minutes
-CACHE_TTL_POLICY = 600     # 10 minutes
+CACHE_TTL_USER = 3600  # 1 hour
+CACHE_TTL_SESSION = 1800  # 30 minutes
+CACHE_TTL_TOOL = 300  # 5 minutes
+CACHE_TTL_POLICY = 600  # 10 minutes
 CACHE_TTL_RATE_LIMIT = 60  # 1 minute
-CACHE_TTL_HEALTH = 30      # 30 seconds
+CACHE_TTL_HEALTH = 30  # 30 seconds

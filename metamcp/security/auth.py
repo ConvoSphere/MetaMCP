@@ -70,16 +70,18 @@ class AuthManager:
             async with async_session() as session:
                 # Check if admin user exists
                 admin_user = await session.get(User, "admin")
-                
+
                 if not admin_user:
                     # Create default admin user from environment variables
                     admin_username = self.settings.default_admin_username or "admin"
                     admin_password = self.settings.default_admin_password
-                    
+
                     if not admin_password:
-                        logger.warning("No default admin password configured. Admin user not created.")
+                        logger.warning(
+                            "No default admin password configured. Admin user not created."
+                        )
                         return
-                    
+
                     # Create admin user
                     admin_user = User(
                         id=admin_username,
@@ -88,13 +90,13 @@ class AuthManager:
                         role="admin",
                         permissions=["read", "write", "execute", "admin"],
                         is_active=True,
-                        created_at=datetime.utcnow()
+                        created_at=datetime.utcnow(),
                     )
-                    
+
                     session.add(admin_user)
                     await session.commit()
                     logger.info(f"Created default admin user: {admin_username}")
-                    
+
         except Exception as e:
             logger.error(f"Failed to ensure default admin exists: {e}")
             # Don't fail initialization for this

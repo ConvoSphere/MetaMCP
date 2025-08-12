@@ -410,7 +410,10 @@ class TestMCPConcurrency:
                         "method": "initialize",
                         "params": {
                             "protocolVersion": "1.0.0",
-                            "clientInfo": {"name": f"TestClient{i}", "version": "1.0.0"},
+                            "clientInfo": {
+                                "name": f"TestClient{i}",
+                                "version": "1.0.0",
+                            },
                         },
                     }
 
@@ -427,7 +430,9 @@ class TestMCPConcurrency:
                     break
 
             # Verify we can handle multiple connections
-            assert len(connections) > 0, "Should be able to establish at least one connection"
+            assert (
+                len(connections) > 0
+            ), "Should be able to establish at least one connection"
 
         finally:
             # Clean up connections
@@ -552,7 +557,12 @@ class TestMCPConcurrency:
             # Send mixed request types concurrently
             requests = [
                 {"jsonrpc": "2.0", "id": 2, "method": "tools/list", "params": {}},
-                {"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": "test_tool", "arguments": {}}},
+                {
+                    "jsonrpc": "2.0",
+                    "id": 3,
+                    "method": "tools/call",
+                    "params": {"name": "test_tool", "arguments": {}},
+                },
                 {"jsonrpc": "2.0", "id": 4, "method": "resources/list", "params": {}},
                 {"jsonrpc": "2.0", "id": 5, "method": "prompts/list", "params": {}},
             ]

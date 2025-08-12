@@ -22,9 +22,11 @@ settings = get_settings()
 admin_router = APIRouter()
 security = HTTPBearer()
 
+
 # Enhanced admin models for v2
 class SystemStatusV2(BaseModel):
     """Enhanced system status model."""
+
     status: str
     uptime: float
     version: str
@@ -34,15 +36,18 @@ class SystemStatusV2(BaseModel):
     error_rate: float
     system_load: Dict[str, float]
 
+
 class UserManagementV2(BaseModel):
     """Enhanced user management model."""
+
     user_id: str
     action: str = Field(..., pattern="^(activate|deactivate|suspend|delete)$")
     reason: Optional[str] = None
 
+
 @admin_router.get("/system/status", response_model=SystemStatusV2)
 async def get_system_status_v2(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """
     Enhanced system status endpoint.
@@ -57,23 +62,24 @@ async def get_system_status_v2(
             active_users=10,
             total_requests=1000,
             error_rate=0.01,
-            system_load={"cpu": 0.5, "memory": 0.3, "disk": 0.2}
+            system_load={"cpu": 0.5, "memory": 0.3, "disk": 0.2},
         )
-        
+
         return status
-        
+
     except Exception as e:
         logger.error(f"System status retrieval failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve system status"
+            detail="Failed to retrieve system status",
         )
+
 
 @admin_router.post("/users/{user_id}/manage")
 async def manage_user_v2(
     user_id: str,
     management: UserManagementV2,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """
     Enhanced user management endpoint.
@@ -84,21 +90,22 @@ async def manage_user_v2(
             "user_id": user_id,
             "action": management.action,
             "status": "success",
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"User management failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="User management failed"
+            detail="User management failed",
         )
+
 
 @admin_router.get("/analytics/overview")
 async def get_analytics_overview_v2(
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """
     Enhanced analytics overview endpoint.
@@ -111,14 +118,14 @@ async def get_analytics_overview_v2(
             "total_tools": 25,
             "total_workflows": 10,
             "requests_today": 5000,
-            "errors_today": 25
+            "errors_today": 25,
         }
-        
+
         return analytics
-        
+
     except Exception as e:
         logger.error(f"Analytics retrieval failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve analytics"
+            detail="Failed to retrieve analytics",
         )

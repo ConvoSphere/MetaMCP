@@ -332,19 +332,27 @@ class OAuthError(MetaMCPException):
 
 class RateLimitExceededError(MetaMCPException):
     """Rate limit exceeded error."""
-    def __init__(self, message: str, error_code: str = "rate_limit_exceeded", retry_after: Optional[int] = None):
+
+    def __init__(
+        self,
+        message: str,
+        error_code: str = "rate_limit_exceeded",
+        retry_after: Optional[int] = None,
+    ):
         super().__init__(message=message, error_code=error_code)
         self.retry_after = retry_after
 
 
 class IPFilterError(MetaMCPException):
     """IP filtering error."""
+
     def __init__(self, message: str, error_code: str = "ip_filter_error"):
         super().__init__(message=message, error_code=error_code)
 
 
 class PolicyTestError(MetaMCPException):
     """Policy testing error."""
+
     def __init__(self, message: str, error_code: str = "policy_test_error"):
         super().__init__(message=message, error_code=error_code)
 

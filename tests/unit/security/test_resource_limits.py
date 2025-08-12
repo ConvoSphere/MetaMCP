@@ -13,7 +13,7 @@ from metamcp.security.resource_limits import (
     ExecutionContext,
     ExecutionStatus,
     LimitType,
-    get_resource_limit_manager
+    get_resource_limit_manager,
 )
 
 
@@ -32,14 +32,13 @@ class TestResourceLimitManager:
         """Test starting an execution."""
         # Start execution
         execution_id = resource_manager.start_execution(
-            tool_id="test_tool",
-            user_id="user_123"
+            tool_id="test_tool", user_id="user_123"
         )
-        
+
         # Check execution was created
         assert execution_id is not None
         assert execution_id.startswith("exec_")
-        
+
         # Check execution context
         context = resource_manager.active_executions[execution_id]
         assert context.tool_id == "test_tool"
@@ -53,15 +52,13 @@ class TestResourceLimitManager:
             cpu_time_soft=10,
             cpu_time_hard=20,
             memory_usage_soft=256,
-            memory_usage_hard=512
+            memory_usage_hard=512,
         )
-        
+
         execution_id = resource_manager.start_execution(
-            tool_id="test_tool",
-            user_id="user_123",
-            custom_limits=custom_limits
+            tool_id="test_tool", user_id="user_123", custom_limits=custom_limits
         )
-        
+
         context = resource_manager.active_executions[execution_id]
         assert context.resource_limits.cpu_time_soft == 10
         assert context.resource_limits.cpu_time_hard == 20
@@ -72,19 +69,17 @@ class TestResourceLimitManager:
         """Test ending an execution."""
         # Start execution
         execution_id = resource_manager.start_execution("test_tool", "user_123")
-        
+
         # End execution
         success = resource_manager.end_execution(
-            execution_id,
-            ExecutionStatus.COMPLETED,
-            "Success"
+            execution_id, ExecutionStatus.COMPLETED, "Success"
         )
-        
+
         assert success is True
-        
+
         # Check execution is no longer active
         assert execution_id not in resource_manager.active_executions
-        
+
         # Check execution is in history
         assert len(resource_manager.execution_history) == 1
         history_item = resource_manager.execution_history[0]
@@ -96,17 +91,14 @@ class TestResourceLimitManager:
         """Test updating execution metrics."""
         # Start execution
         execution_id = resource_manager.start_execution("test_tool", "user_123")
-        
+
         # Update metrics
         success = resource_manager.update_execution_metrics(
-            execution_id,
-            cpu_time=15.5,
-            memory_usage=256.0,
-            api_calls=25
+            execution_id, cpu_time=15.5, memory_usage=256.0, api_calls=25
         )
-        
+
         assert success is True
-        
+
         # Check metrics were updated
         context = resource_manager.active_executions[execution_id]
         assert context.cpu_time == 15.5
@@ -120,25 +112,23 @@ class TestResourceLimitManager:
             cpu_time_soft=10,
             cpu_time_hard=20,
             memory_usage_soft=100,
-            memory_usage_hard=200
+            memory_usage_hard=200,
         )
-        
+
         execution_id = resource_manager.start_execution(
-            "test_tool",
-            "user_123",
-            custom_limits
+            "test_tool", "user_123", custom_limits
         )
-        
+
         # Update metrics to exceed soft limits
         resource_manager.update_execution_metrics(
             execution_id,
             cpu_time=15.0,  # Exceeds soft limit of 10
-            memory_usage=150.0  # Exceeds soft limit of 100
+            memory_usage=150.0,  # Exceeds soft limit of 100
         )
-        
+
         # Check soft limits
         violations = resource_manager.check_soft_limits(execution_id)
-        
+
         assert violations[LimitType.CPU_TIME] is True
         assert violations[LimitType.MEMORY_USAGE] is True
         assert violations[LimitType.EXECUTION_TIME] is False  # Not exceeded yet
@@ -150,25 +140,23 @@ class TestResourceLimitManager:
             cpu_time_soft=10,
             cpu_time_hard=20,
             memory_usage_soft=100,
-            memory_usage_hard=200
+            memory_usage_hard=200,
         )
-        
+
         execution_id = resource_manager.start_execution(
-            "test_tool",
-            "user_123",
-            custom_limits
+            "test_tool", "user_123", custom_limits
         )
-        
+
         # Update metrics to exceed hard limits
         resource_manager.update_execution_metrics(
             execution_id,
             cpu_time=25.0,  # Exceeds hard limit of 20
-            memory_usage=250.0  # Exceeds hard limit of 200
+            memory_usage=250.0,  # Exceeds hard limit of 200
         )
-        
+
         # Check hard limits
         violations = resource_manager.check_hard_limits(execution_id)
-        
+
         assert violations[LimitType.CPU_TIME] is True
         assert violations[LimitType.MEMORY_USAGE] is True
 
@@ -176,28 +164,28 @@ class TestResourceLimitManager:
         """Test interrupting an execution."""
         # Start execution
         execution_id = resource_manager.start_execution("test_tool", "user_123")
-        
+
         # Set up interrupt callback
         callback_called = False
+
         def interrupt_callback():
             nonlocal callback_called
             callback_called = True
-        
+
         context = resource_manager.active_executions[execution_id]
         context.interrupt_callback = interrupt_callback
-        
+
         # Interrupt execution
         success = resource_manager.interrupt_execution(
-            execution_id,
-            "Manual interruption"
+            execution_id, "Manual interruption"
         )
-        
+
         assert success is True
         assert callback_called is True
-        
+
         # Check execution was ended
         assert execution_id not in resource_manager.active_executions
-        
+
         # Check execution is in history with interrupted status
         history_item = resource_manager.execution_history[0]
         assert history_item.status == ExecutionStatus.INTERRUPTED
@@ -207,18 +195,15 @@ class TestResourceLimitManager:
         """Test getting execution information."""
         # Start execution
         execution_id = resource_manager.start_execution("test_tool", "user_123")
-        
+
         # Update metrics
         resource_manager.update_execution_metrics(
-            execution_id,
-            cpu_time=15.0,
-            memory_usage=256.0,
-            api_calls=25
+            execution_id, cpu_time=15.0, memory_usage=256.0, api_calls=25
         )
-        
+
         # Get execution info
         info = resource_manager.get_execution_info(execution_id)
-        
+
         assert info is not None
         assert info["execution_id"] == execution_id
         assert info["tool_id"] == "test_tool"
@@ -234,11 +219,11 @@ class TestResourceLimitManager:
         exec1 = resource_manager.start_execution("tool1", "user1")
         exec2 = resource_manager.start_execution("tool2", "user1")
         exec3 = resource_manager.start_execution("tool3", "user2")
-        
+
         # List all active executions
         executions = resource_manager.list_active_executions()
         assert len(executions) == 3
-        
+
         # List executions for specific user
         user1_executions = resource_manager.list_active_executions(user_id="user1")
         assert len(user1_executions) == 2
@@ -249,14 +234,14 @@ class TestResourceLimitManager:
         # Start and end multiple executions
         exec1 = resource_manager.start_execution("tool1", "user1")
         exec2 = resource_manager.start_execution("tool2", "user1")
-        
+
         resource_manager.end_execution(exec1, ExecutionStatus.COMPLETED)
         resource_manager.end_execution(exec2, ExecutionStatus.FAILED, "Error")
-        
+
         # List history
         history = resource_manager.list_execution_history()
         assert len(history) == 2
-        
+
         # List history for specific user
         user1_history = resource_manager.list_execution_history(user_id="user1")
         assert len(user1_history) == 2
@@ -267,18 +252,18 @@ class TestResourceLimitManager:
         # Start multiple executions for same user
         for i in range(5):
             resource_manager.start_execution(f"tool{i}", "user1")
-        
+
         # Check concurrent executions limit
         # Default soft limit is 5, hard limit is 10
         for execution_id in resource_manager.active_executions:
             violations = resource_manager.check_soft_limits(execution_id)
             # Should not exceed soft limit yet
             assert violations[LimitType.CONCURRENT_EXECUTIONS] is False
-        
+
         # Start more executions to exceed soft limit
         for i in range(5, 8):
             resource_manager.start_execution(f"tool{i}", "user1")
-        
+
         # Now should exceed soft limit
         for execution_id in resource_manager.active_executions:
             violations = resource_manager.check_soft_limits(execution_id)
@@ -289,7 +274,7 @@ class TestResourceLimitManager:
         # Get global instance
         manager1 = get_resource_limit_manager()
         manager2 = get_resource_limit_manager()
-        
+
         # Should be the same instance
         assert manager1 is manager2
 
@@ -300,7 +285,7 @@ class TestResourceLimits:
     def test_default_limits(self):
         """Test default resource limits."""
         limits = ResourceLimits()
-        
+
         assert limits.cpu_time_soft == 30
         assert limits.cpu_time_hard == 60
         assert limits.memory_usage_soft == 512
@@ -324,9 +309,9 @@ class TestResourceLimits:
             api_calls_soft=50,
             api_calls_hard=100,
             concurrent_executions_soft=2,
-            concurrent_executions_hard=5
+            concurrent_executions_hard=5,
         )
-        
+
         assert limits.cpu_time_soft == 10
         assert limits.cpu_time_hard == 20
         assert limits.memory_usage_soft == 100
@@ -352,9 +337,9 @@ class TestExecutionContext:
             status=ExecutionStatus.RUNNING,
             cpu_time=15.0,
             memory_usage=256.0,
-            api_calls=25
+            api_calls=25,
         )
-        
+
         assert context.execution_id == "exec_123"
         assert context.tool_id == "test_tool"
         assert context.user_id == "user_123"

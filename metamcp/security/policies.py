@@ -24,6 +24,7 @@ settings = get_settings()
 @dataclass
 class PolicyVersion:
     """Policy version information."""
+
     version: str
     content: str
     description: str
@@ -36,6 +37,7 @@ class PolicyVersion:
 @dataclass
 class PolicyRule:
     """Policy rule definition."""
+
     name: str
     description: str
     resource_pattern: str
@@ -69,10 +71,10 @@ class PolicyEngine:
 
         # Policy versions storage
         self.policy_versions: Dict[str, List[PolicyVersion]] = {}
-        
+
         # Active policies cache
         self.active_policies: Dict[str, PolicyVersion] = {}
-        
+
         # Policy rules cache
         self.policy_rules: Dict[str, List[PolicyRule]] = {}
 
@@ -85,7 +87,7 @@ class PolicyEngine:
 
         # Rate limiting cache
         self.rate_limit_cache: Dict[str, Dict[str, Any]] = {}
-        
+
         # IP whitelist/blacklist
         self.ip_whitelist: List[str] = []
         self.ip_blacklist: List[str] = []
@@ -159,7 +161,7 @@ class PolicyEngine:
                     input.user.role == "admin"
                 }
                 """,
-                "Tool access control policy"
+                "Tool access control policy",
             )
 
             # API rate limiting policy
@@ -180,7 +182,7 @@ class PolicyEngine:
                     input.window_start < time.now_ns()
                 }
                 """,
-                "API rate limiting policy"
+                "API rate limiting policy",
             )
 
             # Resource quota policy
@@ -200,7 +202,7 @@ class PolicyEngine:
                     input.resource_usage > input.quota_limit
                 }
                 """,
-                "Resource quota enforcement policy"
+                "Resource quota enforcement policy",
             )
 
             # IP filtering policy
@@ -221,7 +223,7 @@ class PolicyEngine:
                     count(data.whitelisted_ips) > 0
                 }
                 """,
-                "IP filtering policy"
+                "IP filtering policy",
             )
 
             # Data access policy
@@ -258,7 +260,7 @@ class PolicyEngine:
                     input.user.permissions[_] == "data_delete"
                 }
                 """,
-                "Data access control policy"
+                "Data access control policy",
             )
 
             logger.info("Loaded predefined policies")
@@ -270,19 +272,21 @@ class PolicyEngine:
                 error_code="policy_load_failed",
             ) from e
 
-    def _add_predefined_policy(self, name: str, version: str, content: str, description: str) -> None:
+    def _add_predefined_policy(
+        self, name: str, version: str, content: str, description: str
+    ) -> None:
         """Add a predefined policy."""
         if name not in self.policy_versions:
             self.policy_versions[name] = []
-        
+
         policy_version = PolicyVersion(
             version=version,
             content=content,
             description=description,
             created_at=datetime.utcnow(),
-            created_by="system"
+            created_by="system",
         )
-        
+
         self.policy_versions[name].append(policy_version)
         self.active_policies[name] = policy_version
 
@@ -333,19 +337,18 @@ class PolicyEngine:
                 # Create OPA policy document
                 policy_doc = {
                     "id": f"{policy_name}-{policy_version.version}",
-                    "modules": {
-                        f"{policy_name}.rego": policy_version.content
-                    }
+                    "modules": {f"{policy_name}.rego": policy_version.content},
                 }
 
                 # Upload to OPA
                 response = await self.http_client.put(
-                    f"{self.opa_url}/v1/policies/{policy_name}",
-                    json=policy_doc
+                    f"{self.opa_url}/v1/policies/{policy_name}", json=policy_doc
                 )
 
                 if response.status_code not in [200, 201]:
-                    logger.warning(f"Failed to upload policy {policy_name}: {response.text}")
+                    logger.warning(
+                        f"Failed to upload policy {policy_name}: {response.text}"
+                    )
 
             logger.info("Uploaded policies to OPA")
 
@@ -356,8 +359,13 @@ class PolicyEngine:
         """Initialize internal policy engine."""
         logger.info("Internal policy engine initialized")
 
-    async def check_access(self, user_id: str, resource: str, action: str, 
-                          context: Optional[Dict[str, Any]] = None) -> bool:
+    async def check_access(
+        self,
+        user_id: str,
+        resource: str,
+        action: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """
         Check if user has access to resource with advanced context.
 
@@ -383,21 +391,33 @@ class PolicyEngine:
 
             # Check rate limiting
             if context and "rate_limit_key" in context:
-                if not await self._check_rate_limit(context["rate_limit_key"], context.get("limit", 100)):
-                    logger.warning(f"Rate limit exceeded for: {context['rate_limit_key']}")
+                if not await self._check_rate_limit(
+                    context["rate_limit_key"], context.get("limit", 100)
+                ):
+                    logger.warning(
+                        f"Rate limit exceeded for: {context['rate_limit_key']}"
+                    )
                     return False
 
             # Check resource quota
             if context and "quota_key" in context:
-                if not await self._check_resource_quota(context["quota_key"], context.get("usage", 0), context.get("limit", 1000)):
-                    logger.warning(f"Resource quota exceeded for: {context['quota_key']}")
+                if not await self._check_resource_quota(
+                    context["quota_key"],
+                    context.get("usage", 0),
+                    context.get("limit", 1000),
+                ):
+                    logger.warning(
+                        f"Resource quota exceeded for: {context['quota_key']}"
+                    )
                     return False
 
             # Check main access policy
             if self.engine_type == PolicyEngineType.OPA:
                 return await self._check_access_opa(user_id, resource, action, context)
             else:
-                return await self._check_access_internal(user_id, resource, action, context)
+                return await self._check_access_internal(
+                    user_id, resource, action, context
+                )
 
         except Exception as e:
             logger.error(f"Policy check failed: {e}")
@@ -408,35 +428,32 @@ class PolicyEngine:
         # Check blacklist first
         if ip in self.ip_blacklist:
             return False
-        
+
         # If whitelist is not empty, check whitelist
         if self.ip_whitelist and ip not in self.ip_whitelist:
             return False
-        
+
         return True
 
     async def _check_rate_limit(self, key: str, limit: int) -> bool:
         """Check rate limiting."""
         now = datetime.utcnow()
         window_start = now - timedelta(minutes=1)  # 1-minute window
-        
+
         if key not in self.rate_limit_cache:
-            self.rate_limit_cache[key] = {
-                "count": 0,
-                "window_start": now
-            }
-        
+            self.rate_limit_cache[key] = {"count": 0, "window_start": now}
+
         cache_entry = self.rate_limit_cache[key]
-        
+
         # Reset window if expired
         if cache_entry["window_start"] < window_start:
             cache_entry["count"] = 0
             cache_entry["window_start"] = now
-        
+
         # Check limit
         if cache_entry["count"] >= limit:
             return False
-        
+
         # Increment count
         cache_entry["count"] += 1
         return True
@@ -445,23 +462,28 @@ class PolicyEngine:
         """Check resource quota."""
         return usage <= limit
 
-    async def _check_access_opa(self, user_id: str, resource: str, action: str, 
-                               context: Optional[Dict[str, Any]] = None) -> bool:
+    async def _check_access_opa(
+        self,
+        user_id: str,
+        resource: str,
+        action: str,
+        context: Optional[Dict[str, Any]] = None,
+    ) -> bool:
         """Check access using OPA."""
         try:
             # Prepare input data
             input_data = {
                 "user": {"id": user_id, "role": self._get_user_role(user_id)},
                 "resource": resource,
-                "action": action
+                "action": action,
             }
-            
+
             if context:
                 input_data.update(context)
 
             # Determine which policy to use based on resource
             policy_name = self._get_policy_name_for_resource(resource)
-            
+
             if policy_name not in self.active_policies:
                 logger.warning(f"No policy found for resource: {resource}")
                 return False
@@ -469,8 +491,7 @@ class PolicyEngine:
             # Query OPA
             query_data = {"input": input_data}
             response = await self.http_client.post(
-                f"{self.opa_url}/v1/data/{policy_name}/allow", 
-                json=query_data
+                f"{self.opa_url}/v1/data/{policy_name}/allow", json=query_data
             )
 
             if response.status_code != 200:
@@ -496,8 +517,11 @@ class PolicyEngine:
             return "tool_access"  # Default
 
     async def _check_access_internal(
-        self, user_id: str, resource: str, action: str, 
-        context: Optional[Dict[str, Any]] = None
+        self,
+        user_id: str,
+        resource: str,
+        action: str,
+        context: Optional[Dict[str, Any]] = None,
     ) -> bool:
         """Check access using internal policy rules."""
         try:
@@ -550,13 +574,13 @@ class PolicyEngine:
             if not self._initialized:
                 raise PolicyViolationError(
                     message="Policy engine not initialized",
-                    error_code="policy_not_initialized"
+                    error_code="policy_not_initialized",
                 )
 
             if policy_name not in self.active_policies:
                 raise PolicyViolationError(
                     message=f"Policy not found: {policy_name}",
-                    error_code="policy_not_found"
+                    error_code="policy_not_found",
                 )
 
             if self.engine_type == PolicyEngineType.OPA:
@@ -568,7 +592,7 @@ class PolicyEngine:
             logger.error(f"Policy evaluation failed: {e}")
             raise PolicyViolationError(
                 message=f"Policy evaluation failed: {str(e)}",
-                error_code="policy_evaluation_failed"
+                error_code="policy_evaluation_failed",
             ) from e
 
     async def evaluate(
@@ -601,14 +625,19 @@ class PolicyEngine:
             # This is a simplified permission check
             # In a real implementation, this would query user permissions from database
             user_role = self._get_user_role(user_id)
-            
+
             if user_role == "admin":
                 return True
             elif user_role == "user":
-                return permission in ["tool_read", "tool_execute", "data_read", "data_write"]
+                return permission in [
+                    "tool_read",
+                    "tool_execute",
+                    "data_read",
+                    "data_write",
+                ]
             else:
                 return permission in ["tool_read"]
-                
+
         except Exception as e:
             logger.error(f"Permission check failed: {e}")
             return False
@@ -620,14 +649,13 @@ class PolicyEngine:
         try:
             query_data = {"input": input_data}
             response = await self.http_client.post(
-                f"{self.opa_url}/v1/data/{policy_name}", 
-                json=query_data
+                f"{self.opa_url}/v1/data/{policy_name}", json=query_data
             )
 
             if response.status_code != 200:
                 raise PolicyViolationError(
                     message=f"OPA evaluation failed: {response.text}",
-                    error_code="opa_evaluation_failed"
+                    error_code="opa_evaluation_failed",
                 )
 
             return response.json()
@@ -636,7 +664,7 @@ class PolicyEngine:
             logger.error(f"OPA policy evaluation failed: {e}")
             raise PolicyViolationError(
                 message=f"OPA policy evaluation failed: {str(e)}",
-                error_code="opa_evaluation_failed"
+                error_code="opa_evaluation_failed",
             ) from e
 
     async def _evaluate_policy_internal(
@@ -648,8 +676,9 @@ class PolicyEngine:
 
     # Policy Management Methods
 
-    async def create_policy(self, name: str, content: str, description: str, 
-                           created_by: str) -> str:
+    async def create_policy(
+        self, name: str, content: str, description: str, created_by: str
+    ) -> str:
         """
         Create a new policy.
 
@@ -664,25 +693,25 @@ class PolicyEngine:
         """
         try:
             version_id = str(uuid.uuid4())
-            
+
             if name not in self.policy_versions:
                 self.policy_versions[name] = []
-            
+
             policy_version = PolicyVersion(
                 version=version_id,
                 content=content,
                 description=description,
                 created_at=datetime.utcnow(),
-                created_by=created_by
+                created_by=created_by,
             )
-            
+
             self.policy_versions[name].append(policy_version)
             self.active_policies[name] = policy_version
-            
+
             # Upload to OPA if using OPA engine
             if self.engine_type == PolicyEngineType.OPA:
                 await self._upload_policies_to_opa()
-            
+
             logger.info(f"Created policy: {name} (version: {version_id})")
             return version_id
 
@@ -690,11 +719,12 @@ class PolicyEngine:
             logger.error(f"Failed to create policy: {e}")
             raise PolicyViolationError(
                 message=f"Failed to create policy: {str(e)}",
-                error_code="policy_creation_failed"
+                error_code="policy_creation_failed",
             ) from e
 
-    async def update_policy(self, name: str, content: str, description: str, 
-                           updated_by: str) -> str:
+    async def update_policy(
+        self, name: str, content: str, description: str, updated_by: str
+    ) -> str:
         """
         Update an existing policy.
 
@@ -710,10 +740,9 @@ class PolicyEngine:
         try:
             if name not in self.policy_versions:
                 raise PolicyViolationError(
-                    message=f"Policy not found: {name}",
-                    error_code="policy_not_found"
+                    message=f"Policy not found: {name}", error_code="policy_not_found"
                 )
-            
+
             # Create new version
             version_id = str(uuid.uuid4())
             policy_version = PolicyVersion(
@@ -721,20 +750,20 @@ class PolicyEngine:
                 content=content,
                 description=description,
                 created_at=datetime.utcnow(),
-                created_by=updated_by
+                created_by=updated_by,
             )
-            
+
             # Deprecate old version
             if self.policy_versions[name]:
                 self.policy_versions[name][-1].is_deprecated = True
-            
+
             self.policy_versions[name].append(policy_version)
             self.active_policies[name] = policy_version
-            
+
             # Upload to OPA if using OPA engine
             if self.engine_type == PolicyEngineType.OPA:
                 await self._upload_policies_to_opa()
-            
+
             logger.info(f"Updated policy: {name} (version: {version_id})")
             return version_id
 
@@ -742,7 +771,7 @@ class PolicyEngine:
             logger.error(f"Failed to update policy: {e}")
             raise PolicyViolationError(
                 message=f"Failed to update policy: {str(e)}",
-                error_code="policy_update_failed"
+                error_code="policy_update_failed",
             ) from e
 
     async def get_policy_versions(self, name: str) -> List[PolicyVersion]:
@@ -771,18 +800,18 @@ class PolicyEngine:
         try:
             if name not in self.policy_versions:
                 return False
-            
+
             for policy_version in self.policy_versions[name]:
                 if policy_version.version == version:
                     self.active_policies[name] = policy_version
-                    
+
                     # Upload to OPA if using OPA engine
                     if self.engine_type == PolicyEngineType.OPA:
                         await self._upload_policies_to_opa()
-                    
+
                     logger.info(f"Activated policy: {name} (version: {version})")
                     return True
-            
+
             return False
 
         except Exception as e:
@@ -837,7 +866,7 @@ class PolicyEngine:
         """Get current IP whitelist and blacklist."""
         return {
             "whitelist": self.ip_whitelist.copy(),
-            "blacklist": self.ip_blacklist.copy()
+            "blacklist": self.ip_blacklist.copy(),
         }
 
     async def shutdown(self) -> None:

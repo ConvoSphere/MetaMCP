@@ -42,7 +42,7 @@ class TestAuthenticationSecurity:
                 "is_active": True,
                 "is_admin": False,
             },
-            "system"
+            "system",
         )
 
         yield
@@ -81,6 +81,7 @@ class TestAuthenticationSecurity:
 
         # Verify password works
         from passlib.context import CryptContext
+
         pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
         is_valid = pwd_context.verify("TestPassword123!", user["hashed_password"])
         assert is_valid is True

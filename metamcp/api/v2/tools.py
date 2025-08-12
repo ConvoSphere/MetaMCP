@@ -22,9 +22,11 @@ settings = get_settings()
 tools_router = APIRouter()
 security = HTTPBearer()
 
+
 # Enhanced tool models for v2
 class ToolCreateV2(BaseModel):
     """Enhanced tool creation model."""
+
     name: str = Field(..., min_length=1, max_length=255)
     description: str = Field(..., min_length=1)
     endpoint: str = Field(..., pattern=r"^https?://")
@@ -39,8 +41,10 @@ class ToolCreateV2(BaseModel):
     rate_limit: Optional[int] = None
     timeout: Optional[int] = None
 
+
 class ToolResponseV2(BaseModel):
     """Enhanced tool response model."""
+
     id: str
     name: str
     description: str
@@ -60,8 +64,10 @@ class ToolResponseV2(BaseModel):
     average_response_time: float = 0.0
     success_rate: float = 1.0
 
+
 class ToolSearchV2(BaseModel):
     """Enhanced tool search model."""
+
     query: str
     category: Optional[str] = None
     capabilities: Optional[List[str]] = None
@@ -71,21 +77,23 @@ class ToolSearchV2(BaseModel):
     limit: int = Field(default=20, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
 
+
 class ToolExecutionV2(BaseModel):
     """Enhanced tool execution model."""
+
     tool_id: str
     arguments: Dict[str, Any]
     timeout: Optional[int] = None
     priority: str = Field(default="normal", pattern="^(low|normal|high)$")
 
+
 @tools_router.post("/", response_model=ToolResponseV2)
 async def create_tool_v2(
-    tool: ToolCreateV2,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    tool: ToolCreateV2, credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """
     Enhanced tool creation endpoint.
-    
+
     Features:
     - Enhanced validation
     - Security level assessment
@@ -96,7 +104,7 @@ async def create_tool_v2(
         # Validate tool schema if provided
         if tool.schema:
             await validate_tool_schema(tool.schema)
-        
+
         # Create tool (implementation would go here)
         tool_response = ToolResponseV2(
             id="generated-id",
@@ -113,18 +121,19 @@ async def create_tool_v2(
             tags=tool.tags,
             is_active=True,
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
-        
+
         logger.info(f"Tool {tool.name} created successfully")
         return tool_response
-        
+
     except Exception as e:
         logger.error(f"Tool creation failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Failed to create tool: {str(e)}"
+            detail=f"Failed to create tool: {str(e)}",
         )
+
 
 @tools_router.get("/", response_model=List[ToolResponseV2])
 async def list_tools_v2(
@@ -133,8 +142,10 @@ async def list_tools_v2(
     tags: Optional[str] = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
-    sort_by: str = Query("name", pattern="^(name|created_at|usage_count|security_level)$"),
-    sort_order: str = Query("asc", pattern="^(asc|desc)$")
+    sort_by: str = Query(
+        "name", pattern="^(name|created_at|usage_count|security_level)$"
+    ),
+    sort_order: str = Query("asc", pattern="^(asc|desc)$"),
 ):
     """
     Enhanced tool listing endpoint with advanced filtering and sorting.
@@ -143,24 +154,25 @@ async def list_tools_v2(
         # Parse query parameters
         capabilities_list = capabilities.split(",") if capabilities else None
         tags_list = tags.split(",") if tags else None
-        
+
         # Get tools with filtering (implementation would go here)
         tools = []  # This would be populated from database
-        
+
         return tools
-        
+
     except Exception as e:
         logger.error(f"Tool listing failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to list tools"
+            detail="Failed to list tools",
         )
+
 
 @tools_router.post("/search", response_model=List[ToolResponseV2])
 async def search_tools_v2(search: ToolSearchV2):
     """
     Enhanced semantic tool search endpoint.
-    
+
     Features:
     - Semantic search
     - Multi-criteria filtering
@@ -170,15 +182,15 @@ async def search_tools_v2(search: ToolSearchV2):
     try:
         # Perform semantic search (implementation would go here)
         results = []
-        
+
         return results
-        
+
     except Exception as e:
         logger.error(f"Tool search failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Search failed"
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Search failed"
         )
+
 
 @tools_router.get("/{tool_id}", response_model=ToolResponseV2)
 async def get_tool_v2(tool_id: str):
@@ -202,27 +214,27 @@ async def get_tool_v2(tool_id: str):
             tags=["example"],
             is_active=True,
             created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            updated_at=datetime.utcnow(),
         )
-        
+
         return tool
-        
+
     except Exception as e:
         logger.error(f"Tool retrieval failed: {e}")
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Tool not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Tool not found"
         )
+
 
 @tools_router.post("/{tool_id}/execute")
 async def execute_tool_v2(
     tool_id: str,
     execution: ToolExecutionV2,
-    credentials: HTTPAuthorizationCredentials = Depends(security)
+    credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """
     Enhanced tool execution endpoint.
-    
+
     Features:
     - Priority-based execution
     - Timeout handling
@@ -236,17 +248,18 @@ async def execute_tool_v2(
             "status": "success",
             "result": {"message": "Tool executed successfully"},
             "execution_time": 0.1,
-            "timestamp": datetime.utcnow().isoformat()
+            "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
         return result
-        
+
     except Exception as e:
         logger.error(f"Tool execution failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Tool execution failed"
+            detail="Tool execution failed",
         )
+
 
 @tools_router.get("/{tool_id}/metrics")
 async def get_tool_metrics_v2(tool_id: str):
@@ -260,17 +273,18 @@ async def get_tool_metrics_v2(tool_id: str):
             "average_response_time": 0.0,
             "success_rate": 1.0,
             "error_count": 0,
-            "last_used": None
+            "last_used": None,
         }
-        
+
         return metrics
-        
+
     except Exception as e:
         logger.error(f"Tool metrics retrieval failed: {e}")
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to retrieve tool metrics"
+            detail="Failed to retrieve tool metrics",
         )
+
 
 async def validate_tool_schema(schema: Dict[str, Any]) -> bool:
     """Validate tool schema."""

@@ -13,9 +13,11 @@ FILES = {
 }
 
 VERSION_PATTERN_INIT = re.compile(r'__version__\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"')
-VERSION_PATTERN_PYPROJECT = re.compile(r'^version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"', re.MULTILINE)
-VERSION_PATTERN_K8S = re.compile(r'version:\s*v([0-9]+\.[0-9]+\.[0-9]+)')
-VERSION_PATTERN_COMPOSE = re.compile(r'APP_VERSION=([0-9]+\.[0-9]+\.[0-9]+)')
+VERSION_PATTERN_PYPROJECT = re.compile(
+    r'^version\s*=\s*"([0-9]+\.[0-9]+\.[0-9]+)"', re.MULTILINE
+)
+VERSION_PATTERN_K8S = re.compile(r"version:\s*v([0-9]+\.[0-9]+\.[0-9]+)")
+VERSION_PATTERN_COMPOSE = re.compile(r"APP_VERSION=([0-9]+\.[0-9]+\.[0-9]+)")
 
 
 def read_version() -> str:
@@ -45,15 +47,20 @@ def bump(version: str, part: str) -> str:
     return f"{major}.{minor}.{patch}"
 
 
-def replace_version_in_text(text: str, pattern: re.Pattern, new: str, repl_fmt: str) -> str:
+def replace_version_in_text(
+    text: str, pattern: re.Pattern, new: str, repl_fmt: str
+) -> str:
     def _repl(m: re.Match) -> str:
         return repl_fmt.format(old=m.group(1), new=new)
+
     return pattern.sub(_repl, text)
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Bump project version across files")
-    parser.add_argument("part", choices=["major", "minor", "patch"], help="Which part to bump")
+    parser.add_argument(
+        "part", choices=["major", "minor", "patch"], help="Which part to bump"
+    )
     args = parser.parse_args()
 
     current = read_version()
