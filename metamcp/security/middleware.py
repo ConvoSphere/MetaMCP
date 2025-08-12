@@ -37,23 +37,22 @@ class SecurityMiddleware(BaseHTTPMiddleware):
     def __init__(self, app):
         super().__init__(app)
         self.settings = get_settings()
-        
+
         # Compile regex patterns for efficiency
         self.sql_injection_pattern = re.compile(
             r"(\b(union|select|insert|update|delete|drop|create|alter|exec|execute|script)\b)",
-            re.IGNORECASE
+            re.IGNORECASE,
         )
         self.xss_pattern = re.compile(
             r"(<script|javascript:|<iframe|<object|<embed|<form|on\w+\s*=)",
-            re.IGNORECASE
+            re.IGNORECASE,
         )
         self.path_traversal_pattern = re.compile(
-            r"(\.\./|\.\.\\|%2e%2e%2f|%2e%2e%5c)",
-            re.IGNORECASE
+            r"(\.\./|\.\.\\|%2e%2e%2f|%2e%2e%5c)", re.IGNORECASE
         )
         self.command_injection_pattern = re.compile(
             r"(\b(cat|rm|del|wget|curl|nc|netcat|bash|sh|cmd|powershell)\b)",
-            re.IGNORECASE
+            re.IGNORECASE,
         )
 
     async def dispatch(self, request: Request, call_next):
@@ -62,15 +61,13 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             # Validate request path
             if not self._validate_path(request.url.path):
                 return JSONResponse(
-                    status_code=400,
-                    content={"error": "Invalid request path"}
+                    status_code=400, content={"error": "Invalid request path"}
                 )
 
             # Validate request headers
             if not self._validate_headers(request.headers):
                 return JSONResponse(
-                    status_code=400,
-                    content={"error": "Invalid request headers"}
+                    status_code=400, content={"error": "Invalid request headers"}
                 )
 
             # Validate request body for POST/PUT requests
@@ -79,46 +76,46 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 if not body_validation["valid"]:
                     return JSONResponse(
                         status_code=400,
-                        content={"error": f"Invalid request body: {body_validation['reason']}"}
+                        content={
+                            "error": f"Invalid request body: {body_validation['reason']}"
+                        },
                     )
 
             # Validate query parameters
             if not self._validate_query_params(request.query_params):
                 return JSONResponse(
-                    status_code=400,
-                    content={"error": "Invalid query parameters"}
+                    status_code=400, content={"error": "Invalid query parameters"}
                 )
 
             # Process request
             response = await call_next(request)
-            
+
             # Add security headers (stricter in production)
             response = self._add_security_headers(response)
-            
+
             return response
 
         except Exception as e:
             logger.error(f"Security middleware error: {e}")
             return JSONResponse(
-                status_code=500,
-                content={"error": "Internal server error"}
+                status_code=500, content={"error": "Internal server error"}
             )
 
     def _validate_path(self, path: str) -> bool:
         """Validate request path for path traversal attempts."""
         if not path:
             return False
-            
+
         # Check for path traversal attempts
         if self.path_traversal_pattern.search(path):
             logger.warning(f"Path traversal attempt detected: {path}")
             return False
-            
+
         # Check for null bytes
         if "\x00" in path:
             logger.warning(f"Null byte detected in path: {path}")
             return False
-            
+
         return True
 
     def _validate_headers(self, headers) -> bool:
@@ -128,16 +125,18 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             "x-forwarded-for",
             "x-real-ip",
             "x-forwarded-host",
-            "x-forwarded-proto"
+            "x-forwarded-proto",
         ]
-        
+
         for header_name in suspicious_headers:
             if header_name in headers:
                 header_value = headers[header_name]
                 if self._contains_malicious_content(header_value):
-                    logger.warning(f"Malicious content in header {header_name}: {header_value}")
+                    logger.warning(
+                        f"Malicious content in header {header_name}: {header_value}"
+                    )
                     return False
-                    
+
         return True
 
     async def _validate_request_body(self, request: Request) -> Dict[str, Any]:
@@ -145,7 +144,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         try:
             # Get content type
             content_type = request.headers.get("content-type", "")
-            
+
             if "application/json" in content_type:
                 # Validate JSON body
                 body = await request.json()
@@ -163,7 +162,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 body = await request.body()
                 body_text = body.decode("utf-8", errors="ignore")
                 return self._validate_text_body(body_text)
-                
+
         except Exception as e:
             logger.error(f"Error validating request body: {e}")
             return {"valid": False, "reason": "Invalid request body format"}
@@ -185,7 +184,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             # Validate key
             if not self._validate_string(key):
                 return {"valid": False, "reason": f"Invalid key: {key}"}
-            
+
             # Validate value
             if isinstance(value, dict):
                 result = self._validate_dict(value)
@@ -199,7 +198,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 result = self._validate_primitive(value)
                 if not result["valid"]:
                     return result
-                    
+
         return {"valid": True}
 
     def _validate_list(self, data: List[Any]) -> Dict[str, Any]:
@@ -211,10 +210,10 @@ class SecurityMiddleware(BaseHTTPMiddleware):
                 result = self._validate_list(item)
             else:
                 result = self._validate_primitive(item)
-                
+
             if not result["valid"]:
                 return result
-                
+
         return {"valid": True}
 
     def _validate_primitive(self, value: Any) -> Dict[str, Any]:
@@ -231,42 +230,42 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             pass
         else:
             return {"valid": False, "reason": f"Unsupported value type: {type(value)}"}
-            
+
         return {"valid": True}
 
     def _validate_string(self, value: str) -> bool:
         """Validate string for malicious content."""
         if not isinstance(value, str):
             return False
-            
+
         # Check for SQL injection
         if self.sql_injection_pattern.search(value):
             logger.warning(f"SQL injection attempt detected: {value}")
             return False
-            
+
         # Check for XSS
         if self.xss_pattern.search(value):
             logger.warning(f"XSS attempt detected: {value}")
             return False
-            
+
         # Check for command injection
         if self.command_injection_pattern.search(value):
             logger.warning(f"Command injection attempt detected: {value}")
             return False
-            
+
         # Check for null bytes
         if "\x00" in value:
             logger.warning(f"Null byte detected in string: {value}")
             return False
-            
+
         return True
 
     def _validate_number(self, value: float) -> bool:
         """Validate numeric values."""
         # Check for NaN or infinity
-        if not (float('-inf') < value < float('inf')):
+        if not (float("-inf") < value < float("inf")):
             return False
-            
+
         return True
 
     def _validate_form_data(self, form_data) -> Dict[str, Any]:
@@ -274,17 +273,17 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         for key, value in form_data.items():
             if not self._validate_string(str(key)):
                 return {"valid": False, "reason": f"Invalid form key: {key}"}
-                
+
             if not self._validate_string(str(value)):
                 return {"valid": False, "reason": f"Invalid form value: {value}"}
-                
+
         return {"valid": True}
 
     def _validate_text_body(self, text: str) -> Dict[str, Any]:
         """Validate text body."""
         if not self._validate_string(text):
             return {"valid": False, "reason": "Invalid text content"}
-            
+
         return {"valid": True}
 
     def _validate_query_params(self, query_params) -> bool:
@@ -294,25 +293,25 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             if not self._validate_string(key):
                 logger.warning(f"Invalid query parameter key: {key}")
                 return False
-                
+
             # Validate value
             if not self._validate_string(value):
                 logger.warning(f"Invalid query parameter value: {value}")
                 return False
-                
+
         return True
 
     def _contains_malicious_content(self, value: str) -> bool:
         """Check if value contains malicious content."""
         if not isinstance(value, str):
             return False
-            
+
         return (
-            self.sql_injection_pattern.search(value) or
-            self.xss_pattern.search(value) or
-            self.path_traversal_pattern.search(value) or
-            self.command_injection_pattern.search(value) or
-            "\x00" in value
+            self.sql_injection_pattern.search(value)
+            or self.xss_pattern.search(value)
+            or self.path_traversal_pattern.search(value)
+            or self.command_injection_pattern.search(value)
+            or "\x00" in value
         )
 
     def _add_security_headers(self, response: Response) -> Response:
@@ -321,23 +320,27 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-        response.headers["Permissions-Policy"] = "geolocation=(), microphone=(), camera=()"
-        
+        response.headers["Permissions-Policy"] = (
+            "geolocation=(), microphone=(), camera=()"
+        )
+
         # Only set HSTS if not in debug (assumes HTTPS in prod behind LB)
         if not self.settings.debug:
-            response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-        
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains"
+            )
+
         # Harden CSP in production; allow unsafe-inline/eval only in debug
         if self.settings.debug:
-            csp = ("default-src 'self'; "
-                   "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
-                   "style-src 'self' 'unsafe-inline';")
+            csp = (
+                "default-src 'self'; "
+                "script-src 'self' 'unsafe-inline' 'unsafe-eval'; "
+                "style-src 'self' 'unsafe-inline';"
+            )
         else:
-            csp = ("default-src 'self'; "
-                   "script-src 'self'; "
-                   "style-src 'self'; ")
+            csp = "default-src 'self'; " "script-src 'self'; " "style-src 'self'; "
         response.headers["Content-Security-Policy"] = csp
-        
+
         return response
 
 
@@ -350,7 +353,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.settings = get_settings()
         self.request_counts: dict[str, list[int]] = {}
-        
+
         # Lazy Redis client for distributed rate limiting
         self._redis: AsyncRedis | None = None
         if self.settings.rate_limit_use_redis and AsyncRedis is not None:
@@ -368,16 +371,16 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         """Process request through rate limiting middleware."""
         client_ip = self._get_client_ip(request)
-        
+
         # Check rate limit (Redis preferred)
         allowed, limit, remaining, reset = await self._check_rate_limit(client_ip)
         if not allowed:
             return JSONResponse(
                 status_code=429,
                 headers=self._rate_limit_headers(limit, remaining, reset),
-                content={"error": "Rate limit exceeded"}
+                content={"error": "Rate limit exceeded"},
             )
-            
+
         response = await call_next(request)
         # Attach rate limit headers on successful responses too
         for k, v in self._rate_limit_headers(limit, remaining, reset).items():
@@ -390,11 +393,11 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         forwarded_for = request.headers.get("x-forwarded-for")
         if forwarded_for:
             return forwarded_for.split(",")[0].strip()
-            
+
         real_ip = request.headers.get("x-real-ip")
         if real_ip:
             return real_ip
-            
+
         return request.client.host if request.client else "unknown"
 
     async def _check_rate_limit(self, client_ip: str) -> tuple[bool, int, int, int]:
@@ -435,7 +438,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         remaining = max(0, limit - len(self.request_counts[client_ip]))
         return (True, limit, remaining, reset)
 
-    def _rate_limit_headers(self, limit: int, remaining: int, reset: int) -> dict[str, str]:
+    def _rate_limit_headers(
+        self, limit: int, remaining: int, reset: int
+    ) -> dict[str, str]:
         return {
             "X-RateLimit-Limit": str(limit),
             "X-RateLimit-Remaining": str(remaining),

@@ -28,7 +28,7 @@ health_router = APIRouter()
 async def health_check() -> Dict[str, Any]:
     """
     Basic health check endpoint.
-    
+
     Returns:
         Health status information
     """
@@ -40,14 +40,14 @@ async def health_check() -> Dict[str, Any]:
             "version": settings.app_version,
             "environment": settings.environment,
         }
-        
+
         # Add performance metrics if available
         performance_summary = performance_monitor.get_performance_summary()
         if performance_summary:
             health_status["performance"] = performance_summary
-        
+
         return health_status
-        
+
     except Exception as e:
         logger.error(f"Health check failed: {e}")
         raise HTTPException(status_code=503, detail="Service unhealthy")
@@ -57,7 +57,7 @@ async def health_check() -> Dict[str, Any]:
 async def detailed_health_check() -> Dict[str, Any]:
     """
     Detailed health check with all system components.
-    
+
     Returns:
         Detailed health status information
     """
@@ -69,62 +69,79 @@ async def detailed_health_check() -> Dict[str, Any]:
             "environment": settings.environment,
             "components": {},
         }
-        
+
         # Check database
         try:
             from ..utils.database import get_database_session
+
             async with get_database_session() as session:
                 await session.execute("SELECT 1")
             health_status["components"]["database"] = {"status": "healthy"}
         except Exception as e:
-            health_status["components"]["database"] = {"status": "unhealthy", "error": str(e)}
+            health_status["components"]["database"] = {
+                "status": "unhealthy",
+                "error": str(e),
+            }
             health_status["status"] = "degraded"
-        
+
         # Check cache
         try:
             from ..cache.redis_cache import get_cache_manager
+
             cache = get_cache_manager()
             await cache.set("health_check", "ok", ttl=60)
             await cache.delete("health_check")
             health_status["components"]["cache"] = {"status": "healthy"}
         except Exception as e:
-            health_status["components"]["cache"] = {"status": "unhealthy", "error": str(e)}
+            health_status["components"]["cache"] = {
+                "status": "unhealthy",
+                "error": str(e),
+            }
             health_status["status"] = "degraded"
-        
+
         # Check vector database
         try:
             from ..vector.weaviate_client import get_weaviate_client
+
             weaviate = get_weaviate_client()
             # Simple ping check
             health_status["components"]["vector_database"] = {"status": "healthy"}
         except Exception as e:
-            health_status["components"]["vector_database"] = {"status": "unhealthy", "error": str(e)}
+            health_status["components"]["vector_database"] = {
+                "status": "unhealthy",
+                "error": str(e),
+            }
             health_status["status"] = "degraded"
-        
+
         # Add performance metrics
         performance_summary = performance_monitor.get_performance_summary()
         if performance_summary:
             health_status["performance"] = performance_summary
-        
+
         # Add circuit breaker status
         circuit_breaker_metrics = circuit_breaker_manager.get_all_metrics()
         if circuit_breaker_metrics:
             health_status["circuit_breakers"] = circuit_breaker_metrics
-        
+
         # Add service discovery status
         try:
             services = await service_discovery.get_all_services(healthy_only=False)
             health_status["service_discovery"] = {
                 "status": "healthy",
                 "total_services": len(services),
-                "healthy_services": len([s for s in services if s.status.value == "healthy"]),
+                "healthy_services": len(
+                    [s for s in services if s.status.value == "healthy"]
+                ),
             }
         except Exception as e:
-            health_status["service_discovery"] = {"status": "unhealthy", "error": str(e)}
+            health_status["service_discovery"] = {
+                "status": "unhealthy",
+                "error": str(e),
+            }
             health_status["status"] = "degraded"
-        
+
         return health_status
-        
+
     except Exception as e:
         logger.error(f"Detailed health check failed: {e}")
         raise HTTPException(status_code=503, detail="Service unhealthy")
@@ -134,7 +151,7 @@ async def detailed_health_check() -> Dict[str, Any]:
 async def readiness_check() -> Dict[str, Any]:
     """
     Readiness check for Kubernetes.
-    
+
     Returns:
         Readiness status
     """
@@ -142,26 +159,28 @@ async def readiness_check() -> Dict[str, Any]:
         # Check if all critical components are ready
         ready = True
         errors = []
-        
+
         # Check database
         try:
             from ..utils.database import get_database_session
+
             async with get_database_session() as session:
                 await session.execute("SELECT 1")
         except Exception as e:
             ready = False
             errors.append(f"Database not ready: {e}")
-        
+
         # Check cache
         try:
             from ..cache.redis_cache import get_cache_manager
+
             cache = get_cache_manager()
             await cache.set("ready_check", "ok", ttl=60)
             await cache.delete("ready_check")
         except Exception as e:
             ready = False
             errors.append(f"Cache not ready: {e}")
-        
+
         if ready:
             return {
                 "status": "ready",
@@ -169,10 +188,9 @@ async def readiness_check() -> Dict[str, Any]:
             }
         else:
             raise HTTPException(
-                status_code=503,
-                detail={"status": "not_ready", "errors": errors}
+                status_code=503, detail={"status": "not_ready", "errors": errors}
             )
-            
+
     except HTTPException:
         raise
     except Exception as e:
@@ -184,7 +202,7 @@ async def readiness_check() -> Dict[str, Any]:
 async def liveness_check() -> Dict[str, Any]:
     """
     Liveness check for Kubernetes.
-    
+
     Returns:
         Liveness status
     """
@@ -199,7 +217,7 @@ async def liveness_check() -> Dict[str, Any]:
 async def get_metrics() -> Dict[str, Any]:
     """
     Get system metrics.
-    
+
     Returns:
         System metrics
     """
@@ -210,9 +228,9 @@ async def get_metrics() -> Dict[str, Any]:
             "circuit_breakers": circuit_breaker_manager.get_all_metrics(),
             "service_discovery": await service_discovery.discover_services(),
         }
-        
+
         return metrics
-        
+
     except Exception as e:
         logger.error(f"Failed to get metrics: {e}")
         raise HTTPException(status_code=500, detail="Failed to get metrics")
@@ -222,7 +240,7 @@ async def get_metrics() -> Dict[str, Any]:
 async def get_performance_metrics() -> Dict[str, Any]:
     """
     Get performance metrics.
-    
+
     Returns:
         Performance metrics
     """
@@ -237,10 +255,10 @@ async def get_performance_metrics() -> Dict[str, Any]:
 async def get_performance_analytics(hours: int = 24) -> Dict[str, Any]:
     """
     Get performance analytics.
-    
+
     Args:
         hours: Number of hours to analyze
-        
+
     Returns:
         Performance analytics
     """
@@ -248,14 +266,16 @@ async def get_performance_analytics(hours: int = 24) -> Dict[str, Any]:
         return performance_monitor.get_request_analytics(hours)
     except Exception as e:
         logger.error(f"Failed to get performance analytics: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get performance analytics")
+        raise HTTPException(
+            status_code=500, detail="Failed to get performance analytics"
+        )
 
 
 @health_router.get("/metrics/circuit-breakers")
 async def get_circuit_breaker_metrics() -> Dict[str, Any]:
     """
     Get circuit breaker metrics.
-    
+
     Returns:
         Circuit breaker metrics
     """
@@ -263,14 +283,16 @@ async def get_circuit_breaker_metrics() -> Dict[str, Any]:
         return circuit_breaker_manager.get_all_metrics()
     except Exception as e:
         logger.error(f"Failed to get circuit breaker metrics: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get circuit breaker metrics")
+        raise HTTPException(
+            status_code=500, detail="Failed to get circuit breaker metrics"
+        )
 
 
 @health_router.post("/metrics/circuit-breakers/reset")
 async def reset_circuit_breakers() -> Dict[str, Any]:
     """
     Reset all circuit breakers.
-    
+
     Returns:
         Reset status
     """
@@ -287,14 +309,16 @@ async def reset_circuit_breakers() -> Dict[str, Any]:
 
 
 @health_router.get("/services")
-async def get_services(service_type: Optional[str] = None, healthy_only: bool = True) -> Dict[str, Any]:
+async def get_services(
+    service_type: Optional[str] = None, healthy_only: bool = True
+) -> Dict[str, Any]:
     """
     Get registered services.
-    
+
     Args:
         service_type: Filter by service type
         healthy_only: Only return healthy services
-        
+
     Returns:
         Service information
     """
@@ -303,12 +327,16 @@ async def get_services(service_type: Optional[str] = None, healthy_only: bool = 
             # Convert string to ServiceType enum
             try:
                 service_type_enum = ServiceType(service_type)
-                services = await service_discovery.get_services_by_type(service_type_enum, healthy_only)
+                services = await service_discovery.get_services_by_type(
+                    service_type_enum, healthy_only
+                )
             except ValueError:
-                raise HTTPException(status_code=400, detail=f"Invalid service type: {service_type}")
+                raise HTTPException(
+                    status_code=400, detail=f"Invalid service type: {service_type}"
+                )
         else:
             services = await service_discovery.get_all_services(healthy_only)
-        
+
         return {
             "services": [
                 {
@@ -322,7 +350,9 @@ async def get_services(service_type: Optional[str] = None, healthy_only: bool = 
                     "health_check_url": s.health_check_url,
                     "metadata": s.metadata,
                     "tags": s.tags,
-                    "last_heartbeat": s.last_heartbeat.isoformat() if s.last_heartbeat else None,
+                    "last_heartbeat": (
+                        s.last_heartbeat.isoformat() if s.last_heartbeat else None
+                    ),
                     "created_at": s.created_at.isoformat() if s.created_at else None,
                     "updated_at": s.updated_at.isoformat() if s.updated_at else None,
                 }
@@ -332,7 +362,7 @@ async def get_services(service_type: Optional[str] = None, healthy_only: bool = 
             "healthy": len([s for s in services if s.status.value == "healthy"]),
             "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -344,19 +374,19 @@ async def get_services(service_type: Optional[str] = None, healthy_only: bool = 
 async def get_service(service_id: str) -> Dict[str, Any]:
     """
     Get specific service information.
-    
+
     Args:
         service_id: Service identifier
-        
+
     Returns:
         Service information
     """
     try:
         service = await service_discovery.get_service(service_id)
-        
+
         if not service:
             raise HTTPException(status_code=404, detail="Service not found")
-        
+
         return {
             "id": service.id,
             "name": service.name,
@@ -368,11 +398,17 @@ async def get_service(service_id: str) -> Dict[str, Any]:
             "health_check_url": service.health_check_url,
             "metadata": service.metadata,
             "tags": service.tags,
-            "last_heartbeat": service.last_heartbeat.isoformat() if service.last_heartbeat else None,
-            "created_at": service.created_at.isoformat() if service.created_at else None,
-            "updated_at": service.updated_at.isoformat() if service.updated_at else None,
+            "last_heartbeat": (
+                service.last_heartbeat.isoformat() if service.last_heartbeat else None
+            ),
+            "created_at": (
+                service.created_at.isoformat() if service.created_at else None
+            ),
+            "updated_at": (
+                service.updated_at.isoformat() if service.updated_at else None
+            ),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -381,14 +417,16 @@ async def get_service(service_id: str) -> Dict[str, Any]:
 
 
 @health_router.get("/services/types/{service_type}")
-async def get_services_by_type(service_type: str, healthy_only: bool = True) -> Dict[str, Any]:
+async def get_services_by_type(
+    service_type: str, healthy_only: bool = True
+) -> Dict[str, Any]:
     """
     Get services by type.
-    
+
     Args:
         service_type: Service type
         healthy_only: Only return healthy services
-        
+
     Returns:
         Services of specified type
     """
@@ -397,10 +435,14 @@ async def get_services_by_type(service_type: str, healthy_only: bool = True) -> 
         try:
             service_type_enum = ServiceType(service_type)
         except ValueError:
-            raise HTTPException(status_code=400, detail=f"Invalid service type: {service_type}")
-        
-        services = await service_discovery.get_services_by_type(service_type_enum, healthy_only)
-        
+            raise HTTPException(
+                status_code=400, detail=f"Invalid service type: {service_type}"
+            )
+
+        services = await service_discovery.get_services_by_type(
+            service_type_enum, healthy_only
+        )
+
         return {
             "service_type": service_type,
             "services": [
@@ -421,7 +463,7 @@ async def get_services_by_type(service_type: str, healthy_only: bool = True) -> 
             "healthy": len([s for s in services if s.status.value == "healthy"]),
             "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -433,17 +475,17 @@ async def get_services_by_type(service_type: str, healthy_only: bool = True) -> 
 async def get_services_by_tag(tag: str, healthy_only: bool = True) -> Dict[str, Any]:
     """
     Get services by tag.
-    
+
     Args:
         tag: Service tag
         healthy_only: Only return healthy services
-        
+
     Returns:
         Services with specified tag
     """
     try:
         services = await service_discovery.get_services_by_tag(tag, healthy_only)
-        
+
         return {
             "tag": tag,
             "services": [
@@ -465,7 +507,7 @@ async def get_services_by_tag(tag: str, healthy_only: bool = True) -> Dict[str, 
             "healthy": len([s for s in services if s.status.value == "healthy"]),
             "timestamp": datetime.utcnow().isoformat(),
         }
-        
+
     except Exception as e:
         logger.error(f"Failed to get services by tag {tag}: {e}")
         raise HTTPException(status_code=500, detail="Failed to get services by tag")
@@ -475,7 +517,7 @@ async def get_services_by_tag(tag: str, healthy_only: bool = True) -> Dict[str, 
 async def get_service_discovery_info() -> Dict[str, Any]:
     """
     Get service discovery information.
-    
+
     Returns:
         Service discovery information
     """
@@ -483,4 +525,6 @@ async def get_service_discovery_info() -> Dict[str, Any]:
         return await service_discovery.discover_services()
     except Exception as e:
         logger.error(f"Failed to get service discovery info: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get service discovery info")
+        raise HTTPException(
+            status_code=500, detail="Failed to get service discovery info"
+        )

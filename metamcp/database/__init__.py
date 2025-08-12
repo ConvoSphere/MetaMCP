@@ -9,7 +9,7 @@ from .connection import get_database_url, create_engine, get_session
 
 __all__ = [
     "Base",
-    "User", 
+    "User",
     "Tool",
     "ExecutionHistory",
     "SearchHistory",

@@ -23,7 +23,7 @@ def get_database_url() -> str:
 def create_engine():
     """Create database engine."""
     database_url = get_database_url()
-    
+
     if database_url.startswith("sqlite"):
         # SQLite configuration
         engine = create_engine(
@@ -41,14 +41,14 @@ def create_engine():
             pool_recycle=settings.database_pool_recycle,
             echo=settings.debug,
         )
-    
+
     return engine
 
 
 def create_async_engine_instance():
     """Create async database engine."""
     database_url = get_database_url()
-    
+
     if database_url.startswith("sqlite"):
         # Convert to async SQLite URL
         async_url = database_url.replace("sqlite:///", "sqlite+aiosqlite:///")
@@ -63,7 +63,7 @@ def create_async_engine_instance():
             pool_timeout=settings.database_pool_timeout,
             pool_recycle=settings.database_pool_recycle,
         )
-    
+
     return engine
 
 

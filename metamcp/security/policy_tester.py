@@ -22,6 +22,7 @@ logger = get_logger(__name__)
 @dataclass
 class PolicyTestCase:
     """Policy test case definition."""
+
     name: str
     description: str
     input_data: Dict[str, Any]
@@ -33,6 +34,7 @@ class PolicyTestCase:
 @dataclass
 class PolicyTestResult:
     """Policy test result."""
+
     test_case: PolicyTestCase
     actual_result: bool
     actual_reason: Optional[str] = None
@@ -44,6 +46,7 @@ class PolicyTestResult:
 @dataclass
 class PolicyCoverage:
     """Policy coverage information."""
+
     policy_name: str
     total_rules: int
     covered_rules: int
@@ -70,7 +73,9 @@ class PolicyTester:
         self.test_cases: Dict[str, List[PolicyTestCase]] = {}
         self.test_results: List[PolicyTestResult] = []
 
-    async def validate_policy_syntax(self, policy_content: str) -> Tuple[bool, List[str]]:
+    async def validate_policy_syntax(
+        self, policy_content: str
+    ) -> Tuple[bool, List[str]]:
         """
         Validate policy syntax.
 
@@ -81,7 +86,7 @@ class PolicyTester:
             Tuple of (is_valid, error_messages)
         """
         errors = []
-        
+
         try:
             # Basic Rego syntax validation
             if not policy_content.strip():
@@ -89,26 +94,30 @@ class PolicyTester:
                 return False, errors
 
             # Check for required package declaration
-            if not re.search(r'package\s+\w+', policy_content):
+            if not re.search(r"package\s+\w+", policy_content):
                 errors.append("Missing package declaration")
 
             # Check for basic Rego structure
-            if not re.search(r'default\s+\w+\s*=', policy_content) and not re.search(r'\w+\s*\{', policy_content):
+            if not re.search(r"default\s+\w+\s*=", policy_content) and not re.search(
+                r"\w+\s*\{", policy_content
+            ):
                 errors.append("Missing rule definitions")
 
             # Check for balanced braces
-            brace_count = policy_content.count('{') - policy_content.count('}')
+            brace_count = policy_content.count("{") - policy_content.count("}")
             if brace_count != 0:
-                errors.append(f"Unbalanced braces: {brace_count} extra {'{' if brace_count > 0 else '}'}")
+                errors.append(
+                    f"Unbalanced braces: {brace_count} extra {'{' if brace_count > 0 else '}'}"
+                )
 
             # Check for common syntax errors
-            if re.search(r'[a-zA-Z_]\w*\s*\{[^}]*$', policy_content, re.MULTILINE):
+            if re.search(r"[a-zA-Z_]\w*\s*\{[^}]*$", policy_content, re.MULTILINE):
                 errors.append("Unclosed rule definition")
 
             # Validate input references
-            input_refs = re.findall(r'input\.\w+', policy_content)
+            input_refs = re.findall(r"input\.\w+", policy_content)
             for ref in input_refs:
-                if not re.match(r'input\.\w+(\[\w+\])?(\.[\w\[\]]+)*', ref):
+                if not re.match(r"input\.\w+(\[\w+\])?(\.[\w\[\]]+)*", ref):
                     errors.append(f"Invalid input reference: {ref}")
 
             return len(errors) == 0, errors
@@ -127,13 +136,13 @@ class PolicyTester:
         """
         if policy_name not in self.test_cases:
             self.test_cases[policy_name] = []
-        
+
         self.test_cases[policy_name].append(test_case)
         logger.info(f"Added test case '{test_case.name}' for policy '{policy_name}'")
 
     async def add_predefined_test_cases(self) -> None:
         """Add predefined test cases for common scenarios."""
-        
+
         # Tool access test cases
         tool_access_tests = [
             PolicyTestCase(
@@ -142,10 +151,10 @@ class PolicyTester:
                 input_data={
                     "user": {"id": "user1", "role": "user"},
                     "resource": "tool:calculator",
-                    "action": "read"
+                    "action": "read",
                 },
                 expected_result=True,
-                tags=["tool_access", "positive"]
+                tags=["tool_access", "positive"],
             ),
             PolicyTestCase(
                 name="user_cannot_manage_tool",
@@ -153,10 +162,10 @@ class PolicyTester:
                 input_data={
                     "user": {"id": "user1", "role": "user"},
                     "resource": "tool:calculator",
-                    "action": "manage"
+                    "action": "manage",
                 },
                 expected_result=False,
-                tags=["tool_access", "negative"]
+                tags=["tool_access", "negative"],
             ),
             PolicyTestCase(
                 name="admin_can_manage_tool",
@@ -164,21 +173,25 @@ class PolicyTester:
                 input_data={
                     "user": {"id": "admin1", "role": "admin"},
                     "resource": "tool:calculator",
-                    "action": "manage"
+                    "action": "manage",
                 },
                 expected_result=True,
-                tags=["tool_access", "positive", "admin"]
+                tags=["tool_access", "positive", "admin"],
             ),
             PolicyTestCase(
                 name="user_can_execute_tool_with_permission",
                 description="User with tool_execute permission can execute tools",
                 input_data={
-                    "user": {"id": "user1", "role": "user", "permissions": ["tool_execute"]},
+                    "user": {
+                        "id": "user1",
+                        "role": "user",
+                        "permissions": ["tool_execute"],
+                    },
                     "resource": "tool:calculator",
-                    "action": "execute"
+                    "action": "execute",
                 },
                 expected_result=True,
-                tags=["tool_access", "positive", "permissions"]
+                tags=["tool_access", "positive", "permissions"],
             ),
             PolicyTestCase(
                 name="user_cannot_execute_tool_without_permission",
@@ -186,11 +199,11 @@ class PolicyTester:
                 input_data={
                     "user": {"id": "user1", "role": "user", "permissions": []},
                     "resource": "tool:calculator",
-                    "action": "execute"
+                    "action": "execute",
                 },
                 expected_result=False,
-                tags=["tool_access", "negative", "permissions"]
-            )
+                tags=["tool_access", "negative", "permissions"],
+            ),
         ]
 
         for test_case in tool_access_tests:
@@ -204,10 +217,10 @@ class PolicyTester:
                 input_data={
                     "request_count": 50,
                     "limit": 100,
-                    "window_start": datetime.utcnow().timestamp()
+                    "window_start": datetime.utcnow().timestamp(),
                 },
                 expected_result=True,
-                tags=["rate_limiting", "positive"]
+                tags=["rate_limiting", "positive"],
             ),
             PolicyTestCase(
                 name="rate_limit_exceeded",
@@ -215,11 +228,11 @@ class PolicyTester:
                 input_data={
                     "request_count": 150,
                     "limit": 100,
-                    "window_start": datetime.utcnow().timestamp()
+                    "window_start": datetime.utcnow().timestamp(),
                 },
                 expected_result=False,
-                tags=["rate_limiting", "negative"]
-            )
+                tags=["rate_limiting", "negative"],
+            ),
         ]
 
         for test_case in rate_limiting_tests:
@@ -233,10 +246,10 @@ class PolicyTester:
                 input_data={
                     "user": {"id": "user1", "role": "user"},
                     "resource": "data:public:config",
-                    "action": "read"
+                    "action": "read",
                 },
                 expected_result=True,
-                tags=["data_access", "positive"]
+                tags=["data_access", "positive"],
             ),
             PolicyTestCase(
                 name="user_can_read_own_data",
@@ -245,10 +258,10 @@ class PolicyTester:
                     "user": {"id": "user1", "role": "user"},
                     "resource": "data:user:user1:profile",
                     "action": "read",
-                    "resource_user_id": "user1"
+                    "resource_user_id": "user1",
                 },
                 expected_result=True,
-                tags=["data_access", "positive"]
+                tags=["data_access", "positive"],
             ),
             PolicyTestCase(
                 name="user_cannot_read_other_user_data",
@@ -257,23 +270,27 @@ class PolicyTester:
                     "user": {"id": "user1", "role": "user"},
                     "resource": "data:user:user2:profile",
                     "action": "read",
-                    "resource_user_id": "user2"
+                    "resource_user_id": "user2",
                 },
                 expected_result=False,
-                tags=["data_access", "negative"]
+                tags=["data_access", "negative"],
             ),
             PolicyTestCase(
                 name="user_can_write_own_data_with_permission",
                 description="User with data_write permission can write their own data",
                 input_data={
-                    "user": {"id": "user1", "role": "user", "permissions": ["data_write"]},
+                    "user": {
+                        "id": "user1",
+                        "role": "user",
+                        "permissions": ["data_write"],
+                    },
                     "resource": "data:user:user1:profile",
                     "action": "write",
-                    "resource_user_id": "user1"
+                    "resource_user_id": "user1",
                 },
                 expected_result=True,
-                tags=["data_access", "positive", "permissions"]
-            )
+                tags=["data_access", "positive", "permissions"],
+            ),
         ]
 
         for test_case in data_access_tests:
@@ -281,7 +298,9 @@ class PolicyTester:
 
         logger.info("Added predefined test cases")
 
-    async def run_test_case(self, test_case: PolicyTestCase, policy_name: str) -> PolicyTestResult:
+    async def run_test_case(
+        self, test_case: PolicyTestCase, policy_name: str
+    ) -> PolicyTestResult:
         """
         Run a single test case.
 
@@ -293,48 +312,48 @@ class PolicyTester:
             Test result
         """
         import time
-        
+
         start_time = time.time()
-        
+
         try:
             # Extract user, resource, and action from input data
             user_id = test_case.input_data.get("user", {}).get("id", "anonymous")
             resource = test_case.input_data.get("resource", "")
             action = test_case.input_data.get("action", "")
-            
+
             # Create context from input data
-            context = {k: v for k, v in test_case.input_data.items() 
-                      if k not in ["user", "resource", "action"]}
-            
+            context = {
+                k: v
+                for k, v in test_case.input_data.items()
+                if k not in ["user", "resource", "action"]
+            }
+
             # Run the policy check
             actual_result = await self.policy_engine.check_access(
-                user_id=user_id,
-                resource=resource,
-                action=action,
-                context=context
+                user_id=user_id, resource=resource, action=action, context=context
             )
-            
+
             execution_time = time.time() - start_time
-            
+
             # Determine if test passed
             passed = actual_result == test_case.expected_result
-            
+
             return PolicyTestResult(
                 test_case=test_case,
                 actual_result=actual_result,
                 passed=passed,
-                execution_time=execution_time
+                execution_time=execution_time,
             )
 
         except Exception as e:
             execution_time = time.time() - start_time
-            
+
             return PolicyTestResult(
                 test_case=test_case,
                 actual_result=False,
                 passed=False,
                 execution_time=execution_time,
-                error_message=str(e)
+                error_message=str(e),
             )
 
     async def run_policy_tests(self, policy_name: str) -> List[PolicyTestResult]:
@@ -352,7 +371,9 @@ class PolicyTester:
             return []
 
         results = []
-        logger.info(f"Running {len(self.test_cases[policy_name])} test cases for policy: {policy_name}")
+        logger.info(
+            f"Running {len(self.test_cases[policy_name])} test cases for policy: {policy_name}"
+        )
 
         for test_case in self.test_cases[policy_name]:
             result = await self.run_test_case(test_case, policy_name)
@@ -369,14 +390,16 @@ class PolicyTester:
             Dictionary mapping policy names to test results
         """
         all_results = {}
-        
+
         for policy_name in self.test_cases.keys():
             results = await self.run_policy_tests(policy_name)
             all_results[policy_name] = results
 
         return all_results
 
-    async def generate_test_report(self, results: List[PolicyTestResult]) -> Dict[str, Any]:
+    async def generate_test_report(
+        self, results: List[PolicyTestResult]
+    ) -> Dict[str, Any]:
         """
         Generate a test report from test results.
 
@@ -389,11 +412,13 @@ class PolicyTester:
         total_tests = len(results)
         passed_tests = sum(1 for r in results if r.passed)
         failed_tests = total_tests - passed_tests
-        
+
         # Group by policy
         policy_results = {}
         for result in results:
-            policy_name = result.test_case.name.split('_')[0]  # Extract policy name from test name
+            policy_name = result.test_case.name.split("_")[
+                0
+            ]  # Extract policy name from test name
             if policy_name not in policy_results:
                 policy_results[policy_name] = []
             policy_results[policy_name].append(result)
@@ -406,13 +431,15 @@ class PolicyTester:
                 "total_tests": total_tests,
                 "passed_tests": passed_tests,
                 "failed_tests": failed_tests,
-                "success_rate": (passed_tests / total_tests * 100) if total_tests > 0 else 0,
-                "execution_time": sum(r.execution_time for r in results)
+                "success_rate": (
+                    (passed_tests / total_tests * 100) if total_tests > 0 else 0
+                ),
+                "execution_time": sum(r.execution_time for r in results),
             },
             "policy_results": policy_results,
             "coverage": coverage,
             "failed_tests": [r for r in results if not r.passed],
-            "generated_at": datetime.utcnow().isoformat()
+            "generated_at": datetime.utcnow().isoformat(),
         }
 
         return report
@@ -425,26 +452,30 @@ class PolicyTester:
             List of policy coverage information
         """
         coverage_list = []
-        
+
         for policy_name, test_cases in self.test_cases.items():
             # This is a simplified coverage calculation
             # In a real implementation, this would analyze the actual policy rules
             total_rules = 5  # Estimated number of rules per policy
             covered_rules = min(len(test_cases), total_rules)
-            coverage_percentage = (covered_rules / total_rules * 100) if total_rules > 0 else 0
-            
+            coverage_percentage = (
+                (covered_rules / total_rules * 100) if total_rules > 0 else 0
+            )
+
             coverage = PolicyCoverage(
                 policy_name=policy_name,
                 total_rules=total_rules,
                 covered_rules=covered_rules,
-                coverage_percentage=coverage_percentage
+                coverage_percentage=coverage_percentage,
             )
-            
+
             coverage_list.append(coverage)
 
         return coverage_list
 
-    async def validate_policy_with_tests(self, policy_content: str, policy_name: str) -> Tuple[bool, List[str]]:
+    async def validate_policy_with_tests(
+        self, policy_content: str, policy_name: str
+    ) -> Tuple[bool, List[str]]:
         """
         Validate a policy using test cases.
 
@@ -456,7 +487,7 @@ class PolicyTester:
             Tuple of (is_valid, error_messages)
         """
         errors = []
-        
+
         # First, validate syntax
         syntax_valid, syntax_errors = await self.validate_policy_syntax(policy_content)
         if not syntax_valid:
@@ -467,11 +498,13 @@ class PolicyTester:
         if policy_name in self.test_cases:
             results = await self.run_policy_tests(policy_name)
             failed_tests = [r for r in results if not r.passed]
-            
+
             if failed_tests:
                 errors.append(f"{len(failed_tests)} test cases failed")
                 for result in failed_tests:
-                    errors.append(f"  - {result.test_case.name}: expected {result.test_case.expected_result}, got {result.actual_result}")
+                    errors.append(
+                        f"  - {result.test_case.name}: expected {result.test_case.expected_result}, got {result.actual_result}"
+                    )
 
         return len(errors) == 0, errors
 
@@ -488,18 +521,25 @@ class PolicyTester:
         if format.lower() == "json":
             report = await self.generate_test_report(self.test_results)
             return json.dumps(report, indent=2, default=str)
-        
+
         elif format.lower() == "csv":
             csv_lines = ["Test Name,Policy,Expected,Actual,Passed,Execution Time,Error"]
             for result in self.test_results:
-                csv_lines.append(f"{result.test_case.name},{result.test_case.name.split('_')[0]},{result.test_case.expected_result},{result.actual_result},{result.passed},{result.execution_time},{result.error_message or ''}")
+                csv_lines.append(
+                    f"{result.test_case.name},{result.test_case.name.split('_')[0]},{result.test_case.expected_result},{result.actual_result},{result.passed},{result.execution_time},{result.error_message or ''}"
+                )
             return "\n".join(csv_lines)
-        
+
         else:
             raise ValueError(f"Unsupported export format: {format}")
 
-    async def create_test_case_from_example(self, policy_name: str, example_name: str, 
-                                          input_data: Dict[str, Any], expected_result: bool) -> PolicyTestCase:
+    async def create_test_case_from_example(
+        self,
+        policy_name: str,
+        example_name: str,
+        input_data: Dict[str, Any],
+        expected_result: bool,
+    ) -> PolicyTestCase:
         """
         Create a test case from an example.
 
@@ -517,9 +557,9 @@ class PolicyTester:
             description=f"Test case for {policy_name}: {example_name}",
             input_data=input_data,
             expected_result=expected_result,
-            tags=[policy_name, "example"]
+            tags=[policy_name, "example"],
         )
-        
+
         await self.add_test_case(policy_name, test_case)
         return test_case
 
@@ -533,7 +573,7 @@ class PolicyTester:
         total_tests = len(self.test_results)
         passed_tests = sum(1 for r in self.test_results if r.passed)
         failed_tests = total_tests - passed_tests
-        
+
         # Group by tags
         tag_stats = {}
         for result in self.test_results:
@@ -550,7 +590,13 @@ class PolicyTester:
             "total_tests": total_tests,
             "passed_tests": passed_tests,
             "failed_tests": failed_tests,
-            "success_rate": (passed_tests / total_tests * 100) if total_tests > 0 else 0,
-            "average_execution_time": sum(r.execution_time for r in self.test_results) / total_tests if total_tests > 0 else 0,
-            "tag_statistics": tag_stats
+            "success_rate": (
+                (passed_tests / total_tests * 100) if total_tests > 0 else 0
+            ),
+            "average_execution_time": (
+                sum(r.execution_time for r in self.test_results) / total_tests
+                if total_tests > 0
+                else 0
+            ),
+            "tag_statistics": tag_stats,
         }

@@ -10,10 +10,10 @@ from fastapi import APIRouter, HTTPException, Depends, Query
 from pydantic import BaseModel, Field
 
 from ..security.resource_limits import (
-    get_resource_limit_manager, 
+    get_resource_limit_manager,
     ResourceLimitManager,
     ResourceLimits,
-    ExecutionStatus
+    ExecutionStatus,
 )
 from ..security.api_keys import get_api_key_manager, APIKeyManager
 from ..utils.logging import get_logger
@@ -25,20 +25,38 @@ router = APIRouter(prefix="/api/v1/resources", tags=["Resource Management"])
 
 class ResourceLimitsRequest(BaseModel):
     """Resource limits request model."""
-    cpu_time_soft: Optional[int] = Field(30, description="CPU time soft limit in seconds")
-    cpu_time_hard: Optional[int] = Field(60, description="CPU time hard limit in seconds")
-    memory_usage_soft: Optional[int] = Field(512, description="Memory usage soft limit in MB")
-    memory_usage_hard: Optional[int] = Field(1024, description="Memory usage hard limit in MB")
-    execution_time_soft: Optional[int] = Field(300, description="Execution time soft limit in seconds")
-    execution_time_hard: Optional[int] = Field(600, description="Execution time hard limit in seconds")
+
+    cpu_time_soft: Optional[int] = Field(
+        30, description="CPU time soft limit in seconds"
+    )
+    cpu_time_hard: Optional[int] = Field(
+        60, description="CPU time hard limit in seconds"
+    )
+    memory_usage_soft: Optional[int] = Field(
+        512, description="Memory usage soft limit in MB"
+    )
+    memory_usage_hard: Optional[int] = Field(
+        1024, description="Memory usage hard limit in MB"
+    )
+    execution_time_soft: Optional[int] = Field(
+        300, description="Execution time soft limit in seconds"
+    )
+    execution_time_hard: Optional[int] = Field(
+        600, description="Execution time hard limit in seconds"
+    )
     api_calls_soft: Optional[int] = Field(100, description="API calls soft limit")
     api_calls_hard: Optional[int] = Field(200, description="API calls hard limit")
-    concurrent_executions_soft: Optional[int] = Field(5, description="Concurrent executions soft limit")
-    concurrent_executions_hard: Optional[int] = Field(10, description="Concurrent executions hard limit")
+    concurrent_executions_soft: Optional[int] = Field(
+        5, description="Concurrent executions soft limit"
+    )
+    concurrent_executions_hard: Optional[int] = Field(
+        10, description="Concurrent executions hard limit"
+    )
 
 
 class ExecutionMetricsRequest(BaseModel):
     """Execution metrics update request model."""
+
     cpu_time: Optional[float] = Field(None, description="CPU time in seconds")
     memory_usage: Optional[float] = Field(None, description="Memory usage in MB")
     api_calls: Optional[int] = Field(None, description="Number of API calls")
@@ -46,7 +64,10 @@ class ExecutionMetricsRequest(BaseModel):
 
 class InterruptExecutionRequest(BaseModel):
     """Interrupt execution request model."""
-    reason: Optional[str] = Field("Manual interruption", description="Reason for interruption")
+
+    reason: Optional[str] = Field(
+        "Manual interruption", description="Reason for interruption"
+    )
 
 
 def get_resource_manager() -> ResourceLimitManager:
@@ -65,18 +86,18 @@ async def start_execution(
     user_id: str,
     limits: Optional[ResourceLimitsRequest] = None,
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
-    api_key: str = Query(..., description="API key for authentication")
+    api_key: str = Query(..., description="API key for authentication"),
 ):
     """
     Start a new tool execution with resource monitoring.
-    
+
     Args:
         tool_id: Tool ID to execute
         user_id: User ID executing the tool
         limits: Custom resource limits (optional)
         resource_manager: Resource limit manager
         api_key: API key for authentication
-        
+
     Returns:
         Execution information with execution ID
     """
@@ -85,7 +106,7 @@ async def start_execution(
         api_manager = get_api_manager()
         if not api_manager.check_permission(api_key, "resource_management"):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # Convert limits to ResourceLimits object
         custom_limits = None
         if limits:
@@ -99,23 +120,23 @@ async def start_execution(
                 api_calls_soft=limits.api_calls_soft,
                 api_calls_hard=limits.api_calls_hard,
                 concurrent_executions_soft=limits.concurrent_executions_soft,
-                concurrent_executions_hard=limits.concurrent_executions_hard
+                concurrent_executions_hard=limits.concurrent_executions_hard,
             )
-        
+
         # Start execution
         execution_id = resource_manager.start_execution(tool_id, user_id, custom_limits)
-        
+
         # Get execution info
         execution_info = resource_manager.get_execution_info(execution_id)
-        
+
         logger.info(f"Started execution {execution_id} for tool {tool_id}")
-        
+
         return {
             "execution_id": execution_id,
             "status": "started",
-            "execution_info": execution_info
+            "execution_info": execution_info,
         }
-        
+
     except Exception as e:
         logger.error(f"Error starting execution: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -127,18 +148,18 @@ async def end_execution(
     status: ExecutionStatus = ExecutionStatus.COMPLETED,
     error_message: Optional[str] = None,
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
-    api_key: str = Query(..., description="API key for authentication")
+    api_key: str = Query(..., description="API key for authentication"),
 ):
     """
     End a tool execution.
-    
+
     Args:
         execution_id: Execution ID to end
         status: Final execution status
         error_message: Error message if failed
         resource_manager: Resource limit manager
         api_key: API key for authentication
-        
+
     Returns:
         Execution end confirmation
     """
@@ -147,21 +168,21 @@ async def end_execution(
         api_manager = get_api_manager()
         if not api_manager.check_permission(api_key, "resource_management"):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # End execution
         success = resource_manager.end_execution(execution_id, status, error_message)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail="Execution not found")
-        
+
         logger.info(f"Ended execution {execution_id} with status {status.value}")
-        
+
         return {
             "execution_id": execution_id,
             "status": "ended",
-            "final_status": status.value
+            "final_status": status.value,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -174,17 +195,17 @@ async def update_execution_metrics(
     execution_id: str,
     metrics: ExecutionMetricsRequest,
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
-    api_key: str = Query(..., description="API key for authentication")
+    api_key: str = Query(..., description="API key for authentication"),
 ):
     """
     Update execution metrics.
-    
+
     Args:
         execution_id: Execution ID to update
         metrics: Metrics to update
         resource_manager: Resource limit manager
         api_key: API key for authentication
-        
+
     Returns:
         Metrics update confirmation
     """
@@ -193,23 +214,20 @@ async def update_execution_metrics(
         api_manager = get_api_manager()
         if not api_manager.check_permission(api_key, "resource_management"):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # Update metrics
         success = resource_manager.update_execution_metrics(
             execution_id,
             cpu_time=metrics.cpu_time,
             memory_usage=metrics.memory_usage,
-            api_calls=metrics.api_calls
+            api_calls=metrics.api_calls,
         )
-        
+
         if not success:
             raise HTTPException(status_code=404, detail="Execution not found")
-        
-        return {
-            "execution_id": execution_id,
-            "status": "metrics_updated"
-        }
-        
+
+        return {"execution_id": execution_id, "status": "metrics_updated"}
+
     except HTTPException:
         raise
     except Exception as e:
@@ -221,16 +239,16 @@ async def update_execution_metrics(
 async def get_execution_info(
     execution_id: str,
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
-    api_key: str = Query(..., description="API key for authentication")
+    api_key: str = Query(..., description="API key for authentication"),
 ):
     """
     Get execution information.
-    
+
     Args:
         execution_id: Execution ID to get info for
         resource_manager: Resource limit manager
         api_key: API key for authentication
-        
+
     Returns:
         Execution information
     """
@@ -239,15 +257,15 @@ async def get_execution_info(
         api_manager = get_api_manager()
         if not api_manager.check_permission(api_key, "resource_management"):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # Get execution info
         execution_info = resource_manager.get_execution_info(execution_id)
-        
+
         if not execution_info:
             raise HTTPException(status_code=404, detail="Execution not found")
-        
+
         return execution_info
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -261,18 +279,18 @@ async def list_executions(
     active_only: bool = Query(True, description="Only return active executions"),
     limit: int = Query(100, description="Maximum number of records to return"),
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
-    api_key: str = Query(..., description="API key for authentication")
+    api_key: str = Query(..., description="API key for authentication"),
 ):
     """
     List executions.
-    
+
     Args:
         user_id: Filter by user ID (optional)
         active_only: Only return active executions
         limit: Maximum number of records to return
         resource_manager: Resource limit manager
         api_key: API key for authentication
-        
+
     Returns:
         List of executions
     """
@@ -281,19 +299,19 @@ async def list_executions(
         api_manager = get_api_manager()
         if not api_manager.check_permission(api_key, "resource_management"):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # Get executions
         if active_only:
             executions = resource_manager.list_active_executions(user_id)
         else:
             executions = resource_manager.list_execution_history(user_id, limit)
-        
+
         return {
             "executions": executions,
             "count": len(executions),
-            "active_only": active_only
+            "active_only": active_only,
         }
-        
+
     except Exception as e:
         logger.error(f"Error listing executions: {e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -304,17 +322,17 @@ async def interrupt_execution(
     execution_id: str,
     request: InterruptExecutionRequest,
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
-    api_key: str = Query(..., description="API key for authentication")
+    api_key: str = Query(..., description="API key for authentication"),
 ):
     """
     Interrupt a running execution.
-    
+
     Args:
         execution_id: Execution ID to interrupt
         request: Interrupt request with reason
         resource_manager: Resource limit manager
         api_key: API key for authentication
-        
+
     Returns:
         Interrupt confirmation
     """
@@ -323,21 +341,21 @@ async def interrupt_execution(
         api_manager = get_api_manager()
         if not api_manager.check_permission(api_key, "resource_management"):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # Interrupt execution
         success = resource_manager.interrupt_execution(execution_id, request.reason)
-        
+
         if not success:
             raise HTTPException(status_code=404, detail="Execution not found")
-        
+
         logger.info(f"Interrupted execution {execution_id}: {request.reason}")
-        
+
         return {
             "execution_id": execution_id,
             "status": "interrupted",
-            "reason": request.reason
+            "reason": request.reason,
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -349,16 +367,16 @@ async def interrupt_execution(
 async def check_soft_limits(
     execution_id: str,
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
-    api_key: str = Query(..., description="API key for authentication")
+    api_key: str = Query(..., description="API key for authentication"),
 ):
     """
     Check soft limits for an execution.
-    
+
     Args:
         execution_id: Execution ID to check
         resource_manager: Resource limit manager
         api_key: API key for authentication
-        
+
     Returns:
         Soft limit violations
     """
@@ -367,19 +385,21 @@ async def check_soft_limits(
         api_manager = get_api_manager()
         if not api_manager.check_permission(api_key, "resource_management"):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # Check soft limits
         violations = resource_manager.check_soft_limits(execution_id)
-        
+
         if not violations:
             raise HTTPException(status_code=404, detail="Execution not found")
-        
+
         return {
             "execution_id": execution_id,
-            "soft_limit_violations": {limit.value: exceeded for limit, exceeded in violations.items()},
-            "has_violations": any(violations.values())
+            "soft_limit_violations": {
+                limit.value: exceeded for limit, exceeded in violations.items()
+            },
+            "has_violations": any(violations.values()),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -391,16 +411,16 @@ async def check_soft_limits(
 async def check_hard_limits(
     execution_id: str,
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
-    api_key: str = Query(..., description="API key for authentication")
+    api_key: str = Query(..., description="API key for authentication"),
 ):
     """
     Check hard limits for an execution.
-    
+
     Args:
         execution_id: Execution ID to check
         resource_manager: Resource limit manager
         api_key: API key for authentication
-        
+
     Returns:
         Hard limit violations
     """
@@ -409,19 +429,21 @@ async def check_hard_limits(
         api_manager = get_api_manager()
         if not api_manager.check_permission(api_key, "resource_management"):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # Check hard limits
         violations = resource_manager.check_hard_limits(execution_id)
-        
+
         if not violations:
             raise HTTPException(status_code=404, detail="Execution not found")
-        
+
         return {
             "execution_id": execution_id,
-            "hard_limit_violations": {limit.value: exceeded for limit, exceeded in violations.items()},
-            "has_violations": any(violations.values())
+            "hard_limit_violations": {
+                limit.value: exceeded for limit, exceeded in violations.items()
+            },
+            "has_violations": any(violations.values()),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -432,15 +454,15 @@ async def check_hard_limits(
 @router.get("/status")
 async def get_resource_status(
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
-    api_key: str = Query(..., description="API key for authentication")
+    api_key: str = Query(..., description="API key for authentication"),
 ):
     """
     Get overall resource management status.
-    
+
     Args:
         resource_manager: Resource limit manager
         api_key: API key for authentication
-        
+
     Returns:
         Resource management status
     """
@@ -449,19 +471,19 @@ async def get_resource_status(
         api_manager = get_api_manager()
         if not api_manager.check_permission(api_key, "resource_management"):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
-        
+
         # Get status information
         active_executions = resource_manager.list_active_executions()
         recent_history = resource_manager.list_execution_history(limit=10)
-        
+
         return {
             "active_executions_count": len(active_executions),
             "recent_executions_count": len(recent_history),
             "manager_initialized": resource_manager.is_initialized,
             "active_executions": active_executions,
-            "recent_executions": recent_history
+            "recent_executions": recent_history,
         }
-        
+
     except Exception as e:
         logger.error(f"Error getting resource status: {e}")
         raise HTTPException(status_code=500, detail=str(e))

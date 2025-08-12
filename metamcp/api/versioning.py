@@ -19,6 +19,7 @@ logger = get_logger(__name__)
 
 class VersionStatus(Enum):
     """API version status."""
+
     ACTIVE = "active"
     DEPRECATED = "deprecated"
     SUNSET = "sunset"
@@ -27,6 +28,7 @@ class VersionStatus(Enum):
 @dataclass
 class APIVersion:
     """API version information."""
+
     version: str
     status: VersionStatus
     release_date: datetime
@@ -67,20 +69,22 @@ class APIVersion:
             "version": self.version,
             "status": self.status.value,
             "release_date": self.release_date.isoformat(),
-            "deprecation_date": self.deprecation_date.isoformat() if self.deprecation_date else None,
+            "deprecation_date": (
+                self.deprecation_date.isoformat() if self.deprecation_date else None
+            ),
             "sunset_date": self.sunset_date.isoformat() if self.sunset_date else None,
             "description": self.description,
             "breaking_changes": self.breaking_changes,
             "new_features": self.new_features,
             "bug_fixes": self.bug_fixes,
             "is_deprecated": self.is_deprecated(),
-            "is_sunset": self.is_sunset()
+            "is_sunset": self.is_sunset(),
         }
 
 
 class VersionedAPIRoute(APIRoute):
     """Versioned API route with version information."""
-    
+
     def __init__(self, *args, version: str = "v1", **kwargs):
         super().__init__(*args, **kwargs)
         self.version = version
@@ -89,7 +93,7 @@ class VersionedAPIRoute(APIRoute):
 class APIVersionManager:
     """
     API Version Manager.
-    
+
     Manages API versions, routing, and deprecation.
     """
 
@@ -107,13 +111,13 @@ class APIVersionManager:
 
         try:
             logger.info("Initializing API Version Manager...")
-            
+
             # Initialize default versions
             await self._initialize_default_versions()
-            
+
             self._initialized = True
             logger.info("API Version Manager initialized successfully")
-            
+
         except Exception as e:
             logger.error(f"Failed to initialize API Version Manager: {e}")
             raise
@@ -131,19 +135,17 @@ class APIVersionManager:
         """Get the latest API version."""
         if not self.versions:
             return None
-        
+
         # Sort by release date and return the latest
         sorted_versions = sorted(
-            self.versions.values(),
-            key=lambda v: v.release_date,
-            reverse=True
+            self.versions.values(), key=lambda v: v.release_date, reverse=True
         )
-        
+
         # Return the latest active version
         for version in sorted_versions:
             if not version.is_sunset():
                 return version.version
-        
+
         return None
 
     def get_active_versions(self) -> List[str]:
@@ -170,29 +172,33 @@ class APIVersionManager:
                 sunset_versions.append(version.version)
         return sorted(sunset_versions)
 
-    def deprecate_version(self, version: str, deprecation_date: Optional[datetime] = None) -> bool:
+    def deprecate_version(
+        self, version: str, deprecation_date: Optional[datetime] = None
+    ) -> bool:
         """Deprecate an API version."""
         if version not in self.versions:
             return False
-        
+
         api_version = self.versions[version]
         api_version.status = VersionStatus.DEPRECATED
         if deprecation_date:
             api_version.deprecation_date = deprecation_date
-        
+
         logger.warning(f"API version {version} has been deprecated")
         return True
 
-    def sunset_version(self, version: str, sunset_date: Optional[datetime] = None) -> bool:
+    def sunset_version(
+        self, version: str, sunset_date: Optional[datetime] = None
+    ) -> bool:
         """Sunset an API version."""
         if version not in self.versions:
             return False
-        
+
         api_version = self.versions[version]
         api_version.status = VersionStatus.SUNSET
         if sunset_date:
             api_version.sunset_date = sunset_date
-        
+
         logger.warning(f"API version {version} has been sunset")
         return True
 
@@ -200,7 +206,7 @@ class APIVersionManager:
         """Get information about a specific version."""
         if version not in self.versions:
             return None
-        
+
         return self.versions[version].to_dict()
 
     def list_versions(self, include_sunset: bool = False) -> List[Dict[str, Any]]:
@@ -209,20 +215,22 @@ class APIVersionManager:
         for version in self.versions.values():
             if include_sunset or not version.is_sunset():
                 versions.append(version.to_dict())
-        
+
         return sorted(versions, key=lambda v: v["version"])
 
     def add_deprecation_headers(self, response: Response, version: str) -> None:
         """Add deprecation headers to response."""
         if version not in self.versions:
             return
-        
+
         api_version = self.versions[version]
         if api_version.is_deprecated():
             response.headers["X-API-Version-Deprecated"] = "true"
             if api_version.deprecation_date:
-                response.headers["X-API-Version-Deprecation-Date"] = api_version.deprecation_date.isoformat()
-            
+                response.headers["X-API-Version-Deprecation-Date"] = (
+                    api_version.deprecation_date.isoformat()
+                )
+
             # Suggest latest version
             latest_version = self.get_latest_version()
             if latest_version:
@@ -232,14 +240,14 @@ class APIVersionManager:
         """Validate if a version exists and is not sunset."""
         if version not in self.versions:
             return False
-        
+
         api_version = self.versions[version]
         return not api_version.is_sunset()
 
     async def _initialize_default_versions(self) -> None:
         """Initialize default API versions."""
         now = datetime.utcnow()
-        
+
         # Register v1
         v1_version = APIVersion(
             version="v1",
@@ -251,11 +259,11 @@ class APIVersionManager:
                 "Tool management",
                 "Health checks",
                 "OAuth integration",
-                "Admin interface"
-            ]
+                "Admin interface",
+            ],
         )
         self.register_version(v1_version)
-        
+
         # Register v2
         v2_version = APIVersion(
             version="v2",
@@ -268,13 +276,13 @@ class APIVersionManager:
                 "Comprehensive analytics",
                 "Improved health checks",
                 "Enhanced error handling",
-                "Performance metrics"
+                "Performance metrics",
             ],
             breaking_changes=[
                 "Changed response format for some endpoints",
                 "Updated authentication flow",
-                "Modified tool creation parameters"
-            ]
+                "Modified tool creation parameters",
+            ],
         )
         self.register_version(v2_version)
 
@@ -301,7 +309,7 @@ def get_api_version_manager() -> APIVersionManager:
 async def version_middleware(request: Request, call_next: Callable) -> Response:
     """
     Middleware to handle API versioning.
-    
+
     This middleware:
     - Detects API version from URL path
     - Validates version existence
@@ -309,41 +317,41 @@ async def version_middleware(request: Request, call_next: Callable) -> Response:
     - Handles version routing
     """
     version_manager = get_api_version_manager()
-    
+
     # Extract version from path
     path = request.url.path
     version = None
-    
+
     # Check for version in path (e.g., /api/v1/tools)
     if path.startswith("/api/"):
         parts = path.split("/")
         if len(parts) >= 3 and parts[2].startswith("v"):
             version = parts[2]
-    
+
     # If no version specified, use default
     if not version:
         version = version_manager.default_version
-    
+
     # Validate version
     if not version_manager.validate_version(version):
         raise HTTPException(
             status_code=404,
-            detail=f"API version '{version}' not found or has been sunset"
+            detail=f"API version '{version}' not found or has been sunset",
         )
-    
+
     # Process request
     response = await call_next(request)
-    
+
     # Add deprecation headers
     version_manager.add_deprecation_headers(response, version)
-    
+
     return response
 
 
 def create_version_router() -> APIRouter:
     """Create router for version management endpoints."""
     router = APIRouter()
-    
+
     @router.get("/")
     async def list_versions(include_sunset: bool = False):
         """List all API versions."""
@@ -351,9 +359,9 @@ def create_version_router() -> APIRouter:
         return {
             "versions": version_manager.list_versions(include_sunset),
             "latest_version": version_manager.get_latest_version(),
-            "active_versions": version_manager.get_active_versions()
+            "active_versions": version_manager.get_active_versions(),
         }
-    
+
     @router.get("/{version}")
     async def get_version_info(version: str):
         """Get information about a specific version."""
@@ -362,7 +370,7 @@ def create_version_router() -> APIRouter:
         if not info:
             raise HTTPException(status_code=404, detail="Version not found")
         return info
-    
+
     @router.get("/latest")
     async def get_latest_version():
         """Get the latest API version."""
@@ -371,5 +379,5 @@ def create_version_router() -> APIRouter:
         if not latest:
             raise HTTPException(status_code=404, detail="No versions available")
         return {"latest_version": latest}
-    
+
     return router

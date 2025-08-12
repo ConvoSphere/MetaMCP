@@ -10,8 +10,16 @@ from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
 from metamcp.security.policies import PolicyEngine, PolicyVersion, PolicyRule
-from metamcp.security.policy_tester import PolicyTester, PolicyTestCase, PolicyTestResult
-from metamcp.security.rate_limiting import RateLimiter, RateLimitConfig, RateLimitStrategy
+from metamcp.security.policy_tester import (
+    PolicyTester,
+    PolicyTestCase,
+    PolicyTestResult,
+)
+from metamcp.security.rate_limiting import (
+    RateLimiter,
+    RateLimitConfig,
+    RateLimitStrategy,
+)
 from metamcp.config import PolicyEngineType
 from metamcp.exceptions import PolicyViolationError
 
@@ -52,17 +60,14 @@ class TestPolicyEngineAdvanced:
             input.user.role == "admin"
         }
         """
-        
+
         version_id = await policy_engine.create_policy(
-            "test_policy",
-            policy_content,
-            "Test policy for versioning",
-            "test_user"
+            "test_policy", policy_content, "Test policy for versioning", "test_user"
         )
-        
+
         assert version_id is not None
         assert "test_policy" in policy_engine.policy_versions
-        
+
         # Update the policy
         updated_content = """
         package test.policy
@@ -78,14 +83,11 @@ class TestPolicyEngineAdvanced:
             input.action == "read"
         }
         """
-        
+
         new_version_id = await policy_engine.update_policy(
-            "test_policy",
-            updated_content,
-            "Updated test policy",
-            "test_user"
+            "test_policy", updated_content, "Updated test policy", "test_user"
         )
-        
+
         assert new_version_id != version_id
         assert len(policy_engine.policy_versions["test_policy"]) == 2
 
@@ -94,21 +96,21 @@ class TestPolicyEngineAdvanced:
         # Add IP to whitelist
         await policy_engine.add_ip_to_whitelist("192.168.1.100")
         await policy_engine.add_ip_to_blacklist("10.0.0.50")
-        
+
         # Test whitelist
         assert await policy_engine._check_ip_access("192.168.1.100") == True
         assert await policy_engine._check_ip_access("192.168.1.101") == False
-        
+
         # Test blacklist
         assert await policy_engine._check_ip_access("10.0.0.50") == False
-        
+
         # Test normal IP
         assert await policy_engine._check_ip_access("172.16.0.1") == True
-        
+
         # Remove IPs
         await policy_engine.remove_ip_from_whitelist("192.168.1.100")
         await policy_engine.remove_ip_from_blacklist("10.0.0.50")
-        
+
         # Test after removal
         assert await policy_engine._check_ip_access("192.168.1.100") == True
         assert await policy_engine._check_ip_access("10.0.0.50") == True
@@ -116,55 +118,36 @@ class TestPolicyEngineAdvanced:
     async def test_rate_limiting_integration(self, policy_engine):
         """Test rate limiting integration with policy engine."""
         # Test rate limiting with context
-        context = {
-            "rate_limit_key": "test_user",
-            "limit": 5
-        }
-        
+        context = {"rate_limit_key": "test_user", "limit": 5}
+
         # Make multiple requests
         for i in range(5):
             result = await policy_engine.check_access(
-                "test_user",
-                "tool:calculator",
-                "read",
-                context
+                "test_user", "tool:calculator", "read", context
             )
             assert result == True
-        
+
         # Next request should be rate limited
         result = await policy_engine.check_access(
-            "test_user",
-            "tool:calculator",
-            "read",
-            context
+            "test_user", "tool:calculator", "read", context
         )
         assert result == False
 
     async def test_resource_quota_integration(self, policy_engine):
         """Test resource quota integration with policy engine."""
         # Test resource quota with context
-        context = {
-            "quota_key": "test_user",
-            "usage": 950,
-            "limit": 1000
-        }
-        
+        context = {"quota_key": "test_user", "usage": 950, "limit": 1000}
+
         # Should be allowed
         result = await policy_engine.check_access(
-            "test_user",
-            "data:user:profile",
-            "read",
-            context
+            "test_user", "data:user:profile", "read", context
         )
         assert result == True
-        
+
         # Exceed quota
         context["usage"] = 1100
         result = await policy_engine.check_access(
-            "test_user",
-            "data:user:profile",
-            "read",
-            context
+            "test_user", "data:user:profile", "read", context
         )
         assert result == False
 
@@ -176,18 +159,15 @@ class TestPolicyEngineAdvanced:
             "limit": 10,
             "quota_key": "user1",
             "usage": 500,
-            "limit": 1000
+            "limit": 1000,
         }
-        
+
         # Add IP to whitelist
         await policy_engine.add_ip_to_whitelist("192.168.1.100")
-        
+
         # Test access with all context
         result = await policy_engine.check_access(
-            "user1",
-            "tool:calculator",
-            "read",
-            context
+            "user1", "tool:calculator", "read", context
         )
         assert result == True
 
@@ -195,25 +175,21 @@ class TestPolicyEngineAdvanced:
         """Test policy version activation."""
         # Create multiple versions
         await policy_engine.create_policy(
-            "activation_test",
-            "package test\nallow = true",
-            "Version 1",
-            "test_user"
+            "activation_test", "package test\nallow = true", "Version 1", "test_user"
         )
-        
+
         await policy_engine.create_policy(
-            "activation_test",
-            "package test\nallow = false",
-            "Version 2",
-            "test_user"
+            "activation_test", "package test\nallow = false", "Version 2", "test_user"
         )
-        
+
         # Get versions
         versions = await policy_engine.get_policy_versions("activation_test")
         assert len(versions) == 2
-        
+
         # Activate first version
-        success = await policy_engine.activate_policy_version("activation_test", versions[0].version)
+        success = await policy_engine.activate_policy_version(
+            "activation_test", versions[0].version
+        )
         assert success == True
 
     async def test_get_ip_lists(self, policy_engine):
@@ -221,10 +197,10 @@ class TestPolicyEngineAdvanced:
         # Add some IPs
         await policy_engine.add_ip_to_whitelist("192.168.1.100")
         await policy_engine.add_ip_to_blacklist("10.0.0.50")
-        
+
         # Get lists
         lists = await policy_engine.get_ip_lists()
-        
+
         assert "192.168.1.100" in lists["whitelist"]
         assert "10.0.0.50" in lists["blacklist"]
 
@@ -263,11 +239,11 @@ class TestPolicyTester:
             input.user.role == "admin"
         }
         """
-        
+
         is_valid, errors = await policy_tester.validate_policy_syntax(valid_policy)
         assert is_valid == True
         assert len(errors) == 0
-        
+
         # Invalid policy
         invalid_policy = """
         package test.policy
@@ -277,7 +253,7 @@ class TestPolicyTester:
         allow {
             input.user.role == "admin"
         """
-        
+
         is_valid, errors = await policy_tester.validate_policy_syntax(invalid_policy)
         assert is_valid == False
         assert len(errors) > 0
@@ -290,14 +266,16 @@ class TestPolicyTester:
             input_data={
                 "user": {"id": "test_user", "role": "user"},
                 "resource": "tool:test",
-                "action": "read"
+                "action": "read",
             },
             expected_result=True,
-            tags=["custom"]
+            tags=["custom"],
         )
-        
+
         await policy_tester.add_test_case("tool_access", test_case)
-        assert "custom_test" in [tc.name for tc in policy_tester.test_cases["tool_access"]]
+        assert "custom_test" in [
+            tc.name for tc in policy_tester.test_cases["tool_access"]
+        ]
 
     async def test_run_test_case(self, policy_tester):
         """Test running a single test case."""
@@ -307,11 +285,11 @@ class TestPolicyTester:
             input_data={
                 "user": {"id": "user1", "role": "user"},
                 "resource": "tool:calculator",
-                "action": "read"
+                "action": "read",
             },
-            expected_result=True
+            expected_result=True,
         )
-        
+
         result = await policy_tester.run_test_case(test_case, "tool_access")
         assert isinstance(result, PolicyTestResult)
         assert result.test_case == test_case
@@ -321,7 +299,7 @@ class TestPolicyTester:
         """Test running all tests for a policy."""
         results = await policy_tester.run_policy_tests("tool_access")
         assert len(results) > 0
-        
+
         for result in results:
             assert isinstance(result, PolicyTestResult)
             assert result.execution_time > 0
@@ -330,7 +308,7 @@ class TestPolicyTester:
         """Test running all tests for all policies."""
         all_results = await policy_tester.run_all_tests()
         assert len(all_results) > 0
-        
+
         for policy_name, results in all_results.items():
             assert len(results) > 0
 
@@ -338,9 +316,9 @@ class TestPolicyTester:
         """Test test report generation."""
         # Run some tests first
         await policy_tester.run_policy_tests("tool_access")
-        
+
         report = await policy_tester.generate_test_report(policy_tester.test_results)
-        
+
         assert "summary" in report
         assert "policy_results" in report
         assert "coverage" in report
@@ -361,8 +339,10 @@ class TestPolicyTester:
             input.user.role == "user"
         }
         """
-        
-        is_valid, errors = await policy_tester.validate_policy_with_tests(valid_policy, "tool_access")
+
+        is_valid, errors = await policy_tester.validate_policy_with_tests(
+            valid_policy, "tool_access"
+        )
         assert is_valid == True
         assert len(errors) == 0
 
@@ -370,12 +350,12 @@ class TestPolicyTester:
         """Test test results export."""
         # Run some tests first
         await policy_tester.run_policy_tests("tool_access")
-        
+
         # Export as JSON
         json_export = await policy_tester.export_test_results("json")
         assert json_export is not None
         assert len(json_export) > 0
-        
+
         # Export as CSV
         csv_export = await policy_tester.export_test_results("csv")
         assert csv_export is not None
@@ -385,9 +365,9 @@ class TestPolicyTester:
         """Test test statistics."""
         # Run some tests first
         await policy_tester.run_policy_tests("tool_access")
-        
+
         stats = await policy_tester.get_test_statistics()
-        
+
         assert "total_tests" in stats
         assert "passed_tests" in stats
         assert "failed_tests" in stats
@@ -413,9 +393,9 @@ class TestRateLimiter:
             key="test_user",
             limit=10,
             window_seconds=60,
-            strategy=RateLimitStrategy.FIXED_WINDOW
+            strategy=RateLimitStrategy.FIXED_WINDOW,
         )
-        
+
         await rate_limiter.add_rate_limit(config)
         assert "test_user" in rate_limiter.limiters
 
@@ -425,16 +405,16 @@ class TestRateLimiter:
             key="fixed_test",
             limit=5,
             window_seconds=60,
-            strategy=RateLimitStrategy.FIXED_WINDOW
+            strategy=RateLimitStrategy.FIXED_WINDOW,
         )
-        
+
         await rate_limiter.add_rate_limit(config)
-        
+
         # Make requests within limit
         for i in range(5):
             result = await rate_limiter.check_rate_limit("fixed_test")
             assert result.allowed == True
-        
+
         # Next request should be blocked
         result = await rate_limiter.check_rate_limit("fixed_test")
         assert result.allowed == False
@@ -446,16 +426,16 @@ class TestRateLimiter:
             key="sliding_test",
             limit=3,
             window_seconds=10,
-            strategy=RateLimitStrategy.SLIDING_WINDOW
+            strategy=RateLimitStrategy.SLIDING_WINDOW,
         )
-        
+
         await rate_limiter.add_rate_limit(config)
-        
+
         # Make requests within limit
         for i in range(3):
             result = await rate_limiter.check_rate_limit("sliding_test")
             assert result.allowed == True
-        
+
         # Next request should be blocked
         result = await rate_limiter.check_rate_limit("sliding_test")
         assert result.allowed == False
@@ -466,19 +446,19 @@ class TestRateLimiter:
             key="token_test",
             limit=10,
             window_seconds=60,
-            strategy=RateLimitStrategy.TOKEN_BUCKET
+            strategy=RateLimitStrategy.TOKEN_BUCKET,
         )
-        
+
         await rate_limiter.add_rate_limit(config)
-        
+
         # Initial tokens should be available
         result = await rate_limiter.check_rate_limit("token_test", cost=5)
         assert result.allowed == True
-        
+
         # Use remaining tokens
         result = await rate_limiter.check_rate_limit("token_test", cost=5)
         assert result.allowed == True
-        
+
         # Should be blocked
         result = await rate_limiter.check_rate_limit("token_test", cost=1)
         assert result.allowed == False
@@ -489,16 +469,16 @@ class TestRateLimiter:
             key="leaky_test",
             limit=5,
             window_seconds=10,
-            strategy=RateLimitStrategy.LEAKY_BUCKET
+            strategy=RateLimitStrategy.LEAKY_BUCKET,
         )
-        
+
         await rate_limiter.add_rate_limit(config)
-        
+
         # Fill the bucket
         for i in range(5):
             result = await rate_limiter.check_rate_limit("leaky_test")
             assert result.allowed == True
-        
+
         # Should be blocked
         result = await rate_limiter.check_rate_limit("leaky_test")
         assert result.allowed == False
@@ -509,23 +489,23 @@ class TestRateLimiter:
             key="reset_test",
             limit=5,
             window_seconds=60,
-            strategy=RateLimitStrategy.FIXED_WINDOW
+            strategy=RateLimitStrategy.FIXED_WINDOW,
         )
-        
+
         await rate_limiter.add_rate_limit(config)
-        
+
         # Use up the limit
         for i in range(5):
             await rate_limiter.check_rate_limit("reset_test")
-        
+
         # Should be blocked
         result = await rate_limiter.check_rate_limit("reset_test")
         assert result.allowed == False
-        
+
         # Reset
         success = await rate_limiter.reset_rate_limit("reset_test")
         assert success == True
-        
+
         # Should be allowed again
         result = await rate_limiter.check_rate_limit("reset_test")
         assert result.allowed == True
@@ -536,14 +516,14 @@ class TestRateLimiter:
             key="status_test",
             limit=10,
             window_seconds=60,
-            strategy=RateLimitStrategy.FIXED_WINDOW
+            strategy=RateLimitStrategy.FIXED_WINDOW,
         )
-        
+
         await rate_limiter.add_rate_limit(config)
-        
+
         # Make a request
         await rate_limiter.check_rate_limit("status_test")
-        
+
         # Get status
         status = await rate_limiter.get_rate_limit_status("status_test")
         assert status is not None
@@ -557,15 +537,15 @@ class TestRateLimiter:
             key="stats_test",
             limit=5,
             window_seconds=60,
-            strategy=RateLimitStrategy.FIXED_WINDOW
+            strategy=RateLimitStrategy.FIXED_WINDOW,
         )
-        
+
         await rate_limiter.add_rate_limit(config)
-        
+
         # Make some requests
         for i in range(3):
             await rate_limiter.check_rate_limit("stats_test")
-        
+
         # Get statistics
         stats = await rate_limiter.get_statistics()
         assert "total_rate_limits" in stats
@@ -580,12 +560,12 @@ class TestRateLimiter:
             key="remove_test",
             limit=5,
             window_seconds=60,
-            strategy=RateLimitStrategy.FIXED_WINDOW
+            strategy=RateLimitStrategy.FIXED_WINDOW,
         )
-        
+
         await rate_limiter.add_rate_limit(config)
         assert "remove_test" in rate_limiter.limiters
-        
+
         # Remove
         success = await rate_limiter.remove_rate_limit("remove_test")
         assert success == True
@@ -607,6 +587,7 @@ class TestRateLimitMiddleware:
     def middleware(self, rate_limiter):
         """Create rate limit middleware."""
         from metamcp.security.rate_limiting import RateLimitMiddleware
+
         return RateLimitMiddleware(rate_limiter)
 
     async def test_middleware_extract_api_key(self, middleware):
@@ -614,7 +595,7 @@ class TestRateLimitMiddleware:
         # Mock request with API key
         mock_request = MagicMock()
         mock_request.headers = {"X-API-Key": "test_key"}
-        
+
         key = middleware._extract_rate_limit_key(mock_request)
         assert key == "api_key:test_key"
 
@@ -624,7 +605,7 @@ class TestRateLimitMiddleware:
         mock_request = MagicMock()
         mock_request.state.user_id = "test_user"
         mock_request.headers = {}
-        
+
         key = middleware._extract_rate_limit_key(mock_request)
         assert key == "user:test_user"
 
@@ -635,7 +616,7 @@ class TestRateLimitMiddleware:
         mock_request.client.host = "192.168.1.100"
         mock_request.headers = {}
         mock_request.state = MagicMock()
-        delattr(mock_request.state, 'user_id')
-        
+        delattr(mock_request.state, "user_id")
+
         key = middleware._extract_rate_limit_key(mock_request)
         assert key == "ip:192.168.1.100"

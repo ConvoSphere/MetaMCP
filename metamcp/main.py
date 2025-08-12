@@ -140,7 +140,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
             logger.info("Cache manager closed")
 
             # Shutdown version manager
-            if hasattr(app.state, 'version_manager'):
+            if hasattr(app.state, "version_manager"):
                 await app.state.version_manager.shutdown()
             logger.info("API Version Manager shutdown")
 
