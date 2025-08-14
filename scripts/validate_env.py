@@ -268,6 +268,29 @@ def print_setup_instructions() -> None:
     print()
 
 
+def suggest_fixes(results: dict[str, Any]) -> None:
+    """Print actionable suggestions to fix environment issues."""
+
+    print("🔧 SUGGESTED FIXES:")
+    # Handle missing required variables
+    missing = results.get("missing_required", []) or []
+    if missing:
+        print("• Set required environment variables:")
+        for var in missing:
+            print(f"  - export {var}=<value>")
+
+    # Handle generic errors
+    errors = results.get("errors", []) or []
+    if errors:
+        print("• Address the following errors:")
+        for err in errors:
+            print(f"  - {err}")
+
+    # General guidance
+    if not missing and not errors:
+        print("• No critical fixes detected. Review warnings and recommendations.")
+
+
 def main() -> None:
     """Main function."""
 

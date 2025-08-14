@@ -13,6 +13,7 @@ from enum import Enum
 from typing import Any
 
 from ..utils.logging import get_logger
+from .load_balancer import LoadBalancedMCPClient
 
 logger = get_logger(__name__)
 

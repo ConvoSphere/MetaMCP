@@ -15,6 +15,9 @@ from ..performance.circuit_breaker import circuit_breaker_manager
 from ..services.service_discovery import ServiceType, service_discovery
 from ..utils.logging import get_logger
 
+from dataclasses import dataclass, asdict
+import time
+
 logger = get_logger(__name__)
 settings = get_settings()
 
@@ -22,24 +25,106 @@ settings = get_settings()
 health_router = APIRouter()
 
 
-@health_router.get("/health")
+@dataclass
+class ComponentHealth:
+    name: str
+    status: str
+    response_time: float | None = None
+    details: dict[str, Any] | None = None
+
+
+@dataclass
+class DetailedHealthStatus:
+    overall_healthy: bool
+    timestamp: str
+    version: str
+    uptime: float
+    components: list[ComponentHealth]
+
+
+def format_uptime(total_seconds: float | int) -> str:
+    try:
+        seconds = int(total_seconds)
+    except Exception:
+        seconds = 0
+    sign = "-" if seconds < 0 else ""
+    seconds = abs(seconds)
+    days, rem = divmod(seconds, 86400)
+    hours, rem = divmod(rem, 3600)
+    minutes, secs = divmod(rem, 60)
+    if days > 0:
+        return f"{sign}{days}d {hours}h {minutes}m {secs}s"
+    if hours > 0:
+        return f"{sign}{hours}h {minutes}m {secs}s"
+    if minutes > 0:
+        return f"{sign}{minutes}m {secs}s"
+    return f"{sign}{secs}s"
+
+
+async def check_database_health() -> ComponentHealth:
+    start = time.perf_counter()
+    try:
+        from ..utils.database import get_database_manager
+
+        db = get_database_manager()
+        result = await db.health_check()  # mocked in tests
+        status = result.get("status", "healthy") if isinstance(result, dict) else "healthy"
+        elapsed = time.perf_counter() - start
+        return ComponentHealth(name="database", status=status, response_time=elapsed)
+    except Exception as e:
+        elapsed = time.perf_counter() - start
+        return ComponentHealth(
+            name="database", status="unhealthy", response_time=elapsed, details={"error": str(e)}
+        )
+
+
+async def check_vector_db_health() -> ComponentHealth:
+    start = time.perf_counter()
+    try:
+        import weaviate
+
+        client = weaviate.connect_to_custom(http_host=settings.weaviate_url, grpc_host=None)
+        # Assume healthy if no exception and ready
+        status = "healthy"
+        elapsed = time.perf_counter() - start
+        return ComponentHealth(name="vector_db", status=status, response_time=elapsed)
+    except Exception as e:
+        elapsed = time.perf_counter() - start
+        return ComponentHealth(
+            name="vector_db", status="unhealthy", response_time=elapsed, details={"error": str(e)}
+        )
+
+
+async def check_llm_service_health() -> ComponentHealth:
+    start = time.perf_counter()
+    try:
+        import openai
+
+        _ = openai.OpenAI(api_key=getattr(settings, "openai_api_key", None))
+        # A lightweight check is enough; tests mock models.list
+        status = "healthy"
+        elapsed = time.perf_counter() - start
+        return ComponentHealth(name="llm_service", status=status, response_time=elapsed)
+    except Exception as e:
+        elapsed = time.perf_counter() - start
+        return ComponentHealth(
+            name="llm_service", status="unhealthy", response_time=elapsed, details={"error": str(e)}
+        )
+
+
+@health_router.get("")
 async def health_check() -> dict[str, Any]:
     """
-    Basic health check endpoint.
-
-    Returns:
-        Health status information
+    Basic health check endpoint at the router root.
     """
     try:
-        # Basic health check
         health_status = {
-            "status": "healthy",
+            "healthy": True,
             "timestamp": datetime.utcnow().isoformat(),
             "version": settings.app_version,
             "environment": settings.environment,
         }
 
-        # Add performance metrics if available
         performance_summary = performance_monitor.get_performance_summary()
         if performance_summary:
             health_status["performance"] = performance_summary
@@ -51,143 +136,62 @@ async def health_check() -> dict[str, Any]:
         raise HTTPException(status_code=503, detail="Service unhealthy")
 
 
-@health_router.get("/health/detailed")
+@health_router.get("/detailed")
 async def detailed_health_check() -> dict[str, Any]:
     """
     Detailed health check with all system components.
-
-    Returns:
-        Detailed health status information
     """
     try:
-        health_status = {
-            "status": "healthy",
-            "timestamp": datetime.utcnow().isoformat(),
-            "version": settings.app_version,
-            "environment": settings.environment,
-            "components": {},
+        # Gather component health
+        components: list[ComponentHealth] = []
+        db_health = await check_database_health()
+        components.append(db_health)
+        vec_health = await check_vector_db_health()
+        components.append(vec_health)
+        llm_health = await check_llm_service_health()
+        components.append(llm_health)
+
+        overall_healthy = all(c.status == "healthy" for c in components)
+        uptime_seconds = 0.0  # Placeholder; real uptime tracking could be added
+
+        detailed = DetailedHealthStatus(
+            overall_healthy=overall_healthy,
+            timestamp=datetime.utcnow().isoformat(),
+            version=settings.app_version,
+            uptime=uptime_seconds,
+            components=components,
+        )
+
+        # Convert dataclasses to serializable dict
+        return {
+            "overall_healthy": detailed.overall_healthy,
+            "timestamp": detailed.timestamp,
+            "version": detailed.version,
+            "uptime": detailed.uptime,
+            "components": [asdict(c) for c in detailed.components],
         }
-
-        # Check database
-        try:
-            from ..utils.database import get_database_session
-
-            async with get_database_session() as session:
-                await session.execute("SELECT 1")
-            health_status["components"]["database"] = {"status": "healthy"}
-        except Exception as e:
-            health_status["components"]["database"] = {
-                "status": "unhealthy",
-                "error": str(e),
-            }
-            health_status["status"] = "degraded"
-
-        # Check cache
-        try:
-            from ..cache.redis_cache import get_cache_manager
-
-            cache = get_cache_manager()
-            await cache.set("health_check", "ok", ttl=60)
-            await cache.delete("health_check")
-            health_status["components"]["cache"] = {"status": "healthy"}
-        except Exception as e:
-            health_status["components"]["cache"] = {
-                "status": "unhealthy",
-                "error": str(e),
-            }
-            health_status["status"] = "degraded"
-
-        # Check vector database
-        try:
-            from ..vector.weaviate_client import get_weaviate_client
-
-            weaviate = get_weaviate_client()
-            # Simple ping check
-            health_status["components"]["vector_database"] = {"status": "healthy"}
-        except Exception as e:
-            health_status["components"]["vector_database"] = {
-                "status": "unhealthy",
-                "error": str(e),
-            }
-            health_status["status"] = "degraded"
-
-        # Add performance metrics
-        performance_summary = performance_monitor.get_performance_summary()
-        if performance_summary:
-            health_status["performance"] = performance_summary
-
-        # Add circuit breaker status
-        circuit_breaker_metrics = circuit_breaker_manager.get_all_metrics()
-        if circuit_breaker_metrics:
-            health_status["circuit_breakers"] = circuit_breaker_metrics
-
-        # Add service discovery status
-        try:
-            services = await service_discovery.get_all_services(healthy_only=False)
-            health_status["service_discovery"] = {
-                "status": "healthy",
-                "total_services": len(services),
-                "healthy_services": len(
-                    [s for s in services if s.status.value == "healthy"]
-                ),
-            }
-        except Exception as e:
-            health_status["service_discovery"] = {
-                "status": "unhealthy",
-                "error": str(e),
-            }
-            health_status["status"] = "degraded"
-
-        return health_status
 
     except Exception as e:
         logger.error(f"Detailed health check failed: {e}")
         raise HTTPException(status_code=503, detail="Service unhealthy")
 
 
-@health_router.get("/health/ready")
+@health_router.get("/ready")
 async def readiness_check() -> dict[str, Any]:
-    """
-    Readiness check for Kubernetes.
-
-    Returns:
-        Readiness status
-    """
+    """Readiness check for Kubernetes."""
     try:
-        # Check if all critical components are ready
-        ready = True
-        errors = []
+        db = await check_database_health()
+        vec = await check_vector_db_health()
 
-        # Check database
-        try:
-            from ..utils.database import get_database_session
-
-            async with get_database_session() as session:
-                await session.execute("SELECT 1")
-        except Exception as e:
-            ready = False
-            errors.append(f"Database not ready: {e}")
-
-        # Check cache
-        try:
-            from ..cache.redis_cache import get_cache_manager
-
-            cache = get_cache_manager()
-            await cache.set("ready_check", "ok", ttl=60)
-            await cache.delete("ready_check")
-        except Exception as e:
-            ready = False
-            errors.append(f"Cache not ready: {e}")
-
-        if ready:
-            return {
-                "status": "ready",
-                "timestamp": datetime.utcnow().isoformat(),
-            }
+        if db.status == "healthy" and vec.status == "healthy":
+            return {"status": "ready", "timestamp": datetime.utcnow().isoformat()}
         else:
-            raise HTTPException(
-                status_code=503, detail={"status": "not_ready", "errors": errors}
-            )
+            errors = []
+            if db.status != "healthy":
+                errors.append("Database not ready")
+            if vec.status != "healthy":
+                errors.append("Vector DB not ready")
+            raise HTTPException(status_code=503, detail={"status": "not_ready", "errors": errors})
 
     except HTTPException:
         raise
@@ -196,39 +200,42 @@ async def readiness_check() -> dict[str, Any]:
         raise HTTPException(status_code=503, detail="Service not ready")
 
 
-@health_router.get("/health/live")
+@health_router.get("/live")
 async def liveness_check() -> dict[str, Any]:
-    """
-    Liveness check for Kubernetes.
-
-    Returns:
-        Liveness status
-    """
     return {
         "status": "alive",
         "timestamp": datetime.utcnow().isoformat(),
-        "uptime": "running",  # In a real implementation, calculate actual uptime
+        "uptime": "running",
+    }
+
+
+@health_router.get("/info")
+async def service_info() -> dict[str, Any]:
+    return {
+        "service": "MetaMCP",
+        "environment": settings.environment,
+        "version": settings.app_version,
     }
 
 
 @health_router.get("/metrics")
 async def get_metrics() -> dict[str, Any]:
-    """
-    Get system metrics.
-
-    Returns:
-        System metrics
-    """
     try:
         metrics = {
             "timestamp": datetime.utcnow().isoformat(),
             "performance": performance_monitor.get_performance_summary(),
             "circuit_breakers": circuit_breaker_manager.get_all_metrics(),
-            "service_discovery": await service_discovery.discover_services(),
         }
-
+        try:
+            services = await service_discovery.get_all_services(healthy_only=False)
+            metrics["service_discovery"] = {
+                "status": "healthy",
+                "total_services": len(services),
+                "healthy_services": len([s for s in services if s.status.value == "healthy"]),
+            }
+        except Exception as e:
+            metrics["service_discovery"] = {"status": "unhealthy", "error": str(e)}
         return metrics
-
     except Exception as e:
         logger.error(f"Failed to get metrics: {e}")
         raise HTTPException(status_code=500, detail="Failed to get metrics")

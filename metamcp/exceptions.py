@@ -286,6 +286,13 @@ class ResourceConflictError(MetaMCPException):
         )
 
 
+class ResourceLimitError(MetaMCPException):
+    """Raised when resource limit operations fail or limits are exceeded."""
+
+    def __init__(self, message: str = "Resource limit error"):
+        super().__init__(message=message, error_code="resource_limit_error", status_code=429)
+
+
 # Service exceptions
 class ServiceUnavailableError(MetaMCPException):
     """Raised when a service is unavailable."""
@@ -411,6 +418,7 @@ __all__ = [
     "ConnectionError",
     "ResourceNotFoundError",
     "ResourceConflictError",
+    "ResourceLimitError",
     "ServiceUnavailableError",
     "SecurityError",
     "APIKeyError",

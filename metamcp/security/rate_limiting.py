@@ -57,10 +57,10 @@ class RateLimitResult:
     allowed: bool
     remaining: int
     reset_time: datetime
-    retry_after: int | None = None
     limit: int
     window_seconds: int
     cost_used: int = 1
+    retry_after: int | None = None
 
 
 class RateLimiter:
