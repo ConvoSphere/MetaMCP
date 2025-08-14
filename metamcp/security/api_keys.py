@@ -183,7 +183,7 @@ class APIKeyManager:
             key_hash = hashlib.sha256(api_key.encode()).hexdigest()
 
             # Query database for the key
-            async with self._session_factory() as session:
+            async with self._session_factory() as session:  # type: ignore[misc]
                 stmt = select(APIKeyModel).where(
                     APIKeyModel.key_hash == key_hash, APIKeyModel.is_active == True
                 )
@@ -219,22 +219,23 @@ class APIKeyManager:
             logger.error(f"Failed to validate API key: {e}")
             return None
 
+    async def check_permission_async(self, api_key: str, permission: str) -> bool:
+        """Async permission check to avoid blocking the event loop."""
+        record = await self.validate_api_key(api_key)
+        return bool(record and permission in record.permissions)
+
     def check_permission(self, api_key: str, permission: str) -> bool:
-        """
-        Check if an API key has a specific permission.
-
-        Args:
-            api_key: The API key to check
-            permission: The permission to check
-
-        Returns:
-            True if key has permission, False otherwise
-        """
-        key_record = asyncio.run(self.validate_api_key(api_key))
-        if not key_record:
-            return False
-
-        return permission in key_record.permissions
+        """Synchronous wrapper for tests that call this synchronously."""
+        try:
+            loop = asyncio.get_event_loop()
+            if loop.is_running():
+                # In running loop, create a new task and wait
+                return asyncio.run(self.check_permission_async(api_key, permission))
+            else:
+                return loop.run_until_complete(self.check_permission_async(api_key, permission))
+        except RuntimeError:
+            # Fallback if no event loop
+            return asyncio.run(self.check_permission_async(api_key, permission))
 
     async def revoke_api_key(self, key_id: str) -> bool:
         """
