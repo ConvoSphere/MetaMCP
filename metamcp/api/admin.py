@@ -83,7 +83,7 @@ async def get_dashboard():
         return JSONResponse(content=data)
     except Exception as e:
         logger.error(f"Error getting dashboard data: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get dashboard data")
+        raise HTTPException(status_code=500, detail="Failed to get dashboard data") from e
 
 
 @admin_router.get("/system/metrics")
@@ -94,7 +94,7 @@ async def get_system_metrics_endpoint():
         return JSONResponse(content=data)
     except Exception as e:
         logger.error(f"Error getting system metrics: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get system metrics")
+        raise HTTPException(status_code=500, detail="Failed to get system metrics") from e
 
 
 @admin_router.get("/config")
@@ -158,7 +158,7 @@ async def get_users(
         }
     except Exception as e:
         logger.error(f"Error getting user data: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get user data")
+        raise HTTPException(status_code=500, detail="Failed to get user data") from e
 
 
 @admin_router.post("/users")
@@ -181,7 +181,7 @@ async def create_user(user_data: UserCreateRequest):
         return {"user_id": user_id, "message": "User created successfully"}
     except Exception as e:
         logger.error(f"Error creating user: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create user: {str(e)}") from e
 
 
 @admin_router.get("/users/{user_id}")
@@ -194,7 +194,7 @@ async def get_user(user_id: str):
         return user
     except Exception as e:
         logger.error(f"Error getting user {user_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get user")
+        raise HTTPException(status_code=500, detail="Failed to get user") from e
 
 
 @admin_router.put("/users/{user_id}")
@@ -227,7 +227,7 @@ async def update_user(user_id: str, user_data: UserUpdateRequest):
         return {"message": "User updated successfully"}
     except Exception as e:
         logger.error(f"Error updating user {user_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update user")
+        raise HTTPException(status_code=500, detail="Failed to update user") from e
 
 
 @admin_router.delete("/users/{user_id}")
@@ -245,7 +245,7 @@ async def delete_user(user_id: str):
         return {"message": "User deleted successfully"}
     except Exception as e:
         logger.error(f"Error deleting user {user_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete user")
+        raise HTTPException(status_code=500, detail="Failed to delete user") from e
 
 
 # Tool Management Endpoints
@@ -294,7 +294,7 @@ async def get_tools(
         }
     except Exception as e:
         logger.error(f"Error getting tool data: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get tool data")
+        raise HTTPException(status_code=500, detail="Failed to get tool data") from e
 
 
 @admin_router.post("/tools")
@@ -316,7 +316,7 @@ async def create_tool(tool_data: ToolCreateRequest):
         return {"tool_id": tool_id, "message": "Tool created successfully"}
     except Exception as e:
         logger.error(f"Error creating tool: {e}")
-        raise HTTPException(status_code=500, detail=f"Failed to create tool: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to create tool: {str(e)}") from e
 
 
 @admin_router.get("/tools/{tool_id}")
@@ -329,7 +329,7 @@ async def get_tool(tool_id: str):
         return tool
     except Exception as e:
         logger.error(f"Error getting tool {tool_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get tool")
+        raise HTTPException(status_code=500, detail="Failed to get tool") from e
 
 
 @admin_router.put("/tools/{tool_id}")
@@ -366,7 +366,7 @@ async def update_tool(tool_id: str, tool_data: ToolUpdateRequest):
         return {"message": "Tool updated successfully"}
     except Exception as e:
         logger.error(f"Error updating tool {tool_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to update tool")
+        raise HTTPException(status_code=500, detail="Failed to update tool") from e
 
 
 @admin_router.delete("/tools/{tool_id}")
@@ -384,7 +384,7 @@ async def delete_tool(tool_id: str):
         return {"message": "Tool deleted successfully"}
     except Exception as e:
         logger.error(f"Error deleting tool {tool_id}: {e}")
-        raise HTTPException(status_code=500, detail="Failed to delete tool")
+        raise HTTPException(status_code=500, detail="Failed to delete tool") from e
 
 
 # System Management Endpoints
@@ -419,7 +419,7 @@ async def get_logs(
         return {"logs": logs[:limit]}
     except Exception as e:
         logger.error(f"Error getting logs: {e}")
-        raise HTTPException(status_code=500, detail="Failed to get logs")
+        raise HTTPException(status_code=500, detail="Failed to get logs") from e
 
 
 @admin_router.post("/system/restart")
@@ -431,7 +431,7 @@ async def restart_system():
         return {"message": "System restart initiated"}
     except Exception as e:
         logger.error(f"Error restarting system: {e}")
-        raise HTTPException(status_code=500, detail="Failed to restart system")
+        raise HTTPException(status_code=500, detail="Failed to restart system") from e
 
 
 @admin_router.get("/health")

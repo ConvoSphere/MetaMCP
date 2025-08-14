@@ -7,7 +7,6 @@ TTL management, and performance optimizations.
 
 import asyncio
 import json
-import pickle
 from typing import Any
 
 from ..config import get_settings
@@ -59,15 +58,11 @@ class RedisCache:
             if value is None:
                 return default
 
-            # Try to deserialize
+            # Try to deserialize JSON, fallback to UTF-8 string
             try:
-                return pickle.loads(value)
-            except (pickle.PickleError, TypeError):
-                # Fallback to JSON
-                try:
-                    return json.loads(value.decode("utf-8"))
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    return value.decode("utf-8")
+                return json.loads(value.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                return value.decode("utf-8")
 
         except Exception as e:
             logger.error(f"Cache get error for key {key}: {e}")
@@ -86,10 +81,10 @@ class RedisCache:
             elif ttl > self.max_ttl:
                 ttl = self.max_ttl
 
-            # Serialize value
+            # Serialize value (JSON for common types, else UTF-8 string)
             if serialize:
-                if isinstance(value, (dict, list, int, float, bool)):
-                    serialized = pickle.dumps(value)
+                if isinstance(value, (dict, list, int, float, bool, type(None))):
+                    serialized = json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
                 else:
                     serialized = str(value).encode("utf-8")
             else:
@@ -167,12 +162,9 @@ class RedisCache:
             for key, value in zip(keys, values, strict=False):
                 if value is not None:
                     try:
-                        result[key] = pickle.loads(value)
-                    except (pickle.PickleError, TypeError):
-                        try:
-                            result[key] = json.loads(value.decode("utf-8"))
-                        except (json.JSONDecodeError, UnicodeDecodeError):
-                            result[key] = value.decode("utf-8")
+                        result[key] = json.loads(value.decode("utf-8"))
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        result[key] = value.decode("utf-8")
 
             return result
 
@@ -189,8 +181,8 @@ class RedisCache:
             pipe = redis_client.pipeline()
 
             for key, value in data.items():
-                if isinstance(value, (dict, list, int, float, bool)):
-                    serialized = pickle.dumps(value)
+                if isinstance(value, (dict, list, int, float, bool, type(None))):
+                    serialized = json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
                 else:
                     serialized = str(value).encode("utf-8")
 
