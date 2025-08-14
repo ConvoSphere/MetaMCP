@@ -4,19 +4,20 @@ Tests for API Versioning System
 This module contains unit tests for the API versioning functionality.
 """
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
 
+import pytest
+from fastapi import HTTPException
+from fastapi.testclient import TestClient
+
 from metamcp.api.versioning import (
     APIVersion,
-    VersionStatus,
     APIVersionManager,
+    VersionStatus,
     get_api_version_manager,
     version_middleware,
 )
-from fastapi import HTTPException
-from fastapi.testclient import TestClient
 
 
 class TestAPIVersion:
@@ -319,6 +320,7 @@ class TestVersionEndpoints:
     def client(self):
         """Create test client."""
         from fastapi import FastAPI
+
         from metamcp.api.versioning import create_version_router
 
         app = FastAPI()

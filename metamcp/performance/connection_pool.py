@@ -6,7 +6,7 @@ This module provides optimized database connection pooling for better performanc
 
 import asyncio
 from contextlib import asynccontextmanager
-from typing import Any, Dict, Optional
+from typing import Any
 
 from sqlalchemy.ext.asyncio import (
     AsyncEngine,
@@ -29,8 +29,8 @@ class DatabaseConnectionPool:
     def __init__(self, database_url: str = None):
         """Initialize database connection pool."""
         self.database_url = database_url or settings.database_url
-        self._engine: Optional[AsyncEngine] = None
-        self._session_factory: Optional[async_sessionmaker] = None
+        self._engine: AsyncEngine | None = None
+        self._session_factory: async_sessionmaker | None = None
         self._lock = asyncio.Lock()
 
     async def _create_engine(self) -> AsyncEngine:
@@ -93,7 +93,7 @@ class DatabaseConnectionPool:
             finally:
                 await session.close()
 
-    async def get_pool_status(self) -> Dict[str, Any]:
+    async def get_pool_status(self) -> dict[str, Any]:
         """Get connection pool status."""
         try:
             engine = await self.get_engine()
@@ -121,7 +121,7 @@ class DatabaseConnectionPool:
 
 
 # Global database pool instance
-_database_pool: Optional[DatabaseConnectionPool] = None
+_database_pool: DatabaseConnectionPool | None = None
 
 
 def get_database_pool(database_url: str = None) -> DatabaseConnectionPool:

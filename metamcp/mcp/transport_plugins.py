@@ -5,13 +5,12 @@ This module provides a plugin system for extensible transport layers,
 allowing custom transport implementations to be easily integrated.
 """
 
-import asyncio
 import importlib
 import inspect
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Dict, List, Optional, Type
+from typing import Any
 
 from ..utils.logging import get_logger
 
@@ -38,8 +37,8 @@ class TransportConfig:
     name: str
     version: str
     description: str
-    config_schema: Dict[str, Any]
-    default_config: Dict[str, Any]
+    config_schema: dict[str, Any]
+    default_config: dict[str, Any]
     enabled: bool = True
     priority: int = 100
 
@@ -69,12 +68,12 @@ class TransportPlugin(ABC):
         pass
 
     @abstractmethod
-    async def send_message(self, message: Dict[str, Any]) -> None:
+    async def send_message(self, message: dict[str, Any]) -> None:
         """Send a message via the transport."""
         pass
 
     @abstractmethod
-    async def receive_message(self) -> Optional[Dict[str, Any]]:
+    async def receive_message(self) -> dict[str, Any] | None:
         """Receive a message from the transport."""
         pass
 
@@ -83,7 +82,7 @@ class TransportPlugin(ABC):
         """Check if transport is connected."""
         pass
 
-    async def get_status(self) -> Dict[str, Any]:
+    async def get_status(self) -> dict[str, Any]:
         """Get transport status."""
         return {
             "name": self.config.name,
@@ -134,7 +133,7 @@ class WebSocketTransportPlugin(TransportPlugin):
             self._connected = False
             logger.info("Disconnected from WebSocket server")
 
-    async def send_message(self, message: Dict[str, Any]) -> None:
+    async def send_message(self, message: dict[str, Any]) -> None:
         """Send message via WebSocket."""
         if not self._connected:
             raise RuntimeError("WebSocket not connected")
@@ -143,7 +142,7 @@ class WebSocketTransportPlugin(TransportPlugin):
 
         await self.websocket.send(json.dumps(message))
 
-    async def receive_message(self) -> Optional[Dict[str, Any]]:
+    async def receive_message(self) -> dict[str, Any] | None:
         """Receive message from WebSocket."""
         if not self._connected:
             return None
@@ -202,7 +201,7 @@ class HTTPTransportPlugin(TransportPlugin):
             self._connected = False
             logger.info("Disconnected from HTTP server")
 
-    async def send_message(self, message: Dict[str, Any]) -> None:
+    async def send_message(self, message: dict[str, Any]) -> None:
         """Send message via HTTP."""
         if not self._connected:
             raise RuntimeError("HTTP transport not connected")
@@ -216,7 +215,7 @@ class HTTPTransportPlugin(TransportPlugin):
             logger.error(f"Error sending HTTP message: {e}")
             raise
 
-    async def receive_message(self) -> Optional[Dict[str, Any]]:
+    async def receive_message(self) -> dict[str, Any] | None:
         """Receive message from HTTP (polling)."""
         if not self._connected:
             return None
@@ -284,7 +283,7 @@ class StdioTransportPlugin(TransportPlugin):
                 self._connected = False
                 logger.info("Stopped stdio process")
 
-    async def send_message(self, message: Dict[str, Any]) -> None:
+    async def send_message(self, message: dict[str, Any]) -> None:
         """Send message via stdio."""
         if not self._connected:
             raise RuntimeError("Stdio transport not connected")
@@ -299,7 +298,7 @@ class StdioTransportPlugin(TransportPlugin):
             logger.error(f"Error sending stdio message: {e}")
             raise
 
-    async def receive_message(self) -> Optional[Dict[str, Any]]:
+    async def receive_message(self) -> dict[str, Any] | None:
         """Receive message from stdio."""
         if not self._connected:
             return None
@@ -325,8 +324,8 @@ class TransportPluginManager:
 
     def __init__(self):
         """Initialize plugin manager."""
-        self.plugins: Dict[str, TransportPlugin] = {}
-        self.plugin_configs: Dict[str, TransportConfig] = {}
+        self.plugins: dict[str, TransportPlugin] = {}
+        self.plugin_configs: dict[str, TransportConfig] = {}
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -408,7 +407,7 @@ class TransportPluginManager:
         logger.info("Custom plugin loading available")
 
     async def register_plugin(
-        self, config: TransportConfig, plugin_class: Type[TransportPlugin]
+        self, config: TransportConfig, plugin_class: type[TransportPlugin]
     ) -> None:
         """Register a transport plugin."""
         try:
@@ -423,13 +422,13 @@ class TransportPluginManager:
         except Exception as e:
             logger.error(f"Failed to register plugin {config.name}: {e}")
 
-    async def get_plugin(self, name: str) -> Optional[TransportPlugin]:
+    async def get_plugin(self, name: str) -> TransportPlugin | None:
         """Get a plugin by name."""
         return self.plugins.get(name)
 
     async def get_plugins_by_type(
         self, transport_type: TransportType
-    ) -> List[TransportPlugin]:
+    ) -> list[TransportPlugin]:
         """Get all plugins of a specific type."""
         plugins = []
         for plugin in self.plugins.values():
@@ -437,7 +436,7 @@ class TransportPluginManager:
                 plugins.append(plugin)
         return plugins
 
-    async def get_available_plugins(self) -> List[Dict[str, Any]]:
+    async def get_available_plugins(self) -> list[dict[str, Any]]:
         """Get information about all available plugins."""
         plugins_info = []
         for name, plugin in self.plugins.items():
@@ -472,8 +471,8 @@ class TransportPluginManager:
         return False
 
     async def create_transport_connection(
-        self, transport_type: TransportType, config: Dict[str, Any] = None
-    ) -> Optional[TransportPlugin]:
+        self, transport_type: TransportType, config: dict[str, Any] = None
+    ) -> TransportPlugin | None:
         """Create a transport connection."""
         plugins = await self.get_plugins_by_type(transport_type)
 
@@ -537,7 +536,7 @@ class CustomTransportPlugin(TransportPlugin):
         self._connected = False
         logger.info(f"Disconnected from custom transport: {self.config.name}")
 
-    async def send_message(self, message: Dict[str, Any]) -> None:
+    async def send_message(self, message: dict[str, Any]) -> None:
         """Send message via custom transport."""
         if not self._connected:
             raise RuntimeError("Custom transport not connected")
@@ -545,7 +544,7 @@ class CustomTransportPlugin(TransportPlugin):
         # Custom send logic
         logger.debug(f"Sent message via custom transport: {message}")
 
-    async def receive_message(self) -> Optional[Dict[str, Any]]:
+    async def receive_message(self) -> dict[str, Any] | None:
         """Receive message from custom transport."""
         if not self._connected:
             return None
@@ -559,7 +558,7 @@ class CustomTransportPlugin(TransportPlugin):
 
 
 # Plugin discovery and loading utilities
-async def discover_plugins(plugin_path: str = None) -> List[Type[TransportPlugin]]:
+async def discover_plugins(plugin_path: str = None) -> list[type[TransportPlugin]]:
     """Discover transport plugins in a directory."""
     plugins = []
 
@@ -567,8 +566,8 @@ async def discover_plugins(plugin_path: str = None) -> List[Type[TransportPlugin
         return plugins
 
     try:
-        import os
         import importlib.util
+        import os
 
         for filename in os.listdir(plugin_path):
             if filename.endswith(".py") and not filename.startswith("__"):
@@ -597,7 +596,7 @@ async def discover_plugins(plugin_path: str = None) -> List[Type[TransportPlugin
 
 async def load_plugin_from_module(
     module_name: str, class_name: str
-) -> Type[TransportPlugin]:
+) -> type[TransportPlugin]:
     """Load a plugin class from a module."""
     try:
         module = importlib.import_module(module_name)

@@ -6,7 +6,7 @@ with detailed system status and performance metrics.
 """
 
 from datetime import datetime
-from typing import Dict, Any, List
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
@@ -29,7 +29,7 @@ class ServiceHealthV2(BaseModel):
     status: str
     response_time: float
     last_check: datetime
-    details: Dict[str, Any] = {}
+    details: dict[str, Any] = {}
 
 
 class SystemMetricsV2(BaseModel):
@@ -50,7 +50,7 @@ class HealthResponseV2(BaseModel):
     timestamp: datetime
     version: str
     environment: str
-    services: List[ServiceHealthV2]
+    services: list[ServiceHealthV2]
     metrics: SystemMetricsV2
     uptime: float
 
@@ -190,7 +190,7 @@ async def get_system_metrics() -> SystemMetricsV2:
     )
 
 
-async def check_service_dependencies() -> List[ServiceHealthV2]:
+async def check_service_dependencies() -> list[ServiceHealthV2]:
     """Check health of all service dependencies."""
     services = []
 

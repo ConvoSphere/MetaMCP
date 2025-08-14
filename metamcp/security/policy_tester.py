@@ -8,13 +8,12 @@ policy coverage analysis.
 
 import json
 import re
-from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
+from datetime import datetime
+from typing import Any
 
-from .policies import PolicyEngine, PolicyVersion
-from ..exceptions import PolicyViolationError
 from ..utils.logging import get_logger
+from .policies import PolicyEngine
 
 logger = get_logger(__name__)
 
@@ -25,10 +24,10 @@ class PolicyTestCase:
 
     name: str
     description: str
-    input_data: Dict[str, Any]
+    input_data: dict[str, Any]
     expected_result: bool
-    expected_reason: Optional[str] = None
-    tags: List[str] = field(default_factory=list)
+    expected_reason: str | None = None
+    tags: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -37,10 +36,10 @@ class PolicyTestResult:
 
     test_case: PolicyTestCase
     actual_result: bool
-    actual_reason: Optional[str] = None
+    actual_reason: str | None = None
     passed: bool
     execution_time: float
-    error_message: Optional[str] = None
+    error_message: str | None = None
 
 
 @dataclass
@@ -51,7 +50,7 @@ class PolicyCoverage:
     total_rules: int
     covered_rules: int
     coverage_percentage: float
-    uncovered_rules: List[str] = field(default_factory=list)
+    uncovered_rules: list[str] = field(default_factory=list)
 
 
 class PolicyTester:
@@ -70,12 +69,12 @@ class PolicyTester:
             policy_engine: Policy engine instance to test
         """
         self.policy_engine = policy_engine
-        self.test_cases: Dict[str, List[PolicyTestCase]] = {}
-        self.test_results: List[PolicyTestResult] = []
+        self.test_cases: dict[str, list[PolicyTestCase]] = {}
+        self.test_results: list[PolicyTestResult] = []
 
     async def validate_policy_syntax(
         self, policy_content: str
-    ) -> Tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """
         Validate policy syntax.
 
@@ -356,7 +355,7 @@ class PolicyTester:
                 error_message=str(e),
             )
 
-    async def run_policy_tests(self, policy_name: str) -> List[PolicyTestResult]:
+    async def run_policy_tests(self, policy_name: str) -> list[PolicyTestResult]:
         """
         Run all test cases for a specific policy.
 
@@ -382,7 +381,7 @@ class PolicyTester:
 
         return results
 
-    async def run_all_tests(self) -> Dict[str, List[PolicyTestResult]]:
+    async def run_all_tests(self) -> dict[str, list[PolicyTestResult]]:
         """
         Run all test cases for all policies.
 
@@ -398,8 +397,8 @@ class PolicyTester:
         return all_results
 
     async def generate_test_report(
-        self, results: List[PolicyTestResult]
-    ) -> Dict[str, Any]:
+        self, results: list[PolicyTestResult]
+    ) -> dict[str, Any]:
         """
         Generate a test report from test results.
 
@@ -444,7 +443,7 @@ class PolicyTester:
 
         return report
 
-    async def calculate_policy_coverage(self) -> List[PolicyCoverage]:
+    async def calculate_policy_coverage(self) -> list[PolicyCoverage]:
         """
         Calculate policy coverage based on test cases.
 
@@ -475,7 +474,7 @@ class PolicyTester:
 
     async def validate_policy_with_tests(
         self, policy_content: str, policy_name: str
-    ) -> Tuple[bool, List[str]]:
+    ) -> tuple[bool, list[str]]:
         """
         Validate a policy using test cases.
 
@@ -537,7 +536,7 @@ class PolicyTester:
         self,
         policy_name: str,
         example_name: str,
-        input_data: Dict[str, Any],
+        input_data: dict[str, Any],
         expected_result: bool,
     ) -> PolicyTestCase:
         """
@@ -563,7 +562,7 @@ class PolicyTester:
         await self.add_test_case(policy_name, test_case)
         return test_case
 
-    async def get_test_statistics(self) -> Dict[str, Any]:
+    async def get_test_statistics(self) -> dict[str, Any]:
         """
         Get test statistics.
 

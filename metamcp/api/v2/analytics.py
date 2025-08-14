@@ -5,11 +5,11 @@ This module provides advanced analytics endpoints for API v2
 with comprehensive data analysis and reporting features.
 """
 
-from datetime import datetime, timedelta
-from typing import List, Optional, Dict, Any
+from datetime import datetime
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, status, Depends, Query
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from ...config import get_settings
@@ -29,7 +29,7 @@ class AnalyticsRequestV2(BaseModel):
 
     metric: str = Field(..., pattern="^(usage|performance|errors|users|tools)$")
     time_range: str = Field(..., pattern="^(1h|24h|7d|30d|90d)$")
-    filters: Optional[Dict[str, Any]] = None
+    filters: dict[str, Any] | None = None
 
 
 class UsageMetricsV2(BaseModel):
@@ -37,9 +37,9 @@ class UsageMetricsV2(BaseModel):
 
     total_requests: int
     unique_users: int
-    top_tools: List[Dict[str, Any]]
-    request_trend: List[Dict[str, Any]]
-    peak_hours: List[Dict[str, Any]]
+    top_tools: list[dict[str, Any]]
+    request_trend: list[dict[str, Any]]
+    peak_hours: list[dict[str, Any]]
 
 
 class PerformanceMetricsV2(BaseModel):
@@ -50,7 +50,7 @@ class PerformanceMetricsV2(BaseModel):
     p99_response_time: float
     throughput: float
     error_rate: float
-    slowest_endpoints: List[Dict[str, Any]]
+    slowest_endpoints: list[dict[str, Any]]
 
 
 class ErrorMetricsV2(BaseModel):
@@ -58,9 +58,9 @@ class ErrorMetricsV2(BaseModel):
 
     total_errors: int
     error_rate: float
-    top_errors: List[Dict[str, Any]]
-    error_trend: List[Dict[str, Any]]
-    affected_endpoints: List[Dict[str, Any]]
+    top_errors: list[dict[str, Any]]
+    error_trend: list[dict[str, Any]]
+    affected_endpoints: list[dict[str, Any]]
 
 
 @analytics_router.post("/usage", response_model=UsageMetricsV2)
@@ -210,8 +210,8 @@ async def get_analytics_dashboard_v2(
 @analytics_router.get("/export")
 async def export_analytics_v2(
     format: str = Query("json", pattern="^(json|csv|excel)$"),
-    date_from: Optional[datetime] = Query(None),
-    date_to: Optional[datetime] = Query(None),
+    date_from: datetime | None = Query(None),
+    date_to: datetime | None = Query(None),
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ):
     """

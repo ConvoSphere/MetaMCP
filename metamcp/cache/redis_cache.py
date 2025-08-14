@@ -7,10 +7,7 @@ TTL management, and performance optimizations.
 
 import asyncio
 import json
-import pickle
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
-from urllib.parse import urlparse
+from typing import Any
 
 from ..config import get_settings
 from ..utils.logging import get_logger
@@ -61,15 +58,11 @@ class RedisCache:
             if value is None:
                 return default
 
-            # Try to deserialize
+            # Try to deserialize JSON, fallback to UTF-8 string
             try:
-                return pickle.loads(value)
-            except (pickle.PickleError, TypeError):
-                # Fallback to JSON
-                try:
-                    return json.loads(value.decode("utf-8"))
-                except (json.JSONDecodeError, UnicodeDecodeError):
-                    return value.decode("utf-8")
+                return json.loads(value.decode("utf-8"))
+            except (json.JSONDecodeError, UnicodeDecodeError):
+                return value.decode("utf-8")
 
         except Exception as e:
             logger.error(f"Cache get error for key {key}: {e}")
@@ -88,10 +81,10 @@ class RedisCache:
             elif ttl > self.max_ttl:
                 ttl = self.max_ttl
 
-            # Serialize value
+            # Serialize value (JSON for common types, else UTF-8 string)
             if serialize:
-                if isinstance(value, (dict, list, int, float, bool)):
-                    serialized = pickle.dumps(value)
+                if isinstance(value, (dict, list, int, float, bool, type(None))):
+                    serialized = json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
                 else:
                     serialized = str(value).encode("utf-8")
             else:
@@ -159,22 +152,19 @@ class RedisCache:
             logger.error(f"Cache clear pattern error for {pattern}: {e}")
             return 0
 
-    async def get_many(self, keys: List[str]) -> Dict[str, Any]:
+    async def get_many(self, keys: list[str]) -> dict[str, Any]:
         """Get multiple values from cache."""
         try:
             redis_client = await self._get_redis()
             values = await redis_client.mget(keys)
 
             result = {}
-            for key, value in zip(keys, values):
+            for key, value in zip(keys, values, strict=False):
                 if value is not None:
                     try:
-                        result[key] = pickle.loads(value)
-                    except (pickle.PickleError, TypeError):
-                        try:
-                            result[key] = json.loads(value.decode("utf-8"))
-                        except (json.JSONDecodeError, UnicodeDecodeError):
-                            result[key] = value.decode("utf-8")
+                        result[key] = json.loads(value.decode("utf-8"))
+                    except (json.JSONDecodeError, UnicodeDecodeError):
+                        result[key] = value.decode("utf-8")
 
             return result
 
@@ -182,7 +172,7 @@ class RedisCache:
             logger.error(f"Cache get_many error: {e}")
             return {}
 
-    async def set_many(self, data: Dict[str, Any], ttl: int = None) -> bool:
+    async def set_many(self, data: dict[str, Any], ttl: int = None) -> bool:
         """Set multiple values in cache."""
         try:
             redis_client = await self._get_redis()
@@ -191,8 +181,8 @@ class RedisCache:
             pipe = redis_client.pipeline()
 
             for key, value in data.items():
-                if isinstance(value, (dict, list, int, float, bool)):
-                    serialized = pickle.dumps(value)
+                if isinstance(value, (dict, list, int, float, bool, type(None))):
+                    serialized = json.dumps(value, separators=(",", ":"), sort_keys=True).encode("utf-8")
                 else:
                     serialized = str(value).encode("utf-8")
 
@@ -313,7 +303,7 @@ class CacheManager:
             pattern = "user:*"
         return await self.redis_cache.clear_pattern(pattern)
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         try:
             redis_client = await self.redis_cache._get_redis()
@@ -344,7 +334,7 @@ class CacheManager:
 
 
 # Global cache manager instance
-_cache_manager: Optional[CacheManager] = None
+_cache_manager: CacheManager | None = None
 
 
 def get_cache_manager(redis_url: str = None) -> CacheManager:

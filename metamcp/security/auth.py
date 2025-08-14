@@ -12,10 +12,10 @@ from jose import JWTError, jwt
 from passlib.context import CryptContext
 
 from ..config import get_settings
+from ..database.connection import get_async_session
+from ..database.models import User
 from ..exceptions import AuthenticationError
 from ..utils.logging import get_logger
-from ..database.models import User
-from ..database.connection import get_async_session
 
 logger = get_logger(__name__)
 settings = get_settings()

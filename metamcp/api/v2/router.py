@@ -6,13 +6,14 @@ This module provides the v2 API router with enhanced features and improved endpo
 
 from fastapi import APIRouter
 
-# Import v2 specific routers
-from .auth import auth_router
-from .tools import tools_router
-from .health import health_router
-from .composition import composition_router
 from .admin import admin_router
 from .analytics import analytics_router
+
+# Import v2 specific routers
+from .auth import auth_router
+from .composition import composition_router
+from .health import health_router
+from .tools import tools_router
 
 
 def create_v2_router() -> APIRouter:

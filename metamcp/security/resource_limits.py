@@ -6,12 +6,12 @@ plus API endpoints to monitor and control execution.
 """
 
 import asyncio
-import time
 import uuid
-from datetime import datetime, timedelta
-from typing import Optional, Dict, List, Any, Callable
+from collections.abc import Callable
 from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
 from ..config import get_settings
 from ..exceptions import ResourceLimitError
@@ -67,13 +67,13 @@ class ExecutionContext:
     user_id: str
     start_time: datetime
     status: ExecutionStatus = ExecutionStatus.RUNNING
-    end_time: Optional[datetime] = None
+    end_time: datetime | None = None
     cpu_time: float = 0.0
     memory_usage: float = 0.0
     api_calls: int = 0
-    error_message: Optional[str] = None
+    error_message: str | None = None
     resource_limits: ResourceLimits = field(default_factory=ResourceLimits)
-    interrupt_callback: Optional[Callable] = None
+    interrupt_callback: Callable | None = None
 
 
 class ResourceLimitManager:
@@ -86,10 +86,10 @@ class ResourceLimitManager:
 
     def __init__(self):
         """Initialize Resource Limit Manager."""
-        self.active_executions: Dict[str, ExecutionContext] = {}
-        self.execution_history: List[ExecutionContext] = []
-        self.limit_checkers: Dict[LimitType, Callable] = {}
-        self._monitoring_task: Optional[asyncio.Task] = None
+        self.active_executions: dict[str, ExecutionContext] = {}
+        self.execution_history: list[ExecutionContext] = []
+        self.limit_checkers: dict[LimitType, Callable] = {}
+        self._monitoring_task: asyncio.Task | None = None
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -116,7 +116,7 @@ class ResourceLimitManager:
             )
 
     def start_execution(
-        self, tool_id: str, user_id: str, custom_limits: Optional[ResourceLimits] = None
+        self, tool_id: str, user_id: str, custom_limits: ResourceLimits | None = None
     ) -> str:
         """
         Start a new tool execution with resource monitoring.
@@ -154,7 +154,7 @@ class ResourceLimitManager:
         self,
         execution_id: str,
         status: ExecutionStatus = ExecutionStatus.COMPLETED,
-        error_message: Optional[str] = None,
+        error_message: str | None = None,
     ) -> bool:
         """
         End a tool execution.
@@ -186,9 +186,9 @@ class ResourceLimitManager:
     def update_execution_metrics(
         self,
         execution_id: str,
-        cpu_time: Optional[float] = None,
-        memory_usage: Optional[float] = None,
-        api_calls: Optional[int] = None,
+        cpu_time: float | None = None,
+        memory_usage: float | None = None,
+        api_calls: int | None = None,
     ) -> bool:
         """
         Update execution metrics.
@@ -216,7 +216,7 @@ class ResourceLimitManager:
 
         return True
 
-    def check_soft_limits(self, execution_id: str) -> Dict[LimitType, bool]:
+    def check_soft_limits(self, execution_id: str) -> dict[LimitType, bool]:
         """
         Check if execution has exceeded soft limits.
 
@@ -237,7 +237,7 @@ class ResourceLimitManager:
 
         return results
 
-    def check_hard_limits(self, execution_id: str) -> Dict[LimitType, bool]:
+    def check_hard_limits(self, execution_id: str) -> dict[LimitType, bool]:
         """
         Check if execution has exceeded hard limits.
 
@@ -290,7 +290,7 @@ class ResourceLimitManager:
 
         return True
 
-    def get_execution_info(self, execution_id: str) -> Optional[Dict[str, Any]]:
+    def get_execution_info(self, execution_id: str) -> dict[str, Any] | None:
         """
         Get execution information.
 
@@ -343,8 +343,8 @@ class ResourceLimitManager:
         }
 
     def list_active_executions(
-        self, user_id: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+        self, user_id: str | None = None
+    ) -> list[dict[str, Any]]:
         """
         List active executions.
 
@@ -364,8 +364,8 @@ class ResourceLimitManager:
         return executions
 
     def list_execution_history(
-        self, user_id: Optional[str] = None, limit: int = 100
-    ) -> List[Dict[str, Any]]:
+        self, user_id: str | None = None, limit: int = 100
+    ) -> list[dict[str, Any]]:
         """
         List execution history.
 
@@ -516,7 +516,7 @@ class ResourceLimitManager:
 
 
 # Global instance
-_resource_limit_manager: Optional[ResourceLimitManager] = None
+_resource_limit_manager: ResourceLimitManager | None = None
 
 
 def get_resource_limit_manager() -> ResourceLimitManager:

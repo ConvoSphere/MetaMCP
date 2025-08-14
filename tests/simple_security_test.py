@@ -6,9 +6,9 @@ This script tests the basic functionality of security features
 without requiring external dependencies.
 """
 
-import sys
 import asyncio
-from datetime import datetime, timedelta
+import sys
+from datetime import datetime
 
 # Add the project root to the path
 sys.path.insert(0, ".")
@@ -19,7 +19,7 @@ def test_api_key_management():
     print("🔑 Testing API Key Management...")
 
     try:
-        from metamcp.security.api_keys import APIKeyManager, APIKey
+        from metamcp.security.api_keys import APIKey, APIKeyManager
 
         # Create manager
         manager = APIKeyManager()
@@ -62,7 +62,7 @@ def test_tool_registry_security():
     print("🛠️  Testing Tool Registry Security...")
 
     try:
-        from metamcp.security.tool_registry import ToolRegistrySecurity, Developer
+        from metamcp.security.tool_registry import Developer, ToolRegistrySecurity
 
         # Create security manager
         security = ToolRegistrySecurity()
@@ -114,9 +114,9 @@ def test_resource_limits():
 
     try:
         from metamcp.security.resource_limits import (
+            ExecutionStatus,
             ResourceLimitManager,
             ResourceLimits,
-            ExecutionStatus,
         )
 
         # Create resource manager
@@ -181,7 +181,7 @@ def test_api_versioning():
     print("🔄 Testing API Versioning...")
 
     try:
-        from metamcp.api.versioning import APIVersionManager, APIVersion, VersionStatus
+        from metamcp.api.versioning import APIVersion, APIVersionManager, VersionStatus
 
         # Create version manager
         manager = APIVersionManager()
@@ -272,9 +272,9 @@ async def test_integration():
 
     try:
         # Test basic integration without external dependencies
-        from datetime import datetime
         import secrets
         import uuid
+        from datetime import datetime
 
         # Simulate a complete workflow
         print("  ✅ Simulating complete workflow...")

@@ -7,20 +7,19 @@ metrics collection, profiling, and performance analysis.
 
 import asyncio
 import time
-import psutil
-import threading
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Callable
-from dataclasses import dataclass, field
 from collections import defaultdict, deque
+from collections.abc import Callable
 from contextlib import asynccontextmanager, contextmanager
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
 
-from prometheus_client import Counter, Histogram, Gauge, Summary
-from prometheus_client.metrics_core import Metric
+import psutil
+from prometheus_client import Counter, Gauge, Histogram, Summary
 
 from ..config import get_settings
-from ..utils.logging import get_logger
 from ..utils.constants import METRICS_UPDATE_INTERVAL
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -55,10 +54,10 @@ class RequestMetrics:
     status_code: int
     response_time: float
     timestamp: datetime
-    user_agent: Optional[str] = None
-    client_ip: Optional[str] = None
-    request_size: Optional[int] = None
-    response_size: Optional[int] = None
+    user_agent: str | None = None
+    client_ip: str | None = None
+    request_size: int | None = None
+    response_size: int | None = None
 
 
 class PerformanceMonitor:
@@ -95,7 +94,7 @@ class PerformanceMonitor:
         self._setup_prometheus_metrics()
 
         # Monitoring state
-        self._monitoring_task: Optional[asyncio.Task] = None
+        self._monitoring_task: asyncio.Task | None = None
         self._running = False
 
         logger.info("Performance monitor initialized")
@@ -377,7 +376,7 @@ class PerformanceMonitor:
         try:
             yield
             status_code = 200  # Default success
-        except Exception as e:
+        except Exception:
             status_code = 500  # Default error
             raise
         finally:
@@ -409,7 +408,7 @@ class PerformanceMonitor:
         try:
             yield
             status_code = 200  # Default success
-        except Exception as e:
+        except Exception:
             status_code = 500  # Default error
             raise
         finally:
@@ -464,7 +463,7 @@ class PerformanceMonitor:
         except Exception:
             return 0
 
-    def get_performance_summary(self) -> Dict[str, Any]:
+    def get_performance_summary(self) -> dict[str, Any]:
         """Get performance summary."""
         if not self.metrics_history:
             return {}
@@ -504,7 +503,7 @@ class PerformanceMonitor:
             },
         }
 
-    def get_request_analytics(self, hours: int = 24) -> Dict[str, Any]:
+    def get_request_analytics(self, hours: int = 24) -> dict[str, Any]:
         """Get request analytics for the specified time period."""
         cutoff_time = datetime.utcnow() - timedelta(hours=hours)
 
@@ -549,8 +548,8 @@ class PerformanceMonitor:
         }
 
     def _get_status_code_distribution(
-        self, requests: List[RequestMetrics]
-    ) -> Dict[str, int]:
+        self, requests: list[RequestMetrics]
+    ) -> dict[str, int]:
         """Get distribution of status codes."""
         distribution = defaultdict(int)
         for req in requests:

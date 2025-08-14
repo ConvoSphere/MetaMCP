@@ -11,7 +11,6 @@ import pytest
 from metamcp.utils.rate_limiter import (
     MemoryRateLimiter,
     RateLimiter,
-    RateLimiterBackend,
     RateLimitInfo,
     RateLimitMiddleware,
     RedisRateLimiter,

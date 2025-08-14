@@ -5,17 +5,16 @@ This module provides API endpoints for monitoring and controlling
 tool executions with resource limits.
 """
 
-from typing import Optional, List, Dict, Any
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 
+from ..security.api_keys import APIKeyManager, get_api_key_manager
 from ..security.resource_limits import (
-    get_resource_limit_manager,
+    ExecutionStatus,
     ResourceLimitManager,
     ResourceLimits,
-    ExecutionStatus,
+    get_resource_limit_manager,
 )
-from ..security.api_keys import get_api_key_manager, APIKeyManager
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -26,30 +25,26 @@ router = APIRouter(prefix="/api/v1/resources", tags=["Resource Management"])
 class ResourceLimitsRequest(BaseModel):
     """Resource limits request model."""
 
-    cpu_time_soft: Optional[int] = Field(
-        30, description="CPU time soft limit in seconds"
-    )
-    cpu_time_hard: Optional[int] = Field(
-        60, description="CPU time hard limit in seconds"
-    )
-    memory_usage_soft: Optional[int] = Field(
+    cpu_time_soft: int | None = Field(30, description="CPU time soft limit in seconds")
+    cpu_time_hard: int | None = Field(60, description="CPU time hard limit in seconds")
+    memory_usage_soft: int | None = Field(
         512, description="Memory usage soft limit in MB"
     )
-    memory_usage_hard: Optional[int] = Field(
+    memory_usage_hard: int | None = Field(
         1024, description="Memory usage hard limit in MB"
     )
-    execution_time_soft: Optional[int] = Field(
+    execution_time_soft: int | None = Field(
         300, description="Execution time soft limit in seconds"
     )
-    execution_time_hard: Optional[int] = Field(
+    execution_time_hard: int | None = Field(
         600, description="Execution time hard limit in seconds"
     )
-    api_calls_soft: Optional[int] = Field(100, description="API calls soft limit")
-    api_calls_hard: Optional[int] = Field(200, description="API calls hard limit")
-    concurrent_executions_soft: Optional[int] = Field(
+    api_calls_soft: int | None = Field(100, description="API calls soft limit")
+    api_calls_hard: int | None = Field(200, description="API calls hard limit")
+    concurrent_executions_soft: int | None = Field(
         5, description="Concurrent executions soft limit"
     )
-    concurrent_executions_hard: Optional[int] = Field(
+    concurrent_executions_hard: int | None = Field(
         10, description="Concurrent executions hard limit"
     )
 
@@ -57,15 +52,15 @@ class ResourceLimitsRequest(BaseModel):
 class ExecutionMetricsRequest(BaseModel):
     """Execution metrics update request model."""
 
-    cpu_time: Optional[float] = Field(None, description="CPU time in seconds")
-    memory_usage: Optional[float] = Field(None, description="Memory usage in MB")
-    api_calls: Optional[int] = Field(None, description="Number of API calls")
+    cpu_time: float | None = Field(None, description="CPU time in seconds")
+    memory_usage: float | None = Field(None, description="Memory usage in MB")
+    api_calls: int | None = Field(None, description="Number of API calls")
 
 
 class InterruptExecutionRequest(BaseModel):
     """Interrupt execution request model."""
 
-    reason: Optional[str] = Field(
+    reason: str | None = Field(
         "Manual interruption", description="Reason for interruption"
     )
 
@@ -84,7 +79,7 @@ def get_api_manager() -> APIKeyManager:
 async def start_execution(
     tool_id: str,
     user_id: str,
-    limits: Optional[ResourceLimitsRequest] = None,
+    limits: ResourceLimitsRequest | None = None,
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
     api_key: str = Query(..., description="API key for authentication"),
 ):
@@ -146,7 +141,7 @@ async def start_execution(
 async def end_execution(
     execution_id: str,
     status: ExecutionStatus = ExecutionStatus.COMPLETED,
-    error_message: Optional[str] = None,
+    error_message: str | None = None,
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),
     api_key: str = Query(..., description="API key for authentication"),
 ):
@@ -275,7 +270,7 @@ async def get_execution_info(
 
 @router.get("/executions")
 async def list_executions(
-    user_id: Optional[str] = Query(None, description="Filter by user ID"),
+    user_id: str | None = Query(None, description="Filter by user ID"),
     active_only: bool = Query(True, description="Only return active executions"),
     limit: int = Query(100, description="Maximum number of records to return"),
     resource_manager: ResourceLimitManager = Depends(get_resource_manager),

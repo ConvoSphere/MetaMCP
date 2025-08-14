@@ -169,6 +169,15 @@ module = [
 ]
 ignore_missing_imports = true
 
+[[tool.mypy.overrides]]
+module = [
+    "fastmcp.*",
+    "mcp.*",
+    "websockets",
+    "starlette.middleware.base",
+]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 minversion = "6.0"
 addopts = "-ra -q --strict-markers --strict-config"
@@ -237,3 +246,8 @@ skips = ["B101", "B601"]
 
 [tool.safety]
 output = "json" 
+
+[tool.flake8]
+max-line-length = 88
+extend-ignore = ["E203", "W503"]
+exclude = [".venv", ".git", "alembic/versions/*"] 

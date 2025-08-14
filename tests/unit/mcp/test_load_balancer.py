@@ -5,7 +5,6 @@ Tests the load balancing functionality including health checking, server selecti
 strategies, failover mechanisms, and load distribution.
 """
 
-import asyncio
 import time
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -13,8 +12,8 @@ import pytest
 
 from metamcp.mcp.load_balancer import (
     HealthChecker,
-    LoadBalancer,
     LoadBalancedMCPClient,
+    LoadBalancer,
     LoadBalancingStrategy,
     ServerConfig,
     ServerHealth,

@@ -6,9 +6,7 @@ flow control, multiplexing, and real-time streaming capabilities.
 """
 
 import asyncio
-import time
-import uuid
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -17,11 +15,11 @@ from metamcp.mcp.streaming import (
     FlowController,
     StreamChunk,
     StreamConfig,
+    StreamingProtocol,
     StreamManager,
     StreamOperation,
     StreamStatus,
     StreamType,
-    StreamingProtocol,
 )
 
 

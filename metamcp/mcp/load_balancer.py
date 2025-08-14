@@ -10,7 +10,7 @@ import time
 import uuid
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, Dict, List, Optional, Set
+from typing import Any
 
 from ..utils.logging import get_logger
 
@@ -54,7 +54,7 @@ class ServerConfig:
     failover_threshold: int = 3
     recovery_threshold: int = 2
     enabled: bool = True
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -85,7 +85,7 @@ class HealthChecker:
             last_check=0.0,
             response_time=0.0,
         )
-        self._check_task: Optional[asyncio.Task] = None
+        self._check_task: asyncio.Task | None = None
         self._running = False
 
     async def start(self) -> None:
@@ -245,8 +245,8 @@ class LoadBalancer:
     ):
         """Initialize load balancer."""
         self.strategy = strategy
-        self.servers: Dict[str, ServerConfig] = {}
-        self.health_checkers: Dict[str, HealthChecker] = {}
+        self.servers: dict[str, ServerConfig] = {}
+        self.health_checkers: dict[str, HealthChecker] = {}
         self.current_index = 0
         self._lock = asyncio.Lock()
         self._running = False
@@ -277,7 +277,7 @@ class LoadBalancer:
 
                 logger.info(f"Removed server {server_id} from load balancer")
 
-    async def get_server(self, client_id: str = None) -> Optional[ServerConfig]:
+    async def get_server(self, client_id: str = None) -> ServerConfig | None:
         """Get a server based on the load balancing strategy."""
         async with self._lock:
             healthy_servers = await self._get_healthy_servers()
@@ -301,7 +301,7 @@ class LoadBalancer:
             else:
                 return healthy_servers[0]
 
-    async def _get_healthy_servers(self) -> List[ServerConfig]:
+    async def _get_healthy_servers(self) -> list[ServerConfig]:
         """Get list of healthy servers."""
         healthy_servers = []
 
@@ -317,7 +317,7 @@ class LoadBalancer:
 
         return healthy_servers
 
-    async def _round_robin_select(self, servers: List[ServerConfig]) -> ServerConfig:
+    async def _round_robin_select(self, servers: list[ServerConfig]) -> ServerConfig:
         """Round robin server selection."""
         if not servers:
             return None
@@ -327,7 +327,7 @@ class LoadBalancer:
         return server
 
     async def _least_connections_select(
-        self, servers: List[ServerConfig]
+        self, servers: list[ServerConfig]
     ) -> ServerConfig:
         """Least connections server selection."""
         if not servers:
@@ -347,7 +347,7 @@ class LoadBalancer:
         return selected_server
 
     async def _weighted_round_robin_select(
-        self, servers: List[ServerConfig]
+        self, servers: list[ServerConfig]
     ) -> ServerConfig:
         """Weighted round robin server selection."""
         if not servers:
@@ -369,7 +369,7 @@ class LoadBalancer:
         return servers[0]
 
     async def _least_response_time_select(
-        self, servers: List[ServerConfig]
+        self, servers: list[ServerConfig]
     ) -> ServerConfig:
         """Least response time server selection."""
         if not servers:
@@ -389,7 +389,7 @@ class LoadBalancer:
         return selected_server
 
     async def _ip_hash_select(
-        self, servers: List[ServerConfig], client_id: str
+        self, servers: list[ServerConfig], client_id: str
     ) -> ServerConfig:
         """IP hash server selection."""
         if not servers or not client_id:
@@ -401,7 +401,7 @@ class LoadBalancer:
         return servers[index]
 
     async def _consistent_hash_select(
-        self, servers: List[ServerConfig], client_id: str
+        self, servers: list[ServerConfig], client_id: str
     ) -> ServerConfig:
         """Consistent hash server selection."""
         if not servers or not client_id:
@@ -428,14 +428,14 @@ class LoadBalancer:
         # Wrap around to first server
         return virtual_nodes[0][1]
 
-    async def get_server_health(self, server_id: str) -> Optional[ServerHealth]:
+    async def get_server_health(self, server_id: str) -> ServerHealth | None:
         """Get health status for a specific server."""
         health_checker = self.health_checkers.get(server_id)
         if health_checker:
             return await health_checker.get_health_status()
         return None
 
-    async def get_all_health_status(self) -> Dict[str, ServerHealth]:
+    async def get_all_health_status(self) -> dict[str, ServerHealth]:
         """Get health status for all servers."""
         health_status = {}
         for server_id, health_checker in self.health_checkers.items():
@@ -474,7 +474,7 @@ class LoadBalancer:
 
         logger.info("Load balancer stopped")
 
-    async def get_statistics(self) -> Dict[str, Any]:
+    async def get_statistics(self) -> dict[str, Any]:
         """Get load balancer statistics."""
         total_servers = len(self.servers)
         healthy_servers = len(await self._get_healthy_servers())
@@ -504,10 +504,10 @@ class LoadBalancedMCPClient:
     def __init__(self, load_balancer: LoadBalancer):
         """Initialize load balanced client."""
         self.load_balancer = load_balancer
-        self.active_connections: Dict[str, Any] = {}
+        self.active_connections: dict[str, Any] = {}
         self.client_id = str(uuid.uuid4())
 
-    async def send_request(self, request: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    async def send_request(self, request: dict[str, Any]) -> dict[str, Any] | None:
         """Send request through load balancer."""
         # Get server from load balancer
         server = await self.load_balancer.get_server(self.client_id)
@@ -526,7 +526,7 @@ class LoadBalancedMCPClient:
 
             return response
 
-        except Exception as e:
+        except Exception:
             # Update statistics
             await self._update_server_stats(server.id, success=False)
             raise
@@ -574,8 +574,8 @@ class LoadBalancedMCPClient:
         )
 
     async def _send_request_to_server(
-        self, connection: Any, request: Dict[str, Any]
-    ) -> Dict[str, Any]:
+        self, connection: Any, request: dict[str, Any]
+    ) -> dict[str, Any]:
         """Send request to server."""
         # This would be implemented based on the connection type
         # For now, we'll return a mock response

@@ -4,10 +4,10 @@ Circuit Breaker Tests
 Tests for circuit breaker pattern implementation.
 """
 
-import pytest
 import asyncio
 import time
-from unittest.mock import Mock, AsyncMock
+
+import pytest
 
 from metamcp.performance.circuit_breaker import (
     CircuitBreaker,

@@ -6,23 +6,23 @@ exclusively through the Admin API to maintain clean separation.
 """
 
 import json
-import requests
-from datetime import datetime
-from typing import Any, Dict, List, Optional
-
-import streamlit as st
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
-from streamlit_autorefresh import st_autorefresh
 
 # Configuration
 import os
+from typing import Any
+
+import pandas as pd
+import plotly.express as px
+import plotly.graph_objects as go
+import requests
+import streamlit as st
+from streamlit_autorefresh import st_autorefresh
 
 API_BASE_URL = os.getenv("ADMIN_API_URL", "http://localhost:8000/api/v1/admin/")
 AUTO_REFRESH_INTERVAL = int(
     os.getenv("ADMIN_AUTO_REFRESH_INTERVAL", "30000")
 )  # 30 seconds
+API_TIMEOUT = float(os.getenv("ADMIN_API_TIMEOUT", "10"))
 
 # Page configuration
 st.set_page_config(
@@ -68,21 +68,21 @@ st.markdown(
 
 
 def make_api_request(
-    endpoint: str, method: str = "GET", data: Optional[Dict] = None
-) -> Dict[str, Any]:
+    endpoint: str, method: str = "GET", data: dict | None = None
+) -> dict[str, Any]:
     """Make API request to admin endpoints."""
     try:
         url = f"{API_BASE_URL}{endpoint}"
         headers = {"Content-Type": "application/json"}
 
         if method == "GET":
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=API_TIMEOUT)
         elif method == "POST":
-            response = requests.post(url, json=data, headers=headers)
+            response = requests.post(url, json=data, headers=headers, timeout=API_TIMEOUT)
         elif method == "PUT":
-            response = requests.put(url, json=data, headers=headers)
+            response = requests.put(url, json=data, headers=headers, timeout=API_TIMEOUT)
         elif method == "DELETE":
-            response = requests.delete(url, headers=headers)
+            response = requests.delete(url, headers=headers, timeout=API_TIMEOUT)
         else:
             raise ValueError(f"Unsupported method: {method}")
 
@@ -93,12 +93,12 @@ def make_api_request(
         return {}
 
 
-def get_dashboard_data() -> Dict[str, Any]:
+def get_dashboard_data() -> dict[str, Any]:
     """Get dashboard data from API."""
     return make_api_request("dashboard")
 
 
-def get_system_metrics() -> Dict[str, Any]:
+def get_system_metrics() -> dict[str, Any]:
     """Get system metrics from API."""
     return make_api_request("system/metrics")
 
@@ -108,8 +108,8 @@ def get_users(
     limit: int = 50,
     search: str = "",
     role: str = "",
-    is_active: Optional[bool] = None,
-) -> Dict[str, Any]:
+    is_active: bool | None = None,
+) -> dict[str, Any]:
     """Get users from API with filtering and pagination."""
     params = f"page={page}&limit={limit}"
     if search:
@@ -127,8 +127,8 @@ def get_tools(
     limit: int = 50,
     search: str = "",
     status: str = "",
-    is_active: Optional[bool] = None,
-) -> Dict[str, Any]:
+    is_active: bool | None = None,
+) -> dict[str, Any]:
     """Get tools from API with filtering and pagination."""
     params = f"page={page}&limit={limit}"
     if search:
@@ -141,7 +141,7 @@ def get_tools(
     return make_api_request(f"tools?{params}")
 
 
-def get_logs(level: str = "", limit: int = 100) -> Dict[str, Any]:
+def get_logs(level: str = "", limit: int = 100) -> dict[str, Any]:
     """Get system logs from API."""
     params = f"limit={limit}"
     if level:
@@ -150,13 +150,13 @@ def get_logs(level: str = "", limit: int = 100) -> Dict[str, Any]:
     return make_api_request(f"logs?{params}")
 
 
-def create_user(user_data: Dict[str, Any]) -> bool:
+def create_user(user_data: dict[str, Any]) -> bool:
     """Create a new user via API."""
     response = make_api_request("users", method="POST", data=user_data)
     return "user_id" in response
 
 
-def update_user(user_id: str, user_data: Dict[str, Any]) -> bool:
+def update_user(user_id: str, user_data: dict[str, Any]) -> bool:
     """Update a user via API."""
     response = make_api_request(f"users/{user_id}", method="PUT", data=user_data)
     return "message" in response
@@ -168,13 +168,13 @@ def delete_user(user_id: str) -> bool:
     return "message" in response
 
 
-def create_tool(tool_data: Dict[str, Any]) -> bool:
+def create_tool(tool_data: dict[str, Any]) -> bool:
     """Create a new tool via API."""
     response = make_api_request("tools", method="POST", data=tool_data)
     return "tool_id" in response
 
 
-def update_tool(tool_id: str, tool_data: Dict[str, Any]) -> bool:
+def update_tool(tool_id: str, tool_data: dict[str, Any]) -> bool:
     """Update a tool via API."""
     response = make_api_request(f"tools/{tool_id}", method="PUT", data=tool_data)
     return "message" in response

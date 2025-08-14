@@ -5,7 +5,6 @@ This module provides the main wrapper functionality for arbitrary MCP servers,
 adding MetaMCP's enhanced features like semantic search, security, and monitoring.
 """
 
-import asyncio
 import json
 import subprocess
 from dataclasses import dataclass

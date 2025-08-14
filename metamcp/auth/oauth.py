@@ -5,23 +5,22 @@ This module provides OAuth 2.0 authentication support for both users and AI agen
 with specific handling for FastMCP agent authentication flows and database persistence.
 """
 
-import json
 import secrets
 import uuid
 from datetime import datetime, timedelta
-from typing import Any, Optional
+from typing import Any
 from urllib.parse import urlencode
 
 import httpx
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, Field
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from ..config import get_settings
 from ..database.connection import get_async_session
-from ..database.models import OAuthToken as OAuthTokenModel, User as UserModel
-from ..exceptions import MetaMCPException, OAuthError
+from ..database.models import OAuthToken as OAuthTokenModel
+from ..database.models import User as UserModel
+from ..exceptions import OAuthError
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -93,7 +92,7 @@ class OAuthManager:
         self.settings = settings
         self.providers: dict[str, OAuthProvider] = {}
         self.state_store: dict[str, dict[str, Any]] = {}
-        self._session_factory: Optional[sessionmaker] = None
+        self._session_factory: sessionmaker | None = None
         self._initialized = False
 
     async def initialize(self) -> None:
@@ -482,7 +481,7 @@ class OAuthManager:
             logger.error(f"Failed to store OAuth token: {e}")
             raise OAuthError(message=f"Failed to store OAuth token: {str(e)}") from e
 
-    async def get_user_token(self, user_id: str, provider: str) -> Optional[OAuthToken]:
+    async def get_user_token(self, user_id: str, provider: str) -> OAuthToken | None:
         """Get OAuth token for a user."""
         if not self._initialized:
             raise OAuthError(message="OAuth Manager not initialized")
@@ -524,7 +523,7 @@ class OAuthManager:
 
     async def _refresh_token(
         self, provider: str, token_model: OAuthTokenModel
-    ) -> Optional[OAuthToken]:
+    ) -> OAuthToken | None:
         """Refresh OAuth token."""
         if not token_model.refresh_token:
             return None
@@ -620,7 +619,7 @@ class OAuthManager:
 
 
 # Global instance
-_oauth_manager: Optional[OAuthManager] = None
+_oauth_manager: OAuthManager | None = None
 
 
 def get_oauth_manager() -> OAuthManager:

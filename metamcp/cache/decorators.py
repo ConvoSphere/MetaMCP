@@ -7,7 +7,8 @@ This module provides decorators for easy caching integration.
 import functools
 import hashlib
 import json
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 from ..utils.logging import get_logger
 from .redis_cache import get_cache_manager
@@ -210,7 +211,7 @@ def _generate_cache_key(
     key_string = ":".join(filter(None, key_parts))
 
     # Hash the key to keep it reasonable length
-    key_hash = hashlib.md5(key_string.encode()).hexdigest()
+    key_hash = hashlib.sha256(key_string.encode()).hexdigest()
 
     return f"cache:{key_hash}"
 

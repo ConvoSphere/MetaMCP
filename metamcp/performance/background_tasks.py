@@ -7,11 +7,12 @@ and performance optimization.
 
 import asyncio
 import time
+from collections.abc import Callable
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any
 from uuid import uuid4
 
 from ..config import get_settings
@@ -49,13 +50,13 @@ class TaskInfo:
     status: TaskStatus
     priority: TaskPriority
     created_at: datetime
-    started_at: Optional[datetime] = None
-    completed_at: Optional[datetime] = None
+    started_at: datetime | None = None
+    completed_at: datetime | None = None
     result: Any = None
-    error: Optional[str] = None
+    error: str | None = None
     retries: int = 0
     max_retries: int = 3
-    execution_time: Optional[float] = None
+    execution_time: float | None = None
 
 
 class BackgroundTaskManager:
@@ -65,10 +66,10 @@ class BackgroundTaskManager:
         """Initialize background task manager."""
         self.max_workers = max_workers or settings.worker_threads
         self._executor = ThreadPoolExecutor(max_workers=self.max_workers)
-        self._tasks: Dict[str, TaskInfo] = {}
+        self._tasks: dict[str, TaskInfo] = {}
         self._task_queue: asyncio.Queue = asyncio.Queue()
         self._running = False
-        self._workers: List[asyncio.Task] = []
+        self._workers: list[asyncio.Task] = []
         self._lock = asyncio.Lock()
 
     async def start(self):
@@ -136,7 +137,7 @@ class BackgroundTaskManager:
         logger.debug(f"Submitted task {task_id}: {task_name}")
         return task_id
 
-    async def get_task_status(self, task_id: str) -> Optional[TaskInfo]:
+    async def get_task_status(self, task_id: str) -> TaskInfo | None:
         """Get task status."""
         async with self._lock:
             return self._tasks.get(task_id)
@@ -162,7 +163,7 @@ class BackgroundTaskManager:
 
             # Check timeout
             if timeout and (time.time() - start_time) > timeout:
-                raise asyncio.TimeoutError(f"Task {task_id} timed out")
+                raise TimeoutError(f"Task {task_id} timed out")
 
             # Wait before checking again
             await asyncio.sleep(0.1)
@@ -177,7 +178,7 @@ class BackgroundTaskManager:
                 return True
         return False
 
-    async def get_all_tasks(self) -> List[TaskInfo]:
+    async def get_all_tasks(self) -> list[TaskInfo]:
         """Get all tasks."""
         async with self._lock:
             return list(self._tasks.values())
@@ -275,7 +276,7 @@ class BackgroundTaskManager:
 
                 finally:
                     self._task_queue.task_done()
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 # Timeout waiting for task, continue to next iteration
                 continue
             except Exception as e:
@@ -285,7 +286,7 @@ class BackgroundTaskManager:
 
         logger.debug(f"Stopped worker: {worker_name}")
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Get task manager statistics."""
         async with self._lock:
             total_tasks = len(self._tasks)
@@ -319,7 +320,7 @@ class BackgroundTaskManager:
 
 
 # Global task manager instance
-_task_manager: Optional[BackgroundTaskManager] = None
+_task_manager: BackgroundTaskManager | None = None
 
 
 def get_task_manager() -> BackgroundTaskManager:

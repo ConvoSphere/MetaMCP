@@ -7,11 +7,9 @@ Tests the MCP WebSocket protocol implementation of MetaMCP container.
 import asyncio
 import json
 import time
-from concurrent.futures import ThreadPoolExecutor
 
 import pytest
 import websockets
-from websockets.exceptions import ConnectionClosed
 
 from ..conftest import WS_URL
 
@@ -424,7 +422,7 @@ class TestMCPConcurrency:
                     # Verify successful initialization
                     assert "result" in response_data
 
-                except Exception as e:
+                except Exception:
                     # Connection limit reached or other error
                     # logger.warning(f"Connection {i} failed: {e}") # Original code had this line commented out
                     break

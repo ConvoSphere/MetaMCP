@@ -6,10 +6,9 @@ with improved system management and monitoring features.
 """
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from ...config import get_settings
@@ -34,7 +33,7 @@ class SystemStatusV2(BaseModel):
     active_users: int
     total_requests: int
     error_rate: float
-    system_load: Dict[str, float]
+    system_load: dict[str, float]
 
 
 class UserManagementV2(BaseModel):
@@ -42,7 +41,7 @@ class UserManagementV2(BaseModel):
 
     user_id: str
     action: str = Field(..., pattern="^(activate|deactivate|suspend|delete)$")
-    reason: Optional[str] = None
+    reason: str | None = None
 
 
 @admin_router.get("/system/status", response_model=SystemStatusV2)

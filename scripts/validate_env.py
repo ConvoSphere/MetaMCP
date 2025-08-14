@@ -8,10 +8,10 @@ This script validates the environment configuration for security and best practi
 import os
 import secrets
 import sys
-from typing import Dict, List, Any
+from typing import Any
 
 
-def validate_environment() -> Dict[str, Any]:
+def validate_environment() -> dict[str, Any]:
     """
     Validate environment configuration for security and best practices.
 
@@ -71,7 +71,7 @@ def validate_environment() -> Dict[str, Any]:
     return results
 
 
-def validate_security_config(results: Dict[str, Any]) -> None:
+def validate_security_config(results: dict[str, Any]) -> None:
     """Validate security-related configuration."""
 
     # Check for weak secret key
@@ -114,7 +114,7 @@ def validate_security_config(results: Dict[str, Any]) -> None:
             results["valid"] = False
 
 
-def validate_performance_config(results: Dict[str, Any]) -> None:
+def validate_performance_config(results: dict[str, Any]) -> None:
     """Validate performance-related configuration."""
 
     # Check database pool settings
@@ -147,7 +147,7 @@ def validate_performance_config(results: Dict[str, Any]) -> None:
         results["valid"] = False
 
 
-def validate_database_config(results: Dict[str, Any]) -> None:
+def validate_database_config(results: dict[str, Any]) -> None:
     """Validate database configuration."""
 
     database_url = os.getenv("DATABASE_URL")
@@ -167,7 +167,7 @@ def validate_database_config(results: Dict[str, Any]) -> None:
             results["warnings"].append("Change default database password")
 
 
-def generate_recommendations(results: Dict[str, Any]) -> None:
+def generate_recommendations(results: dict[str, Any]) -> None:
     """Generate security and performance recommendations."""
 
     recommendations = [
@@ -203,7 +203,7 @@ def generate_secure_secret_key() -> str:
     return secrets.token_urlsafe(32)
 
 
-def print_validation_results(results: Dict[str, Any]) -> None:
+def print_validation_results(results: dict[str, Any]) -> None:
     """Print validation results in a formatted way."""
 
     print("=" * 60)

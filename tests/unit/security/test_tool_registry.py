@@ -2,13 +2,13 @@
 Tests for Tool Registry Security System
 """
 
-import pytest
 from datetime import datetime
-from unittest.mock import AsyncMock
+
+import pytest
 
 from metamcp.security.tool_registry import (
-    ToolRegistrySecurity,
     Developer,
+    ToolRegistrySecurity,
     get_tool_registry_security,
 )
 

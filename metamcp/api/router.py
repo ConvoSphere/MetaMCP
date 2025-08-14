@@ -5,12 +5,12 @@ This module provides the main FastAPI router configuration
 with comprehensive API versioning support.
 """
 
-from fastapi import APIRouter, Request, Response
+from fastapi import APIRouter
 from fastapi.responses import JSONResponse
 
-from .versioning import get_api_version_manager, create_version_router
 from .v1 import create_v1_router
 from .v2 import create_v2_router
+from .versioning import create_version_router, get_api_version_manager
 
 # Create main router
 router = APIRouter()

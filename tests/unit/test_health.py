@@ -17,7 +17,6 @@ from metamcp.api.health import (
     format_uptime,
     health_router,
 )
-from metamcp.utils.database import get_database_manager
 
 
 class TestUptimeFunctions:

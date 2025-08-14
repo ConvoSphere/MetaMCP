@@ -7,9 +7,10 @@ with configurable failure thresholds, recovery strategies, and monitoring capabi
 
 import asyncio
 import time
+from collections.abc import Callable
 from dataclasses import dataclass
 from enum import Enum
-from typing import Any, Callable, Optional
+from typing import Any
 
 from ..config import get_settings
 from ..utils.logging import get_logger
@@ -43,8 +44,8 @@ class CircuitBreakerStats:
     total_calls: int = 0
     successful_calls: int = 0
     failed_calls: int = 0
-    last_failure_time: Optional[float] = None
-    last_success_time: Optional[float] = None
+    last_failure_time: float | None = None
+    last_success_time: float | None = None
     current_state: CircuitState = CircuitState.CLOSED
 
 
@@ -59,8 +60,8 @@ class CircuitBreaker:
     def __init__(
         self,
         name: str,
-        config: Optional[CircuitBreakerConfig] = None,
-        on_state_change: Optional[Callable[[str, CircuitState], None]] = None,
+        config: CircuitBreakerConfig | None = None,
+        on_state_change: Callable[[str, CircuitState], None] | None = None,
     ):
         """
         Initialize circuit breaker.
@@ -245,7 +246,7 @@ class CircuitBreakerManager:
     async def get_circuit_breaker(
         self,
         name: str,
-        config: Optional[CircuitBreakerConfig] = None,
+        config: CircuitBreakerConfig | None = None,
     ) -> CircuitBreaker:
         """
         Get or create circuit breaker.
@@ -288,7 +289,7 @@ class CircuitBreakerManager:
 
 
 # Global circuit breaker manager instance
-_circuit_breaker_manager: Optional[CircuitBreakerManager] = None
+_circuit_breaker_manager: CircuitBreakerManager | None = None
 
 
 def get_circuit_breaker_manager() -> CircuitBreakerManager:
@@ -301,7 +302,7 @@ def get_circuit_breaker_manager() -> CircuitBreakerManager:
 
 async def get_circuit_breaker(
     name: str,
-    config: Optional[CircuitBreakerConfig] = None,
+    config: CircuitBreakerConfig | None = None,
 ) -> CircuitBreaker:
     """
     Get circuit breaker by name.
