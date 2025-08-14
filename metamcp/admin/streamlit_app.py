@@ -22,6 +22,7 @@ API_BASE_URL = os.getenv("ADMIN_API_URL", "http://localhost:8000/api/v1/admin/")
 AUTO_REFRESH_INTERVAL = int(
     os.getenv("ADMIN_AUTO_REFRESH_INTERVAL", "30000")
 )  # 30 seconds
+API_TIMEOUT = float(os.getenv("ADMIN_API_TIMEOUT", "10"))
 
 # Page configuration
 st.set_page_config(
@@ -75,13 +76,13 @@ def make_api_request(
         headers = {"Content-Type": "application/json"}
 
         if method == "GET":
-            response = requests.get(url, headers=headers)
+            response = requests.get(url, headers=headers, timeout=API_TIMEOUT)
         elif method == "POST":
-            response = requests.post(url, json=data, headers=headers)
+            response = requests.post(url, json=data, headers=headers, timeout=API_TIMEOUT)
         elif method == "PUT":
-            response = requests.put(url, json=data, headers=headers)
+            response = requests.put(url, json=data, headers=headers, timeout=API_TIMEOUT)
         elif method == "DELETE":
-            response = requests.delete(url, headers=headers)
+            response = requests.delete(url, headers=headers, timeout=API_TIMEOUT)
         else:
             raise ValueError(f"Unsupported method: {method}")
 

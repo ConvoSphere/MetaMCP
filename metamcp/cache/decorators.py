@@ -211,7 +211,7 @@ def _generate_cache_key(
     key_string = ":".join(filter(None, key_parts))
 
     # Hash the key to keep it reasonable length
-    key_hash = hashlib.md5(key_string.encode()).hexdigest()
+    key_hash = hashlib.sha256(key_string.encode()).hexdigest()
 
     return f"cache:{key_hash}"
 
