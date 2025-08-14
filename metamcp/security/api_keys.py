@@ -11,6 +11,7 @@ import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+import inspect
 
 from sqlalchemy import select
 from sqlalchemy.orm import sessionmaker
@@ -63,7 +64,10 @@ class APIKeyManager:
             self._session_factory = get_async_session()
 
             # Test database connection
-            async with self._session_factory() as session:
+            session_ctx = self._session_factory()  # type: ignore[misc]
+            if inspect.isawaitable(session_ctx):
+                session_ctx = await session_ctx  # type: ignore[assignment]
+            async with session_ctx as session:
                 # Try to query API keys to test connection
                 stmt = select(APIKeyModel).limit(1)
                 await session.execute(stmt)
@@ -144,7 +148,10 @@ class APIKeyManager:
     ) -> None:
         """Save API key to database."""
         try:
-            async with self._session_factory() as session:
+            session_ctx = self._session_factory()  # type: ignore[misc]
+            if inspect.isawaitable(session_ctx):
+                session_ctx = await session_ctx  # type: ignore[assignment]
+            async with session_ctx as session:
                 api_key_model = APIKeyModel(
                     id=key_id,
                     key_hash=key_hash,
@@ -183,7 +190,10 @@ class APIKeyManager:
             key_hash = hashlib.sha256(api_key.encode()).hexdigest()
 
             # Query database for the key
-            async with self._session_factory() as session:  # type: ignore[misc]
+            session_ctx = self._session_factory()  # type: ignore[misc]
+            if inspect.isawaitable(session_ctx):
+                session_ctx = await session_ctx  # type: ignore[assignment]
+            async with session_ctx as session:
                 stmt = select(APIKeyModel).where(
                     APIKeyModel.key_hash == key_hash, APIKeyModel.is_active == True
                 )
@@ -251,7 +261,10 @@ class APIKeyManager:
             raise APIKeyError(message="API Key Manager not initialized")
 
         try:
-            async with self._session_factory() as session:
+            session_ctx = self._session_factory()  # type: ignore[misc]
+            if inspect.isawaitable(session_ctx):
+                session_ctx = await session_ctx  # type: ignore[assignment]
+            async with session_ctx as session:
                 stmt = select(APIKeyModel).where(APIKeyModel.id == key_id)
                 result = await session.execute(stmt)
                 key_record = result.scalar_one_or_none()
@@ -283,7 +296,10 @@ class APIKeyManager:
             raise APIKeyError(message="API Key Manager not initialized")
 
         try:
-            async with self._session_factory() as session:
+            session_ctx = self._session_factory()  # type: ignore[misc]
+            if inspect.isawaitable(session_ctx):
+                session_ctx = await session_ctx  # type: ignore[assignment]
+            async with session_ctx as session:
                 stmt = select(APIKeyModel)
                 if owner:
                     stmt = stmt.where(APIKeyModel.user_id == owner)
