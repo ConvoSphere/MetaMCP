@@ -6,10 +6,10 @@ with improved search, validation, and execution features.
 """
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, status, Query, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from ...config import get_settings
@@ -30,16 +30,16 @@ class ToolCreateV2(BaseModel):
     name: str = Field(..., min_length=1, max_length=255)
     description: str = Field(..., min_length=1)
     endpoint: str = Field(..., pattern=r"^https?://")
-    category: Optional[str] = None
-    capabilities: List[str] = Field(default_factory=list)
+    category: str | None = None
+    capabilities: list[str] = Field(default_factory=list)
     security_level: int = Field(default=0, ge=0, le=10)
-    schema: Optional[Dict[str, Any]] = None
-    metadata: Dict[str, Any] = Field(default_factory=dict)
+    schema: dict[str, Any] | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
     version: str = Field(default="1.0.0")
-    author: Optional[str] = None
-    tags: List[str] = Field(default_factory=list)
-    rate_limit: Optional[int] = None
-    timeout: Optional[int] = None
+    author: str | None = None
+    tags: list[str] = Field(default_factory=list)
+    rate_limit: int | None = None
+    timeout: int | None = None
 
 
 class ToolResponseV2(BaseModel):
@@ -49,14 +49,14 @@ class ToolResponseV2(BaseModel):
     name: str
     description: str
     endpoint: str
-    category: Optional[str]
-    capabilities: List[str]
+    category: str | None
+    capabilities: list[str]
     security_level: int
-    schema: Optional[Dict[str, Any]]
-    metadata: Dict[str, Any]
+    schema: dict[str, Any] | None
+    metadata: dict[str, Any]
     version: str
-    author: Optional[str]
-    tags: List[str]
+    author: str | None
+    tags: list[str]
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -69,11 +69,11 @@ class ToolSearchV2(BaseModel):
     """Enhanced tool search model."""
 
     query: str
-    category: Optional[str] = None
-    capabilities: Optional[List[str]] = None
-    tags: Optional[List[str]] = None
-    security_level_min: Optional[int] = None
-    security_level_max: Optional[int] = None
+    category: str | None = None
+    capabilities: list[str] | None = None
+    tags: list[str] | None = None
+    security_level_min: int | None = None
+    security_level_max: int | None = None
     limit: int = Field(default=20, ge=1, le=100)
     offset: int = Field(default=0, ge=0)
 
@@ -82,8 +82,8 @@ class ToolExecutionV2(BaseModel):
     """Enhanced tool execution model."""
 
     tool_id: str
-    arguments: Dict[str, Any]
-    timeout: Optional[int] = None
+    arguments: dict[str, Any]
+    timeout: int | None = None
     priority: str = Field(default="normal", pattern="^(low|normal|high)$")
 
 
@@ -135,11 +135,11 @@ async def create_tool_v2(
         )
 
 
-@tools_router.get("/", response_model=List[ToolResponseV2])
+@tools_router.get("/", response_model=list[ToolResponseV2])
 async def list_tools_v2(
-    category: Optional[str] = Query(None),
-    capabilities: Optional[str] = Query(None),
-    tags: Optional[str] = Query(None),
+    category: str | None = Query(None),
+    capabilities: str | None = Query(None),
+    tags: str | None = Query(None),
     limit: int = Query(20, ge=1, le=100),
     offset: int = Query(0, ge=0),
     sort_by: str = Query(
@@ -168,7 +168,7 @@ async def list_tools_v2(
         )
 
 
-@tools_router.post("/search", response_model=List[ToolResponseV2])
+@tools_router.post("/search", response_model=list[ToolResponseV2])
 async def search_tools_v2(search: ToolSearchV2):
     """
     Enhanced semantic tool search endpoint.
@@ -286,7 +286,7 @@ async def get_tool_metrics_v2(tool_id: str):
         )
 
 
-async def validate_tool_schema(schema: Dict[str, Any]) -> bool:
+async def validate_tool_schema(schema: dict[str, Any]) -> bool:
     """Validate tool schema."""
     # Implementation for schema validation
     return True

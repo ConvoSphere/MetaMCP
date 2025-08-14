@@ -6,13 +6,11 @@ configurable limits, and detailed monitoring.
 """
 
 import asyncio
-import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass, field
+from datetime import datetime, timedelta
 from enum import Enum
+from typing import Any
 
-from ..exceptions import RateLimitExceededError
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -35,9 +33,9 @@ class RateLimitConfig:
     limit: int
     window_seconds: int
     strategy: RateLimitStrategy = RateLimitStrategy.FIXED_WINDOW
-    burst_limit: Optional[int] = None
+    burst_limit: int | None = None
     cost_per_request: int = 1
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -59,7 +57,7 @@ class RateLimitResult:
     allowed: bool
     remaining: int
     reset_time: datetime
-    retry_after: Optional[int] = None
+    retry_after: int | None = None
     limit: int
     window_seconds: int
     cost_used: int = 1
@@ -75,9 +73,9 @@ class RateLimiter:
 
     def __init__(self):
         """Initialize the rate limiter."""
-        self.limiters: Dict[str, RateLimitConfig] = {}
-        self.states: Dict[str, RateLimitState] = {}
-        self.global_config: Dict[str, Any] = {
+        self.limiters: dict[str, RateLimitConfig] = {}
+        self.states: dict[str, RateLimitState] = {}
+        self.global_config: dict[str, Any] = {
             "default_limit": 100,
             "default_window": 60,
             "default_strategy": RateLimitStrategy.FIXED_WINDOW,
@@ -86,10 +84,10 @@ class RateLimiter:
         }
 
         # Statistics
-        self.stats: Dict[str, Dict[str, Any]] = {}
+        self.stats: dict[str, dict[str, Any]] = {}
 
         # Cleanup task
-        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
         self._running = False
 
     async def initialize(self) -> None:
@@ -166,7 +164,7 @@ class RateLimiter:
             raise
 
     async def check_rate_limit(
-        self, key: str, cost: int = 1, context: Optional[Dict[str, Any]] = None
+        self, key: str, cost: int = 1, context: dict[str, Any] | None = None
     ) -> RateLimitResult:
         """
         Check if request is allowed under rate limit.
@@ -428,7 +426,7 @@ class RateLimiter:
             logger.error(f"Failed to reset rate limit: {e}")
             return False
 
-    async def get_rate_limit_status(self, key: str) -> Optional[Dict[str, Any]]:
+    async def get_rate_limit_status(self, key: str) -> dict[str, Any] | None:
         """
         Get rate limit status for a key.
 
@@ -462,7 +460,7 @@ class RateLimiter:
             logger.error(f"Failed to get rate limit status: {e}")
             return None
 
-    async def get_all_rate_limits(self) -> List[Dict[str, Any]]:
+    async def get_all_rate_limits(self) -> list[dict[str, Any]]:
         """
         Get status of all rate limits.
 
@@ -539,7 +537,7 @@ class RateLimiter:
         except Exception as e:
             logger.error(f"Error during cleanup: {e}")
 
-    async def get_statistics(self) -> Dict[str, Any]:
+    async def get_statistics(self) -> dict[str, Any]:
         """
         Get rate limiter statistics.
 
@@ -610,7 +608,6 @@ class RateLimitMiddleware:
 
                 if not result.allowed:
                     # Return rate limit exceeded response
-                    from fastapi import HTTPException
                     from fastapi.responses import JSONResponse
 
                     headers = {
@@ -652,7 +649,7 @@ class RateLimitMiddleware:
             # Continue with request if rate limiting fails
             return await call_next(request)
 
-    def _extract_rate_limit_key(self, request) -> Optional[str]:
+    def _extract_rate_limit_key(self, request) -> str | None:
         """
         Extract rate limit key from request.
 

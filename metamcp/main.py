@@ -26,11 +26,9 @@ from .monitoring.health import setup_health_checks
 from .monitoring.metrics import setup_metrics
 from .monitoring.performance import performance_monitor
 from .performance.background_tasks import start_background_tasks, stop_background_tasks
-from .performance.connection_pool import close_database_pool
-from .performance.circuit_breaker import circuit_breaker_manager
-from .services.service_discovery import service_discovery, ServiceType
-from .security.middleware import SecurityMiddleware, RateLimitMiddleware
+from .security.middleware import RateLimitMiddleware, SecurityMiddleware
 from .server import MetaMCPServer
+from .services.service_discovery import ServiceType, service_discovery
 from .utils.logging import get_logger, setup_logging
 
 logger = get_logger(__name__)
@@ -48,8 +46,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 
     try:
         # Initialize database connection pool
-        from .database.connection import get_async_session
         from sqlalchemy import text
+
+        from .database.connection import get_async_session
 
         # Test database connection
         async_session = get_async_session()

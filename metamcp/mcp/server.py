@@ -9,7 +9,8 @@ WebSocket, HTTP, and stdio transports.
 import asyncio
 import json
 import sys
-from typing import Any, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Any
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 from fastmcp import FastMCP

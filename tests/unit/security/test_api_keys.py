@@ -2,11 +2,11 @@
 Tests for API Key Management System
 """
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock
 
-from metamcp.security.api_keys import APIKeyManager, APIKey, get_api_key_manager
+import pytest
+
+from metamcp.security.api_keys import APIKey, APIKeyManager, get_api_key_manager
 
 
 class TestAPIKeyManager:

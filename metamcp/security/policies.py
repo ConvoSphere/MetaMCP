@@ -5,11 +5,10 @@ This module provides policy-based access control using OPA with predefined polic
 versioning, and advanced security features.
 """
 
-import json
 import uuid
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
 
 import httpx
 
@@ -42,7 +41,7 @@ class PolicyRule:
     description: str
     resource_pattern: str
     action_pattern: str
-    conditions: Dict[str, Any]
+    conditions: dict[str, Any]
     priority: int = 0
 
 
@@ -70,13 +69,13 @@ class PolicyEngine:
         self.http_client = httpx.AsyncClient(timeout=10)
 
         # Policy versions storage
-        self.policy_versions: Dict[str, List[PolicyVersion]] = {}
+        self.policy_versions: dict[str, list[PolicyVersion]] = {}
 
         # Active policies cache
-        self.active_policies: Dict[str, PolicyVersion] = {}
+        self.active_policies: dict[str, PolicyVersion] = {}
 
         # Policy rules cache
-        self.policy_rules: Dict[str, List[PolicyRule]] = {}
+        self.policy_rules: dict[str, list[PolicyRule]] = {}
 
         # Simple policy rules (fallback)
         self.fallback_rules = {
@@ -86,11 +85,11 @@ class PolicyEngine:
         }
 
         # Rate limiting cache
-        self.rate_limit_cache: Dict[str, Dict[str, Any]] = {}
+        self.rate_limit_cache: dict[str, dict[str, Any]] = {}
 
         # IP whitelist/blacklist
-        self.ip_whitelist: List[str] = []
-        self.ip_blacklist: List[str] = []
+        self.ip_whitelist: list[str] = []
+        self.ip_blacklist: list[str] = []
 
         self._initialized = False
 
@@ -364,7 +363,7 @@ class PolicyEngine:
         user_id: str,
         resource: str,
         action: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> bool:
         """
         Check if user has access to resource with advanced context.
@@ -467,7 +466,7 @@ class PolicyEngine:
         user_id: str,
         resource: str,
         action: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> bool:
         """Check access using OPA."""
         try:
@@ -521,7 +520,7 @@ class PolicyEngine:
         user_id: str,
         resource: str,
         action: str,
-        context: Optional[Dict[str, Any]] = None,
+        context: dict[str, Any] | None = None,
     ) -> bool:
         """Check access using internal policy rules."""
         try:
@@ -774,7 +773,7 @@ class PolicyEngine:
                 error_code="policy_update_failed",
             ) from e
 
-    async def get_policy_versions(self, name: str) -> List[PolicyVersion]:
+    async def get_policy_versions(self, name: str) -> list[PolicyVersion]:
         """
         Get all versions of a policy.
 
@@ -862,7 +861,7 @@ class PolicyEngine:
             logger.error(f"Failed to remove IP from blacklist: {e}")
             return False
 
-    async def get_ip_lists(self) -> Dict[str, List[str]]:
+    async def get_ip_lists(self) -> dict[str, list[str]]:
         """Get current IP whitelist and blacklist."""
         return {
             "whitelist": self.ip_whitelist.copy(),

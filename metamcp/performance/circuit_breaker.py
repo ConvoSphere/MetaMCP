@@ -7,18 +7,19 @@ failures gracefully and preventing cascading failures in distributed systems.
 
 import asyncio
 import time
-from enum import Enum
-from typing import Any, Callable, Optional
-from dataclasses import dataclass
+from collections.abc import Callable
 from contextlib import asynccontextmanager
+from dataclasses import dataclass
+from enum import Enum
+from typing import Any
 
 from ..config import get_settings
-from ..utils.logging import get_logger
 from ..utils.constants import (
     DEFAULT_CIRCUIT_BREAKER_FAILURE_THRESHOLD,
     DEFAULT_CIRCUIT_BREAKER_RECOVERY_TIMEOUT,
     DEFAULT_CIRCUIT_BREAKER_SUCCESS_THRESHOLD,
 )
+from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -173,7 +174,7 @@ class CircuitBreaker:
             result = func(*args, **kwargs)
             self._on_success()
             return result
-        except self.config.expected_exception as e:
+        except self.config.expected_exception:
             self._on_failure()
             raise
 
@@ -210,7 +211,7 @@ class CircuitBreaker:
             result = await func(*args, **kwargs)
             self._on_success()
             return result
-        except self.config.expected_exception as e:
+        except self.config.expected_exception:
             self._on_failure()
             raise
 
@@ -239,7 +240,7 @@ class CircuitBreaker:
         try:
             yield
             self._on_success()
-        except self.config.expected_exception as e:
+        except self.config.expected_exception:
             self._on_failure()
             raise
 
@@ -291,7 +292,7 @@ class CircuitBreakerManager:
         self._lock = asyncio.Lock()
 
     def get_circuit_breaker(
-        self, name: str, config: Optional[CircuitBreakerConfig] = None
+        self, name: str, config: CircuitBreakerConfig | None = None
     ) -> CircuitBreaker:
         """
         Get or create circuit breaker.
@@ -311,7 +312,7 @@ class CircuitBreakerManager:
         return self.circuit_breakers[name]
 
     async def get_circuit_breaker_async(
-        self, name: str, config: Optional[CircuitBreakerConfig] = None
+        self, name: str, config: CircuitBreakerConfig | None = None
     ) -> CircuitBreaker:
         """
         Get or create circuit breaker (async version).

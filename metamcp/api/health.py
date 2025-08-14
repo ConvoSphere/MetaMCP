@@ -4,17 +4,15 @@ Health Check API
 This module provides health check endpoints and system status information.
 """
 
-import asyncio
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
+from datetime import datetime
+from typing import Any
 
-from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, HTTPException
 
 from ..config import get_settings
 from ..monitoring.performance import performance_monitor
 from ..performance.circuit_breaker import circuit_breaker_manager
-from ..services.service_discovery import service_discovery, ServiceType
+from ..services.service_discovery import ServiceType, service_discovery
 from ..utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -25,7 +23,7 @@ health_router = APIRouter()
 
 
 @health_router.get("/health")
-async def health_check() -> Dict[str, Any]:
+async def health_check() -> dict[str, Any]:
     """
     Basic health check endpoint.
 
@@ -54,7 +52,7 @@ async def health_check() -> Dict[str, Any]:
 
 
 @health_router.get("/health/detailed")
-async def detailed_health_check() -> Dict[str, Any]:
+async def detailed_health_check() -> dict[str, Any]:
     """
     Detailed health check with all system components.
 
@@ -148,7 +146,7 @@ async def detailed_health_check() -> Dict[str, Any]:
 
 
 @health_router.get("/health/ready")
-async def readiness_check() -> Dict[str, Any]:
+async def readiness_check() -> dict[str, Any]:
     """
     Readiness check for Kubernetes.
 
@@ -199,7 +197,7 @@ async def readiness_check() -> Dict[str, Any]:
 
 
 @health_router.get("/health/live")
-async def liveness_check() -> Dict[str, Any]:
+async def liveness_check() -> dict[str, Any]:
     """
     Liveness check for Kubernetes.
 
@@ -214,7 +212,7 @@ async def liveness_check() -> Dict[str, Any]:
 
 
 @health_router.get("/metrics")
-async def get_metrics() -> Dict[str, Any]:
+async def get_metrics() -> dict[str, Any]:
     """
     Get system metrics.
 
@@ -237,7 +235,7 @@ async def get_metrics() -> Dict[str, Any]:
 
 
 @health_router.get("/metrics/performance")
-async def get_performance_metrics() -> Dict[str, Any]:
+async def get_performance_metrics() -> dict[str, Any]:
     """
     Get performance metrics.
 
@@ -252,7 +250,7 @@ async def get_performance_metrics() -> Dict[str, Any]:
 
 
 @health_router.get("/metrics/performance/analytics")
-async def get_performance_analytics(hours: int = 24) -> Dict[str, Any]:
+async def get_performance_analytics(hours: int = 24) -> dict[str, Any]:
     """
     Get performance analytics.
 
@@ -272,7 +270,7 @@ async def get_performance_analytics(hours: int = 24) -> Dict[str, Any]:
 
 
 @health_router.get("/metrics/circuit-breakers")
-async def get_circuit_breaker_metrics() -> Dict[str, Any]:
+async def get_circuit_breaker_metrics() -> dict[str, Any]:
     """
     Get circuit breaker metrics.
 
@@ -289,7 +287,7 @@ async def get_circuit_breaker_metrics() -> Dict[str, Any]:
 
 
 @health_router.post("/metrics/circuit-breakers/reset")
-async def reset_circuit_breakers() -> Dict[str, Any]:
+async def reset_circuit_breakers() -> dict[str, Any]:
     """
     Reset all circuit breakers.
 
@@ -310,8 +308,8 @@ async def reset_circuit_breakers() -> Dict[str, Any]:
 
 @health_router.get("/services")
 async def get_services(
-    service_type: Optional[str] = None, healthy_only: bool = True
-) -> Dict[str, Any]:
+    service_type: str | None = None, healthy_only: bool = True
+) -> dict[str, Any]:
     """
     Get registered services.
 
@@ -371,7 +369,7 @@ async def get_services(
 
 
 @health_router.get("/services/{service_id}")
-async def get_service(service_id: str) -> Dict[str, Any]:
+async def get_service(service_id: str) -> dict[str, Any]:
     """
     Get specific service information.
 
@@ -419,7 +417,7 @@ async def get_service(service_id: str) -> Dict[str, Any]:
 @health_router.get("/services/types/{service_type}")
 async def get_services_by_type(
     service_type: str, healthy_only: bool = True
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Get services by type.
 
@@ -472,7 +470,7 @@ async def get_services_by_type(
 
 
 @health_router.get("/services/tags/{tag}")
-async def get_services_by_tag(tag: str, healthy_only: bool = True) -> Dict[str, Any]:
+async def get_services_by_tag(tag: str, healthy_only: bool = True) -> dict[str, Any]:
     """
     Get services by tag.
 
@@ -514,7 +512,7 @@ async def get_services_by_tag(tag: str, healthy_only: bool = True) -> Dict[str, 
 
 
 @health_router.get("/discovery")
-async def get_service_discovery_info() -> Dict[str, Any]:
+async def get_service_discovery_info() -> dict[str, Any]:
     """
     Get service discovery information.
 

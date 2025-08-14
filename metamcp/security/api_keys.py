@@ -5,16 +5,14 @@ This module provides API key management functionality including generation,
 validation, and storage with database persistence.
 """
 
+import asyncio
 import hashlib
 import secrets
 import uuid
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 from dataclasses import dataclass
-import asyncio
+from datetime import datetime, timedelta
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from ..database.connection import get_async_session
@@ -33,10 +31,10 @@ class APIKey:
     key_hash: str
     name: str
     owner: str
-    permissions: List[str]
+    permissions: list[str]
     created_at: datetime
-    expires_at: Optional[datetime]
-    last_used: Optional[datetime]
+    expires_at: datetime | None
+    last_used: datetime | None
     is_active: bool = True
 
 
@@ -51,7 +49,7 @@ class APIKeyManager:
     def __init__(self):
         """Initialize API Key Manager."""
         self._initialized = False
-        self._session_factory: Optional[sessionmaker] = None
+        self._session_factory: sessionmaker | None = None
 
     async def initialize(self) -> None:
         """Initialize the API key manager."""
@@ -83,8 +81,8 @@ class APIKeyManager:
         self,
         name: str,
         owner: str,
-        permissions: List[str],
-        expires_in_days: Optional[int] = None,
+        permissions: list[str],
+        expires_in_days: int | None = None,
     ) -> str:
         """
         Generate a new API key.
@@ -141,8 +139,8 @@ class APIKeyManager:
         key_hash: str,
         name: str,
         owner: str,
-        permissions: List[str],
-        expires_at: Optional[datetime],
+        permissions: list[str],
+        expires_at: datetime | None,
     ) -> None:
         """Save API key to database."""
         try:
@@ -167,7 +165,7 @@ class APIKeyManager:
                 message=f"Failed to save API key to database: {str(e)}"
             ) from e
 
-    async def validate_api_key(self, api_key: str) -> Optional[APIKey]:
+    async def validate_api_key(self, api_key: str) -> APIKey | None:
         """
         Validate an API key.
 
@@ -270,7 +268,7 @@ class APIKeyManager:
             logger.error(f"Failed to revoke API key: {e}")
             return False
 
-    async def list_api_keys(self, owner: Optional[str] = None) -> List[Dict]:
+    async def list_api_keys(self, owner: str | None = None) -> list[dict]:
         """
         List API keys.
 
@@ -338,7 +336,7 @@ class APIKeyManager:
 
 
 # Global instance
-_api_key_manager: Optional[APIKeyManager] = None
+_api_key_manager: APIKeyManager | None = None
 
 
 def get_api_key_manager() -> APIKeyManager:

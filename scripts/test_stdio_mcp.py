@@ -9,8 +9,7 @@ It can be used to verify that the stdio MCP server works correctly.
 import asyncio
 import json
 import sys
-import time
-from typing import Any, Dict
+from typing import Any
 
 
 class StdioMCPTester:
@@ -20,7 +19,7 @@ class StdioMCPTester:
         """Initialize the tester."""
         self.test_results = []
 
-    async def send_message(self, message: Dict[str, Any]) -> Dict[str, Any]:
+    async def send_message(self, message: dict[str, Any]) -> dict[str, Any]:
         """Send a message to the stdio MCP server and receive response."""
         try:
             # Send message to stdout (which should be connected to the server's stdin)
@@ -64,7 +63,7 @@ class StdioMCPTester:
 
             if "result" in response:
                 result = response["result"]
-                print(f"✅ Initialization successful")
+                print("✅ Initialization successful")
                 print(f"   Protocol Version: {result.get('protocolVersion')}")
                 print(f"   Server Info: {result.get('serverInfo')}")
                 return True
@@ -140,7 +139,7 @@ class StdioMCPTester:
             if "result" in response:
                 result = response["result"]
                 content = result.get("content", [])
-                print(f"✅ Call tool successful")
+                print("✅ Call tool successful")
                 print(f"   Content: {content}")
                 return True
 

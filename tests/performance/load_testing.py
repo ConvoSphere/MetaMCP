@@ -6,18 +6,14 @@ to test the application's performance under various load conditions.
 """
 
 import asyncio
-import json
-import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Callable
-from dataclasses import dataclass
-from concurrent.futures import ThreadPoolExecutor
 import statistics
+import time
+from dataclasses import dataclass
+from datetime import datetime
+from typing import Any
 
 import httpx
-import asyncio
-from locust import HttpUser, task, between, events
-from locust.exception import StopUser
+from locust import HttpUser, between, task
 
 from ...config import get_settings
 from ...utils.logging import get_logger
@@ -59,8 +55,8 @@ class LoadTestResult:
     requests_per_second: float
     error_rate: float
     concurrent_users: int
-    status_codes: Dict[str, int]
-    errors: List[str]
+    status_codes: dict[str, int]
+    errors: list[str]
 
 
 class MetaMCPLoadTestUser(HttpUser):
@@ -146,7 +142,7 @@ class LoadTestRunner:
             config: Load test configuration
         """
         self.config = config
-        self.results: List[LoadTestResult] = []
+        self.results: list[LoadTestResult] = []
         self.http_client = httpx.AsyncClient(timeout=30.0)
 
     async def run_basic_load_test(self) -> LoadTestResult:
@@ -501,12 +497,12 @@ class LoadTestRunner:
                 else:
                     pass  # Error
 
-            except Exception as e:
+            except Exception:
                 pass  # Error
 
             await asyncio.sleep(10)  # Wait 10 seconds between requests
 
-    def generate_report(self) -> Dict[str, Any]:
+    def generate_report(self) -> dict[str, Any]:
         """Generate load test report."""
         if not self.results:
             return {"error": "No test results available"}
@@ -562,7 +558,7 @@ class LoadTestRunner:
         await self.http_client.aclose()
 
 
-async def run_load_tests(config: LoadTestConfig) -> Dict[str, Any]:
+async def run_load_tests(config: LoadTestConfig) -> dict[str, Any]:
     """
     Run comprehensive load tests.
 

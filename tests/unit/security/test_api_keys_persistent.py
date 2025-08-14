@@ -4,13 +4,13 @@ Tests for persistent API Key management.
 This module tests the database-backed API key management functionality.
 """
 
-import pytest
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 
-from metamcp.security.api_keys import APIKeyManager, APIKey
-from metamcp.database.models import APIKey as APIKeyModel
+import pytest
+
 from metamcp.exceptions import APIKeyError
+from metamcp.security.api_keys import APIKey, APIKeyManager
 
 
 class TestAPIKeyManagerPersistent:

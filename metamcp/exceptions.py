@@ -4,7 +4,7 @@ Custom exceptions for MetaMCP.
 This module defines all custom exceptions used throughout the MetaMCP system.
 """
 
-from typing import Any, Optional
+from typing import Any
 
 
 class MetaMCPException(Exception):
@@ -337,7 +337,7 @@ class RateLimitExceededError(MetaMCPException):
         self,
         message: str,
         error_code: str = "rate_limit_exceeded",
-        retry_after: Optional[int] = None,
+        retry_after: int | None = None,
     ):
         super().__init__(message=message, error_code=error_code)
         self.retry_after = retry_after

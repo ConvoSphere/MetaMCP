@@ -5,8 +5,8 @@ Unit tests for performance, benchmarking, and scalability features.
 """
 
 from .test_performance import (
-    TestPerformanceBenchmarks,
     TestLoadTesting,
+    TestPerformanceBenchmarks,
     TestPerformanceRegression,
 )
 

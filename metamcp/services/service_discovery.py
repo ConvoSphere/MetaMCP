@@ -7,15 +7,14 @@ registration, health checking, and service lookup.
 
 import asyncio
 import json
-import time
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Set
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
+from datetime import datetime
 from enum import Enum
+from typing import Any
 
+from ..cache.redis_cache import get_cache_manager
 from ..config import get_settings
 from ..utils.logging import get_logger
-from ..cache.redis_cache import get_cache_manager
 
 logger = get_logger(__name__)
 settings = get_settings()
@@ -55,12 +54,12 @@ class ServiceInfo:
     port: int
     version: str
     status: ServiceStatus
-    health_check_url: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
-    tags: Optional[List[str]] = None
-    last_heartbeat: Optional[datetime] = None
-    created_at: Optional[datetime] = None
-    updated_at: Optional[datetime] = None
+    health_check_url: str | None = None
+    metadata: dict[str, Any] | None = None
+    tags: list[str] | None = None
+    last_heartbeat: datetime | None = None
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
 
 
 class ServiceDiscovery:
@@ -74,14 +73,14 @@ class ServiceDiscovery:
     def __init__(self):
         """Initialize service discovery."""
         self.cache = get_cache_manager()
-        self.registered_services: Dict[str, ServiceInfo] = {}
+        self.registered_services: dict[str, ServiceInfo] = {}
         self.health_check_interval = 30  # seconds
         self.service_ttl = 120  # seconds
-        self._health_check_task: Optional[asyncio.Task] = None
+        self._health_check_task: asyncio.Task | None = None
         self._running = False
 
         # Service type registries
-        self.service_registries: Dict[ServiceType, Set[str]] = {
+        self.service_registries: dict[ServiceType, set[str]] = {
             service_type: set() for service_type in ServiceType
         }
 
@@ -120,9 +119,9 @@ class ServiceDiscovery:
         host: str,
         port: int,
         version: str,
-        health_check_url: Optional[str] = None,
-        metadata: Optional[Dict[str, Any]] = None,
-        tags: Optional[List[str]] = None,
+        health_check_url: str | None = None,
+        metadata: dict[str, Any] | None = None,
+        tags: list[str] | None = None,
     ) -> ServiceInfo:
         """
         Register a new service.
@@ -242,7 +241,7 @@ class ServiceDiscovery:
 
         return True
 
-    async def get_service(self, service_id: str) -> Optional[ServiceInfo]:
+    async def get_service(self, service_id: str) -> ServiceInfo | None:
         """
         Get service by ID.
 
@@ -261,7 +260,7 @@ class ServiceDiscovery:
 
     async def get_services_by_type(
         self, service_type: ServiceType, healthy_only: bool = True
-    ) -> List[ServiceInfo]:
+    ) -> list[ServiceInfo]:
         """
         Get services by type.
 
@@ -293,7 +292,7 @@ class ServiceDiscovery:
 
     async def get_services_by_tag(
         self, tag: str, healthy_only: bool = True
-    ) -> List[ServiceInfo]:
+    ) -> list[ServiceInfo]:
         """
         Get services by tag.
 
@@ -321,7 +320,7 @@ class ServiceDiscovery:
 
         return services
 
-    async def get_all_services(self, healthy_only: bool = True) -> List[ServiceInfo]:
+    async def get_all_services(self, healthy_only: bool = True) -> list[ServiceInfo]:
         """
         Get all registered services.
 
@@ -338,7 +337,7 @@ class ServiceDiscovery:
 
         return services
 
-    async def discover_services(self) -> Dict[str, Any]:
+    async def discover_services(self) -> dict[str, Any]:
         """
         Discover all available services.
 
@@ -460,7 +459,7 @@ class ServiceDiscovery:
         except Exception as e:
             logger.error(f"Failed to remove service from cache: {e}")
 
-    async def _get_service_from_cache(self, service_id: str) -> Optional[ServiceInfo]:
+    async def _get_service_from_cache(self, service_id: str) -> ServiceInfo | None:
         """Get service information from cache."""
         try:
             service_key = f"service:{service_id}"
@@ -508,7 +507,7 @@ class ServiceDiscovery:
 
     async def _get_services_from_cache_by_type(
         self, service_type: ServiceType
-    ) -> List[ServiceInfo]:
+    ) -> list[ServiceInfo]:
         """Get services from cache by type."""
         try:
             type_key = f"services:type:{service_type.value}"
@@ -526,7 +525,7 @@ class ServiceDiscovery:
             logger.error(f"Failed to get services from cache by type: {e}")
             return []
 
-    async def _get_services_from_cache_by_tag(self, tag: str) -> List[ServiceInfo]:
+    async def _get_services_from_cache_by_tag(self, tag: str) -> list[ServiceInfo]:
         """Get services from cache by tag."""
         try:
             tag_key = f"services:tag:{tag}"

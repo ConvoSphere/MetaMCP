@@ -5,9 +5,9 @@ Unit tests for monitoring, metrics, and telemetry features.
 """
 
 from .test_telemetry import (
-    TestTelemetryManager,
-    TestTelemetryIntegration,
     TestTelemetryErrorHandling,
+    TestTelemetryIntegration,
+    TestTelemetryManager,
 )
 
 __all__ = [

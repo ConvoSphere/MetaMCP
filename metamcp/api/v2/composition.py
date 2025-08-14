@@ -6,10 +6,10 @@ with improved workflow management and execution features.
 """
 
 from datetime import datetime
-from typing import List, Optional, Dict, Any
+from typing import Any
 
-from fastapi import APIRouter, HTTPException, status, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, Field
 
 from ...config import get_settings
@@ -28,12 +28,12 @@ class WorkflowCreateV2(BaseModel):
     """Enhanced workflow creation model."""
 
     name: str = Field(..., min_length=1, max_length=255)
-    description: Optional[str] = None
-    definition: Dict[str, Any]
+    description: str | None = None
+    definition: dict[str, Any]
     version: str = Field(default="1.0.0")
-    tags: List[str] = Field(default_factory=list)
-    timeout: Optional[int] = None
-    retry_policy: Optional[Dict[str, Any]] = None
+    tags: list[str] = Field(default_factory=list)
+    timeout: int | None = None
+    retry_policy: dict[str, Any] | None = None
 
 
 class WorkflowResponseV2(BaseModel):
@@ -41,10 +41,10 @@ class WorkflowResponseV2(BaseModel):
 
     id: str
     name: str
-    description: Optional[str]
-    definition: Dict[str, Any]
+    description: str | None
+    definition: dict[str, Any]
     version: str
-    tags: List[str]
+    tags: list[str]
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -57,10 +57,10 @@ class WorkflowExecutionV2(BaseModel):
     """Enhanced workflow execution model."""
 
     workflow_id: str
-    input_data: Dict[str, Any] = Field(default_factory=dict)
-    timeout: Optional[int] = None
+    input_data: dict[str, Any] = Field(default_factory=dict)
+    timeout: int | None = None
     priority: str = Field(default="normal", pattern="^(low|normal|high)$")
-    tags: List[str] = Field(default_factory=list)
+    tags: list[str] = Field(default_factory=list)
 
 
 @composition_router.post("/workflows", response_model=WorkflowResponseV2)
@@ -99,7 +99,7 @@ async def create_workflow_v2(
         )
 
 
-@composition_router.get("/workflows", response_model=List[WorkflowResponseV2])
+@composition_router.get("/workflows", response_model=list[WorkflowResponseV2])
 async def list_workflows_v2():
     """
     Enhanced workflow listing endpoint.
@@ -147,7 +147,7 @@ async def execute_workflow_v2(
         )
 
 
-async def validate_workflow_definition(definition: Dict[str, Any]) -> bool:
+async def validate_workflow_definition(definition: dict[str, Any]) -> bool:
     """Validate workflow definition."""
     # Implementation for workflow validation
     return True

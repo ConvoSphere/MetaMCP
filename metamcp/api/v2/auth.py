@@ -5,15 +5,15 @@ This module provides enhanced authentication endpoints for API v2
 with improved security features and better error handling.
 """
 
-from datetime import datetime, timedelta
-from typing import Optional, Dict, Any
+from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr
 
-from ...security.auth import AuthManager
 from ...config import get_settings
+from ...security.auth import AuthManager
 from ...utils.logging import get_logger
 
 logger = get_logger(__name__)
@@ -31,7 +31,7 @@ class LoginRequestV2(BaseModel):
     username: str
     password: str
     remember_me: bool = False
-    device_info: Optional[Dict[str, Any]] = None
+    device_info: dict[str, Any] | None = None
 
 
 class LoginResponseV2(BaseModel):
@@ -41,7 +41,7 @@ class LoginResponseV2(BaseModel):
     refresh_token: str
     token_type: str = "bearer"
     expires_in: int
-    user: Dict[str, Any]
+    user: dict[str, Any]
     permissions: list[str]
     session_id: str
 
@@ -57,14 +57,14 @@ class UserProfileV2(BaseModel):
 
     id: str
     username: str
-    email: Optional[EmailStr] = None
-    full_name: Optional[str] = None
+    email: EmailStr | None = None
+    full_name: str | None = None
     roles: list[str]
     permissions: list[str]
     is_active: bool
     is_admin: bool
     created_at: datetime
-    last_login: Optional[datetime] = None
+    last_login: datetime | None = None
     session_count: int = 0
 
 

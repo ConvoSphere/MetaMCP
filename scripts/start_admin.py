@@ -6,8 +6,8 @@ This script starts the Streamlit-based admin interface.
 """
 
 import os
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 # Add the project root to the Python path
@@ -41,7 +41,7 @@ def main():
         print(f"❌ Streamlit app not found at {app_path}")
         sys.exit(1)
 
-    print(f"🚀 Starting MetaMCP Admin Interface...")
+    print("🚀 Starting MetaMCP Admin Interface...")
     print(f"📍 URL: http://localhost:{settings.admin_port}")
     print(f"🔧 Admin Port: {settings.admin_port}")
     print(f"🌍 Environment: {settings.environment}")

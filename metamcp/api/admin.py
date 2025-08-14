@@ -5,7 +5,7 @@ This module provides admin API endpoints for the Streamlit-based admin interface
 All admin operations go through this API to maintain clean separation.
 """
 
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
@@ -37,19 +37,19 @@ class UserCreateRequest(BaseModel):
     email: str
     password: str
     full_name: str
-    roles: List[str] = ["user"]
-    permissions: List[str] = []
+    roles: list[str] = ["user"]
+    permissions: list[str] = []
     is_active: bool = True
     is_admin: bool = False
 
 
 class UserUpdateRequest(BaseModel):
-    email: Optional[str] = None
-    full_name: Optional[str] = None
-    roles: Optional[List[str]] = None
-    permissions: Optional[List[str]] = None
-    is_active: Optional[bool] = None
-    is_admin: Optional[bool] = None
+    email: str | None = None
+    full_name: str | None = None
+    roles: list[str] | None = None
+    permissions: list[str] | None = None
+    is_active: bool | None = None
+    is_admin: bool | None = None
 
 
 class ToolCreateRequest(BaseModel):
@@ -58,20 +58,20 @@ class ToolCreateRequest(BaseModel):
     version: str = "1.0.0"
     endpoint_url: str
     authentication_type: str = "none"
-    schema: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
+    schema: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
     is_active: bool = True
 
 
 class ToolUpdateRequest(BaseModel):
-    name: Optional[str] = None
-    description: Optional[str] = None
-    version: Optional[str] = None
-    endpoint_url: Optional[str] = None
-    authentication_type: Optional[str] = None
-    schema: Optional[Dict[str, Any]] = None
-    metadata: Optional[Dict[str, Any]] = None
-    is_active: Optional[bool] = None
+    name: str | None = None
+    description: str | None = None
+    version: str | None = None
+    endpoint_url: str | None = None
+    authentication_type: str | None = None
+    schema: dict[str, Any] | None = None
+    metadata: dict[str, Any] | None = None
+    is_active: bool | None = None
 
 
 # Dashboard and Overview Endpoints
@@ -117,9 +117,9 @@ async def get_admin_config():
 async def get_users(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
-    search: Optional[str] = None,
-    role: Optional[str] = None,
-    is_active: Optional[bool] = None,
+    search: str | None = None,
+    role: str | None = None,
+    is_active: bool | None = None,
 ):
     """Get paginated user list with optional filtering."""
     try:
@@ -253,9 +253,9 @@ async def delete_user(user_id: str):
 async def get_tools(
     page: int = Query(1, ge=1),
     limit: int = Query(50, ge=1, le=100),
-    search: Optional[str] = None,
-    status: Optional[str] = None,
-    is_active: Optional[bool] = None,
+    search: str | None = None,
+    status: str | None = None,
+    is_active: bool | None = None,
 ):
     """Get paginated tool list with optional filtering."""
     try:
@@ -390,9 +390,9 @@ async def delete_tool(tool_id: str):
 # System Management Endpoints
 @admin_router.get("/logs")
 async def get_logs(
-    level: Optional[str] = None,
+    level: str | None = None,
     limit: int = Query(100, ge=1, le=1000),
-    since: Optional[str] = None,
+    since: str | None = None,
 ):
     """Get system logs."""
     try:

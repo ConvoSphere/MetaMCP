@@ -5,23 +5,22 @@ This module tests the advanced policy engine features including
 predefined policies, versioning, IP filtering, and rate limiting.
 """
 
-import pytest
-from datetime import datetime, timedelta
-from unittest.mock import AsyncMock, MagicMock, patch
+from unittest.mock import MagicMock
 
-from metamcp.security.policies import PolicyEngine, PolicyVersion, PolicyRule
+import pytest
+
+from metamcp.config import PolicyEngineType
+from metamcp.security.policies import PolicyEngine
 from metamcp.security.policy_tester import (
-    PolicyTester,
     PolicyTestCase,
+    PolicyTester,
     PolicyTestResult,
 )
 from metamcp.security.rate_limiting import (
-    RateLimiter,
     RateLimitConfig,
+    RateLimiter,
     RateLimitStrategy,
 )
-from metamcp.config import PolicyEngineType
-from metamcp.exceptions import PolicyViolationError
 
 
 class TestPolicyEngineAdvanced:

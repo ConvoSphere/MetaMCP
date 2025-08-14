@@ -5,19 +5,18 @@ This module defines SQLAlchemy models for the MetaMCP application.
 """
 
 from datetime import UTC, datetime
-from typing import Any
 
 from sqlalchemy import (
+    JSON,
     Boolean,
     Column,
     DateTime,
     ForeignKey,
+    Index,
     Integer,
-    JSON,
     String,
     Text,
     UniqueConstraint,
-    Index,
 )
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship

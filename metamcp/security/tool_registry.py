@@ -7,12 +7,11 @@ including developer registration and verification with database persistence.
 
 import secrets
 import uuid
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional
 from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import sessionmaker
 
 from ..database.connection import get_async_session
@@ -33,7 +32,7 @@ class Developer:
     organization: str
     is_verified: bool
     registration_date: datetime
-    tools_created: List[str]
+    tools_created: list[str]
     is_active: bool = True
 
 
@@ -48,7 +47,7 @@ class ToolRegistrySecurity:
     def __init__(self):
         """Initialize Tool Registry Security."""
         self._initialized = False
-        self._session_factory: Optional[sessionmaker] = None
+        self._session_factory: sessionmaker | None = None
 
     async def initialize(self) -> None:
         """Initialize the tool registry security."""
@@ -261,7 +260,7 @@ class ToolRegistrySecurity:
             logger.error(f"Failed to register tool creation: {e}")
             return False
 
-    async def get_developer_info(self, developer_id: str) -> Optional[Dict[str, Any]]:
+    async def get_developer_info(self, developer_id: str) -> dict[str, Any] | None:
         """
         Get developer information.
 
@@ -300,7 +299,7 @@ class ToolRegistrySecurity:
 
     async def list_developers(
         self, verified_only: bool = False
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """
         List developers.
 
@@ -375,7 +374,7 @@ class ToolRegistrySecurity:
             logger.error(f"Failed to deactivate developer: {e}")
             return False
 
-    def validate_tool_registration(self, tool_data: Dict[str, Any]) -> bool:
+    def validate_tool_registration(self, tool_data: dict[str, Any]) -> bool:
         """
         Validate tool registration data.
 
@@ -450,7 +449,7 @@ class ToolRegistrySecurity:
 
 
 # Global instance
-_tool_registry_security: Optional[ToolRegistrySecurity] = None
+_tool_registry_security: ToolRegistrySecurity | None = None
 
 
 def get_tool_registry_security() -> ToolRegistrySecurity:

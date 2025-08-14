@@ -8,14 +8,14 @@ This module tests the integration of all security features:
 - API Versioning
 """
 
-import pytest
-import asyncio
 from datetime import datetime, timedelta
 
-from metamcp.security.api_keys import get_api_key_manager
-from metamcp.security.tool_registry import get_tool_registry_security
-from metamcp.security.resource_limits import get_resource_limit_manager, ResourceLimits
+import pytest
+
 from metamcp.api.versioning import get_api_version_manager
+from metamcp.security.api_keys import get_api_key_manager
+from metamcp.security.resource_limits import ResourceLimits, get_resource_limit_manager
+from metamcp.security.tool_registry import get_tool_registry_security
 
 
 class TestSecurityIntegration:

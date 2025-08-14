@@ -7,12 +7,12 @@ communication capabilities.
 """
 
 import asyncio
-import json
 import time
 import uuid
+from collections.abc import AsyncGenerator
 from dataclasses import dataclass, field
 from enum import Enum
-from typing import Any, AsyncGenerator, Dict, List, Optional, Set
+from typing import Any, Optional
 
 from ..utils.logging import get_logger
 
@@ -49,7 +49,7 @@ class StreamChunk:
     stream_id: str
     chunk_id: str
     data: Any
-    metadata: Dict[str, Any] = field(default_factory=dict)
+    metadata: dict[str, Any] = field(default_factory=dict)
     timestamp: float = field(default_factory=time.time)
     is_final: bool = False
     sequence_number: int = 0
@@ -74,8 +74,8 @@ class FlowController:
     def __init__(self, window_size: int = 1000):
         """Initialize flow controller."""
         self.window_size = window_size
-        self.sent_chunks: Set[str] = set()
-        self.acknowledged_chunks: Set[str] = set()
+        self.sent_chunks: set[str] = set()
+        self.acknowledged_chunks: set[str] = set()
         self.window_available = window_size
         self._lock = asyncio.Lock()
 
@@ -98,7 +98,7 @@ class FlowController:
                 self.acknowledged_chunks.add(chunk_id)
                 self.window_available += 1
 
-    async def get_window_status(self) -> Dict[str, Any]:
+    async def get_window_status(self) -> dict[str, Any]:
         """Get current window status."""
         async with self._lock:
             return {
@@ -115,16 +115,16 @@ class StreamManager:
     def __init__(self, config: StreamConfig):
         """Initialize stream manager."""
         self.config = config
-        self.active_streams: Dict[str, "StreamOperation"] = {}
-        self.flow_controllers: Dict[str, FlowController] = {}
+        self.active_streams: dict[str, StreamOperation] = {}
+        self.flow_controllers: dict[str, FlowController] = {}
         self._lock = asyncio.Lock()
-        self._cleanup_task: Optional[asyncio.Task] = None
+        self._cleanup_task: asyncio.Task | None = None
 
     async def create_stream(
         self,
         stream_type: StreamType,
         operation_id: str,
-        metadata: Dict[str, Any] = None,
+        metadata: dict[str, Any] = None,
     ) -> "StreamOperation":
         """Create a new streaming operation."""
         stream_id = str(uuid.uuid4())
@@ -159,7 +159,7 @@ class StreamManager:
                 del self.flow_controllers[stream_id]
                 logger.info(f"Closed stream {stream_id}")
 
-    async def get_active_streams(self) -> List[Dict[str, Any]]:
+    async def get_active_streams(self) -> list[dict[str, Any]]:
         """Get information about all active streams."""
         async with self._lock:
             streams_info = []
@@ -214,7 +214,7 @@ class StreamOperation:
         stream_type: StreamType,
         operation_id: str,
         config: StreamConfig,
-        metadata: Dict[str, Any],
+        metadata: dict[str, Any],
     ):
         """Initialize stream operation."""
         self.stream_id = stream_id
@@ -231,10 +231,10 @@ class StreamOperation:
 
         self._send_queue: asyncio.Queue = asyncio.Queue(maxsize=config.buffer_size)
         self._receive_queue: asyncio.Queue = asyncio.Queue(maxsize=config.buffer_size)
-        self._error: Optional[Exception] = None
+        self._error: Exception | None = None
         self._closed = False
 
-    async def send_chunk(self, data: Any, metadata: Dict[str, Any] = None) -> None:
+    async def send_chunk(self, data: Any, metadata: dict[str, Any] = None) -> None:
         """Send a chunk of data."""
         if self._closed:
             raise RuntimeError("Stream is closed")
@@ -255,7 +255,7 @@ class StreamOperation:
         logger.debug(f"Sent chunk {chunk.chunk_id} on stream {self.stream_id}")
 
     async def send_final_chunk(
-        self, data: Any = None, metadata: Dict[str, Any] = None
+        self, data: Any = None, metadata: dict[str, Any] = None
     ) -> None:
         """Send final chunk and close stream."""
         chunk = StreamChunk(
@@ -274,7 +274,7 @@ class StreamOperation:
 
         logger.info(f"Sent final chunk on stream {self.stream_id}")
 
-    async def receive_chunk(self) -> Optional[StreamChunk]:
+    async def receive_chunk(self) -> StreamChunk | None:
         """Receive a chunk of data."""
         if self._closed:
             return None
@@ -286,7 +286,7 @@ class StreamOperation:
             self.chunks_received += 1
             self.last_activity = time.time()
             return chunk
-        except asyncio.TimeoutError:
+        except TimeoutError:
             logger.warning(f"Timeout waiting for chunk on stream {self.stream_id}")
             return None
 
@@ -351,8 +351,8 @@ class BidirectionalStream:
         self.stream_manager = stream_manager
         self.stream_id = stream_id
         self.flow_controller = stream_manager.flow_controllers[stream_id]
-        self._send_task: Optional[asyncio.Task] = None
-        self._receive_task: Optional[asyncio.Task] = None
+        self._send_task: asyncio.Task | None = None
+        self._receive_task: asyncio.Task | None = None
 
     async def start(self) -> None:
         """Start the bidirectional stream."""
@@ -384,7 +384,7 @@ class BidirectionalStream:
                 if chunk.is_final:
                     break
 
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             except Exception as e:
                 stream.set_error(e)
@@ -419,7 +419,7 @@ class BidirectionalStream:
         # For now, we'll just log it
         logger.debug(f"Sending chunk {chunk.chunk_id} via transport")
 
-    async def _receive_chunk_from_transport(self) -> Optional[StreamChunk]:
+    async def _receive_chunk_from_transport(self) -> StreamChunk | None:
         """Receive chunk from transport layer (to be implemented)."""
         # This would be implemented by the specific transport layer
         # For now, we'll return None
@@ -455,7 +455,7 @@ class StreamingProtocol:
         """Initialize streaming protocol."""
         self.config = config or StreamConfig()
         self.stream_manager = StreamManager(self.config)
-        self.bidirectional_streams: Dict[str, BidirectionalStream] = {}
+        self.bidirectional_streams: dict[str, BidirectionalStream] = {}
 
     async def initialize(self) -> None:
         """Initialize the streaming protocol."""
@@ -466,7 +466,7 @@ class StreamingProtocol:
         self,
         stream_type: StreamType,
         operation_id: str,
-        metadata: Dict[str, Any] = None,
+        metadata: dict[str, Any] = None,
     ) -> BidirectionalStream:
         """Create a bidirectional streaming channel."""
         stream = await self.stream_manager.create_stream(
@@ -480,7 +480,7 @@ class StreamingProtocol:
         return bidirectional
 
     async def send_streaming_tool_execution(
-        self, tool_name: str, arguments: Dict[str, Any], operation_id: str
+        self, tool_name: str, arguments: dict[str, Any], operation_id: str
     ) -> AsyncGenerator[StreamChunk, None]:
         """Send streaming tool execution."""
         stream = await self.stream_manager.create_stream(
@@ -518,7 +518,7 @@ class StreamingProtocol:
             yield chunk
 
     async def broadcast_event_stream(
-        self, event_type: str, data: Dict[str, Any], operation_id: str
+        self, event_type: str, data: dict[str, Any], operation_id: str
     ) -> None:
         """Broadcast event stream to all connected clients."""
         stream = await self.stream_manager.create_stream(
@@ -538,7 +538,7 @@ class StreamingProtocol:
 
         await stream.send_final_chunk()
 
-    async def get_streaming_statistics(self) -> Dict[str, Any]:
+    async def get_streaming_statistics(self) -> dict[str, Any]:
         """Get streaming statistics."""
         active_streams = await self.stream_manager.get_active_streams()
 
@@ -550,7 +550,7 @@ class StreamingProtocol:
             "flow_control_status": await self._get_flow_control_status(),
         }
 
-    def _group_streams_by_type(self, streams: List[Dict[str, Any]]) -> Dict[str, int]:
+    def _group_streams_by_type(self, streams: list[dict[str, Any]]) -> dict[str, int]:
         """Group streams by type."""
         grouped = {}
         for stream in streams:
@@ -558,7 +558,7 @@ class StreamingProtocol:
             grouped[stream_type] = grouped.get(stream_type, 0) + 1
         return grouped
 
-    async def _get_flow_control_status(self) -> Dict[str, Any]:
+    async def _get_flow_control_status(self) -> dict[str, Any]:
         """Get flow control status for all streams."""
         status = {}
         for stream_id, controller in self.stream_manager.flow_controllers.items():

@@ -6,8 +6,8 @@ This script runs all security-related tests to verify that
 the implemented security features are working correctly.
 """
 
-import sys
 import subprocess
+import sys
 import time
 from pathlib import Path
 

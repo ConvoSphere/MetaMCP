@@ -8,9 +8,7 @@ TTL management, and performance optimizations.
 import asyncio
 import json
 import pickle
-from datetime import datetime, timedelta
-from typing import Any, Dict, List, Optional, Union
-from urllib.parse import urlparse
+from typing import Any
 
 from ..config import get_settings
 from ..utils.logging import get_logger
@@ -159,14 +157,14 @@ class RedisCache:
             logger.error(f"Cache clear pattern error for {pattern}: {e}")
             return 0
 
-    async def get_many(self, keys: List[str]) -> Dict[str, Any]:
+    async def get_many(self, keys: list[str]) -> dict[str, Any]:
         """Get multiple values from cache."""
         try:
             redis_client = await self._get_redis()
             values = await redis_client.mget(keys)
 
             result = {}
-            for key, value in zip(keys, values):
+            for key, value in zip(keys, values, strict=False):
                 if value is not None:
                     try:
                         result[key] = pickle.loads(value)
@@ -182,7 +180,7 @@ class RedisCache:
             logger.error(f"Cache get_many error: {e}")
             return {}
 
-    async def set_many(self, data: Dict[str, Any], ttl: int = None) -> bool:
+    async def set_many(self, data: dict[str, Any], ttl: int = None) -> bool:
         """Set multiple values in cache."""
         try:
             redis_client = await self._get_redis()
@@ -313,7 +311,7 @@ class CacheManager:
             pattern = "user:*"
         return await self.redis_cache.clear_pattern(pattern)
 
-    async def get_stats(self) -> Dict[str, Any]:
+    async def get_stats(self) -> dict[str, Any]:
         """Get cache statistics."""
         try:
             redis_client = await self.redis_cache._get_redis()
@@ -344,7 +342,7 @@ class CacheManager:
 
 
 # Global cache manager instance
-_cache_manager: Optional[CacheManager] = None
+_cache_manager: CacheManager | None = None
 
 
 def get_cache_manager(redis_url: str = None) -> CacheManager:

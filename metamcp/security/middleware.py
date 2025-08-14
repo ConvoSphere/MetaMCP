@@ -8,11 +8,9 @@ request sanitization, and security headers.
 from __future__ import annotations
 
 import re
-import json
-from typing import Any, Dict, List
-from urllib.parse import unquote
+from typing import Any
 
-from fastapi import Request, Response, HTTPException
+from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 
@@ -139,7 +137,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         return True
 
-    async def _validate_request_body(self, request: Request) -> Dict[str, Any]:
+    async def _validate_request_body(self, request: Request) -> dict[str, Any]:
         """Validate request body for malicious content."""
         try:
             # Get content type
@@ -167,7 +165,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
             logger.error(f"Error validating request body: {e}")
             return {"valid": False, "reason": "Invalid request body format"}
 
-    def _validate_json_body(self, body: Any) -> Dict[str, Any]:
+    def _validate_json_body(self, body: Any) -> dict[str, Any]:
         """Validate JSON request body."""
         if isinstance(body, dict):
             return self._validate_dict(body)
@@ -178,7 +176,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
         else:
             return {"valid": False, "reason": "Unsupported JSON type"}
 
-    def _validate_dict(self, data: Dict[str, Any]) -> Dict[str, Any]:
+    def _validate_dict(self, data: dict[str, Any]) -> dict[str, Any]:
         """Validate dictionary data."""
         for key, value in data.items():
             # Validate key
@@ -201,7 +199,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         return {"valid": True}
 
-    def _validate_list(self, data: List[Any]) -> Dict[str, Any]:
+    def _validate_list(self, data: list[Any]) -> dict[str, Any]:
         """Validate list data."""
         for item in data:
             if isinstance(item, dict):
@@ -216,7 +214,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         return {"valid": True}
 
-    def _validate_primitive(self, value: Any) -> Dict[str, Any]:
+    def _validate_primitive(self, value: Any) -> dict[str, Any]:
         """Validate primitive values."""
         if isinstance(value, str):
             if not self._validate_string(value):
@@ -268,7 +266,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         return True
 
-    def _validate_form_data(self, form_data) -> Dict[str, Any]:
+    def _validate_form_data(self, form_data) -> dict[str, Any]:
         """Validate form data."""
         for key, value in form_data.items():
             if not self._validate_string(str(key)):
@@ -279,7 +277,7 @@ class SecurityMiddleware(BaseHTTPMiddleware):
 
         return {"valid": True}
 
-    def _validate_text_body(self, text: str) -> Dict[str, Any]:
+    def _validate_text_body(self, text: str) -> dict[str, Any]:
         """Validate text body."""
         if not self._validate_string(text):
             return {"valid": False, "reason": "Invalid text content"}

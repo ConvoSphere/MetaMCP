@@ -5,7 +5,6 @@ Tests the transport plugin system including plugin registration, discovery,
 custom transport implementations, and plugin management.
 """
 
-import asyncio
 import tempfile
 from unittest.mock import AsyncMock, MagicMock, patch
 
@@ -17,7 +16,6 @@ from metamcp.mcp.transport_plugins import (
     LoadBalancedMCPClient,
     StdioTransportPlugin,
     TransportConfig,
-    TransportPlugin,
     TransportPluginManager,
     TransportType,
     WebSocketTransportPlugin,

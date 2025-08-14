@@ -4,12 +4,13 @@ Security Middleware Tests
 Tests for input validation and security middleware functionality.
 """
 
+from unittest.mock import Mock
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from unittest.mock import Mock
 
-from metamcp.security.middleware import SecurityMiddleware, RateLimitMiddleware
+from metamcp.security.middleware import RateLimitMiddleware, SecurityMiddleware
 
 
 @pytest.fixture

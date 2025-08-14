@@ -7,7 +7,8 @@ This module provides decorators for easy caching integration.
 import functools
 import hashlib
 import json
-from typing import Any, Callable, Dict, Optional
+from collections.abc import Callable
+from typing import Any
 
 from ..utils.logging import get_logger
 from .redis_cache import get_cache_manager

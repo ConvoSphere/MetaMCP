@@ -5,11 +5,13 @@ This module provides API versioning capabilities with proper routing,
 version management, and deprecation handling.
 """
 
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional, Any, Callable
+from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from enum import Enum
-from fastapi import APIRouter, Request, Response, HTTPException
+from typing import Any
+
+from fastapi import APIRouter, HTTPException, Request, Response
 from fastapi.routing import APIRoute
 
 from ..utils.logging import get_logger
@@ -32,12 +34,12 @@ class APIVersion:
     version: str
     status: VersionStatus
     release_date: datetime
-    deprecation_date: Optional[datetime] = None
-    sunset_date: Optional[datetime] = None
+    deprecation_date: datetime | None = None
+    sunset_date: datetime | None = None
     description: str = ""
-    breaking_changes: List[str] = None
-    new_features: List[str] = None
-    bug_fixes: List[str] = None
+    breaking_changes: list[str] = None
+    new_features: list[str] = None
+    bug_fixes: list[str] = None
 
     def __post_init__(self):
         if self.breaking_changes is None:
@@ -63,7 +65,7 @@ class APIVersion:
             return True
         return False
 
-    def to_dict(self) -> Dict[str, Any]:
+    def to_dict(self) -> dict[str, Any]:
         """Convert to dictionary."""
         return {
             "version": self.version,
@@ -99,8 +101,8 @@ class APIVersionManager:
 
     def __init__(self):
         """Initialize API Version Manager."""
-        self.versions: Dict[str, APIVersion] = {}
-        self.routers: Dict[str, APIRouter] = {}
+        self.versions: dict[str, APIVersion] = {}
+        self.routers: dict[str, APIRouter] = {}
         self.default_version = "v1"
         self._initialized = False
 
@@ -127,11 +129,11 @@ class APIVersionManager:
         self.versions[version.version] = version
         logger.info(f"Registered API version: {version.version}")
 
-    def get_router(self, version: str) -> Optional[APIRouter]:
+    def get_router(self, version: str) -> APIRouter | None:
         """Get router for a specific version."""
         return self.routers.get(version)
 
-    def get_latest_version(self) -> Optional[str]:
+    def get_latest_version(self) -> str | None:
         """Get the latest API version."""
         if not self.versions:
             return None
@@ -148,7 +150,7 @@ class APIVersionManager:
 
         return None
 
-    def get_active_versions(self) -> List[str]:
+    def get_active_versions(self) -> list[str]:
         """Get list of active API versions."""
         active_versions = []
         for version in self.versions.values():
@@ -156,7 +158,7 @@ class APIVersionManager:
                 active_versions.append(version.version)
         return sorted(active_versions)
 
-    def get_deprecated_versions(self) -> List[str]:
+    def get_deprecated_versions(self) -> list[str]:
         """Get list of deprecated API versions."""
         deprecated_versions = []
         for version in self.versions.values():
@@ -164,7 +166,7 @@ class APIVersionManager:
                 deprecated_versions.append(version.version)
         return sorted(deprecated_versions)
 
-    def get_sunset_versions(self) -> List[str]:
+    def get_sunset_versions(self) -> list[str]:
         """Get list of sunset API versions."""
         sunset_versions = []
         for version in self.versions.values():
@@ -173,7 +175,7 @@ class APIVersionManager:
         return sorted(sunset_versions)
 
     def deprecate_version(
-        self, version: str, deprecation_date: Optional[datetime] = None
+        self, version: str, deprecation_date: datetime | None = None
     ) -> bool:
         """Deprecate an API version."""
         if version not in self.versions:
@@ -187,9 +189,7 @@ class APIVersionManager:
         logger.warning(f"API version {version} has been deprecated")
         return True
 
-    def sunset_version(
-        self, version: str, sunset_date: Optional[datetime] = None
-    ) -> bool:
+    def sunset_version(self, version: str, sunset_date: datetime | None = None) -> bool:
         """Sunset an API version."""
         if version not in self.versions:
             return False
@@ -202,14 +202,14 @@ class APIVersionManager:
         logger.warning(f"API version {version} has been sunset")
         return True
 
-    def get_version_info(self, version: str) -> Optional[Dict[str, Any]]:
+    def get_version_info(self, version: str) -> dict[str, Any] | None:
         """Get information about a specific version."""
         if version not in self.versions:
             return None
 
         return self.versions[version].to_dict()
 
-    def list_versions(self, include_sunset: bool = False) -> List[Dict[str, Any]]:
+    def list_versions(self, include_sunset: bool = False) -> list[dict[str, Any]]:
         """List all API versions."""
         versions = []
         for version in self.versions.values():

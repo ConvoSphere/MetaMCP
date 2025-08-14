@@ -2,13 +2,13 @@
 Tests for API Versioning System
 """
 
-import pytest
 from datetime import datetime, timedelta
-from unittest.mock import AsyncMock
+
+import pytest
 
 from metamcp.api.versioning import (
-    APIVersionManager,
     APIVersion,
+    APIVersionManager,
     VersionStatus,
     get_api_version_manager,
 )

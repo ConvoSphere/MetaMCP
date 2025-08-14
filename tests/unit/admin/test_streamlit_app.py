@@ -4,25 +4,24 @@ Unit Tests for Streamlit Admin Interface
 Tests the Streamlit admin interface functions and API communication.
 """
 
-import json
-import pytest
 from unittest.mock import Mock, patch
-from typing import Dict, Any
+
+import pytest
 
 from metamcp.admin.streamlit_app import (
-    make_api_request,
-    get_dashboard_data,
-    get_system_metrics,
-    get_users,
-    get_tools,
-    get_logs,
-    create_user,
-    update_user,
-    delete_user,
     create_tool,
-    update_tool,
+    create_user,
     delete_tool,
+    delete_user,
+    get_dashboard_data,
+    get_logs,
+    get_system_metrics,
+    get_tools,
+    get_users,
+    make_api_request,
     restart_system,
+    update_tool,
+    update_user,
 )
 
 
