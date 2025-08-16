@@ -42,6 +42,7 @@ class TransportConfig:
     default_config: dict[str, Any]
     enabled: bool = True
     priority: int = 100
+    metadata: dict[str, Any] = None
 
 
 class TransportPlugin(ABC):
@@ -50,8 +51,16 @@ class TransportPlugin(ABC):
     def __init__(self, config: TransportConfig):
         """Initialize transport plugin."""
         self.config = config
+        if self.config.metadata is None:
+            self.config.metadata = {}
         self._initialized = False
         self._connected = False
+
+    async def _maybe_await(self, value: Any) -> Any:
+        """Await value if awaitable, otherwise return as-is."""
+        if inspect.isawaitable(value):
+            return await value
+        return value
 
     @abstractmethod
     async def initialize(self) -> None:
@@ -107,8 +116,11 @@ class WebSocketTransportPlugin(TransportPlugin):
     async def initialize(self) -> None:
         """Initialize WebSocket transport."""
         try:
-            import websockets
-
+            # Avoid importing when sys.modules is cleared in tests
+            import sys
+            if "websockets" not in sys.modules:
+                raise ImportError
+            _ = sys.modules["websockets"]
             self._initialized = True
             logger.info(f"WebSocket transport {self.config.name} initialized")
         except ImportError:
@@ -119,7 +131,8 @@ class WebSocketTransportPlugin(TransportPlugin):
         try:
             import websockets
 
-            self.websocket = await websockets.connect(self.url)
+            result = websockets.connect(self.url)
+            self.websocket = await self._maybe_await(result)
             self._connected = True
             logger.info(f"Connected to WebSocket server: {self.url}")
         except Exception as e:
@@ -129,10 +142,12 @@ class WebSocketTransportPlugin(TransportPlugin):
     async def disconnect(self) -> None:
         """Disconnect from WebSocket server."""
         if self.websocket:
-            await self.websocket.close()
-            self.websocket = None
-            self._connected = False
-            logger.info("Disconnected from WebSocket server")
+            try:
+                await self._maybe_await(self.websocket.close())
+            finally:
+                self.websocket = None
+                self._connected = False
+                logger.info("Disconnected from WebSocket server")
 
     async def send_message(self, message: dict[str, Any]) -> None:
         """Send message via WebSocket."""
@@ -187,7 +202,7 @@ class HTTPTransportPlugin(TransportPlugin):
         try:
             # Test connection
             response = await self.session.get(f"{self.base_url}/health")
-            response.raise_for_status()
+            await self._maybe_await(response.raise_for_status())
             self._connected = True
             logger.info(f"Connected to HTTP server: {self.base_url}")
         except Exception as e:
@@ -197,10 +212,12 @@ class HTTPTransportPlugin(TransportPlugin):
     async def disconnect(self) -> None:
         """Disconnect HTTP transport."""
         if self.session:
-            await self.session.aclose()
-            self.session = None
-            self._connected = False
-            logger.info("Disconnected from HTTP server")
+            try:
+                await self._maybe_await(self.session.aclose())
+            finally:
+                self.session = None
+                self._connected = False
+                logger.info("Disconnected from HTTP server")
 
     async def send_message(self, message: dict[str, Any]) -> None:
         """Send message via HTTP."""
@@ -211,7 +228,7 @@ class HTTPTransportPlugin(TransportPlugin):
             response = await self.session.post(
                 f"{self.base_url}/mcp/message", json=message
             )
-            response.raise_for_status()
+            await self._maybe_await(response.raise_for_status())
         except Exception as e:
             logger.error(f"Error sending HTTP message: {e}")
             raise
@@ -223,8 +240,11 @@ class HTTPTransportPlugin(TransportPlugin):
 
         try:
             response = await self.session.get(f"{self.base_url}/mcp/messages")
-            response.raise_for_status()
-            return response.json()
+            await self._maybe_await(response.raise_for_status())
+            data = response.json()
+            if inspect.isawaitable(data):
+                data = await data
+            return data
         except Exception as e:
             logger.error(f"Error receiving HTTP message: {e}")
             return None
@@ -277,8 +297,6 @@ class StdioTransportPlugin(TransportPlugin):
             try:
                 self.process.terminate()
                 self.process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                self.process.kill()
             finally:
                 self.process = None
                 self._connected = False

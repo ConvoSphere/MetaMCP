@@ -174,8 +174,9 @@ class HealthChecker:
                 self.config.endpoint, timeout=self.config.health_check_timeout
             ) as websocket:
                 # Send ping
-                pong_waiter = await websocket.ping()
-                await pong_waiter
+                pong_result = websocket.ping()
+                if asyncio.isawaitable(pong_result):
+                    await pong_result
                 return True
 
         except Exception as e:
@@ -522,13 +523,13 @@ class LoadBalancedMCPClient:
             response = await self._send_request_to_server(connection, request)
 
             # Update statistics
-            await self._update_server_stats(server.id, success=True)
+            await self._update_server_stats(server.id, True)
 
             return response
 
         except Exception:
             # Update statistics
-            await self._update_server_stats(server.id, success=False)
+            await self._update_server_stats(server.id, False)
             raise
 
     async def _get_connection(self, server: ServerConfig) -> Any:
@@ -553,7 +554,10 @@ class LoadBalancedMCPClient:
         """Create WebSocket connection."""
         import websockets
 
-        return await websockets.connect(server.endpoint)
+        conn = websockets.connect(server.endpoint)
+        if asyncio.isawaitable(conn):
+            return await conn
+        return conn
 
     async def _create_http_connection(self, server: ServerConfig) -> Any:
         """Create HTTP connection."""
@@ -594,10 +598,16 @@ class LoadBalancedMCPClient:
         for connection in self.active_connections.values():
             try:
                 if hasattr(connection, "close"):
-                    await connection.close()
+                    result = connection.close()
+                    if asyncio.isawaitable(result):
+                        await result
                 elif hasattr(connection, "terminate"):
                     connection.terminate()
             except Exception as e:
                 logger.error(f"Error closing connection: {e}")
 
         self.active_connections.clear()
+
+    async def _weighted_round_robin_selection(self, servers: list[ServerConfig]) -> ServerConfig:
+        """Compatibility wrapper for weighted round robin selection."""
+        return await self._weighted_round_robin_select(servers)
