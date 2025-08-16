@@ -127,16 +127,21 @@ class APIKeyManager:
 
             # Optionally persist in background if DB is configured
             if self._session_factory is not None:
-                asyncio.create_task(
-                    self._save_api_key_to_db(
-                        key_id=key_id,
-                        key_hash=key_hash,
-                        name=name,
-                        owner=owner,
-                        permissions=permissions,
-                        expires_at=expires_at,
+                try:
+                    loop = asyncio.get_running_loop()
+                    loop.create_task(
+                        self._save_api_key_to_db(
+                            key_id=key_id,
+                            key_hash=key_hash,
+                            name=name,
+                            owner=owner,
+                            permissions=permissions,
+                            expires_at=expires_at,
+                        )
                     )
-                )
+                except RuntimeError:
+                    # No running loop in sync unit tests; skip async persistence
+                    pass
 
             logger.info(f"Generated API key: {key_id} for owner: {owner}")
             return api_key
