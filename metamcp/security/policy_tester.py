@@ -36,9 +36,9 @@ class PolicyTestResult:
 
     test_case: PolicyTestCase
     actual_result: bool
-    actual_reason: str | None = None
     passed: bool
     execution_time: float
+    actual_reason: str | None = None
     error_message: str | None = None
 
 
