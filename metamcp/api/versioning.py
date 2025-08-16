@@ -6,6 +6,7 @@ version management, and deprecation handling.
 """
 
 from collections.abc import Callable
+import inspect
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
@@ -339,8 +340,12 @@ async def version_middleware(request: Request, call_next: Callable) -> Response:
             detail=f"API version '{version}' not found or has been sunset",
         )
 
-    # Process request
-    response = await call_next(request)
+    # Process request (support both sync and async call_next in tests)
+    maybe_response = call_next(request)
+    if inspect.isawaitable(maybe_response):
+        response = await maybe_response  # type: ignore[assignment]
+    else:
+        response = maybe_response  # type: ignore[assignment]
 
     # Add deprecation headers
     version_manager.add_deprecation_headers(response, version)
@@ -362,15 +367,6 @@ def create_version_router() -> APIRouter:
             "active_versions": version_manager.get_active_versions(),
         }
 
-    @router.get("/{version}")
-    async def get_version_info(version: str):
-        """Get information about a specific version."""
-        version_manager = get_api_version_manager()
-        info = version_manager.get_version_info(version)
-        if not info:
-            raise HTTPException(status_code=404, detail="Version not found")
-        return info
-
     @router.get("/latest")
     async def get_latest_version():
         """Get the latest API version."""
@@ -379,5 +375,14 @@ def create_version_router() -> APIRouter:
         if not latest:
             raise HTTPException(status_code=404, detail="No versions available")
         return {"latest_version": latest}
+
+    @router.get("/{version}")
+    async def get_version_info(version: str):
+        """Get information about a specific version."""
+        version_manager = get_api_version_manager()
+        info = version_manager.get_version_info(version)
+        if not info:
+            raise HTTPException(status_code=404, detail="Version not found")
+        return info
 
     return router
