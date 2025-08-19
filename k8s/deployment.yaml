@@ -42,8 +42,8 @@ spec:
             - ALL
       containers:
       - name: metamcp-api
-        image: metamcp/metamcp:latest
-        imagePullPolicy: Always
+        image: metamcp/metamcp:1.0.0
+        imagePullPolicy: IfNotPresent
         ports:
         - name: http
           containerPort: 8000

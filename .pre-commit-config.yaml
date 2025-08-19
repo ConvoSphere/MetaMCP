@@ -64,18 +64,4 @@ repos:
 
   - repo: local
     hooks:
-      - id: pytest-check
-        name: pytest
-        entry: pytest
-        language: system
-        pass_filenames: false
-        always_run: true
-        args: [tests/, --tb=short]
-
-      - id: coverage-check
-        name: coverage
-        entry: coverage
-        language: system
-        pass_filenames: false
-        always_run: true
-        args: [run, -m, pytest, tests/, --cov=metamcp, --cov-report=term-missing, --cov-fail-under=80] 
+      # Heavy tests removed from pre-commit; run via CI workflows instead

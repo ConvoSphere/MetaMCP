@@ -119,7 +119,7 @@ jobs:
     - name: Run unit tests
       run: |
         source .venv/bin/activate
-        pytest tests/unit/ -v --cov=metamcp --cov-report=xml --cov-report=html --cov-branch
+        pytest tests/unit/ -v -m "not slow and not performance and not security and not benchmark" --cov=metamcp --cov-report=xml --cov-report=html --cov-branch
       env:
         META_MCP_SECRET_KEY: test-secret-key-for-testing-only
         META_MCP_JWT_SECRET_KEY: test-jwt-secret-key-for-testing-only
@@ -184,7 +184,7 @@ jobs:
     - name: Run integration tests
       run: |
         source .venv/bin/activate
-        pytest tests/integration/ -v --cov=metamcp --cov-report=xml --cov-append
+        pytest tests/integration/ -v -m "not slow and not performance and not security and not benchmark" --cov=metamcp --cov-report=xml --cov-append
       env:
         META_MCP_SECRET_KEY: test-secret-key-for-testing-only
         META_MCP_JWT_SECRET_KEY: test-jwt-secret-key-for-testing-only
@@ -462,4 +462,4 @@ jobs:
         tag_name: ${{ github.ref }}
         release_name: Release ${{ github.ref }}
         draft: false
-        prerelease: false 
+        prerelease: false

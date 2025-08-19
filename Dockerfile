@@ -3,7 +3,7 @@
 # =============================================================================
 
 # Build Stage
-FROM python:3.11-slim as builder
+FROM python:3.11.9-slim as builder
 
 WORKDIR /build
 
@@ -23,7 +23,7 @@ COPY requirements.txt .
 RUN pip install --user --no-cache-dir -r requirements.txt
 
 # Production Stage
-FROM python:3.11-slim
+FROM python:3.11.9-slim
 
 # Create non-root user
 RUN groupadd -r metamcp && useradd -r -g metamcp metamcp
