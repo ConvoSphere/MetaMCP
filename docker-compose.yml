@@ -72,7 +72,7 @@ services:
       - TELEMETRY_ENABLED=false
       
       # CORS Settings
-      - CORS_ORIGINS=["*"]
+      - CORS_ORIGINS=["http://localhost:9501","http://localhost:3000"]
       - CORS_ALLOW_CREDENTIALS=true
       
       # Rate Limiting
@@ -172,7 +172,7 @@ services:
       - "9088:8080"
     environment:
       QUERY_DEFAULTS_LIMIT: 25
-      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'true'
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: 'false'
       PERSISTENCE_DATA_PATH: '/var/lib/weaviate'
       DEFAULT_VECTORIZER_MODULE: 'none'
       ENABLE_MODULES: 'text2vec-openai,text2vec-cohere,text2vec-huggingface,ref2vec-centroid,generative-openai,qna-openai'
@@ -202,7 +202,7 @@ services:
 
   # Open Policy Agent (OPA)
   opa:
-    image: openpolicyagent/opa:latest-envoy
+    image: openpolicyagent/opa:0.66.0-envoy
     ports:
       - "8181:8181"
     command:
@@ -219,7 +219,7 @@ services:
 
   # Monitoring - Prometheus
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.53.1
     ports:
       - "9090:9090"
     volumes:
@@ -238,7 +238,7 @@ services:
 
   # Monitoring - Grafana
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.4.5
     ports:
       - "3000:3000"
     environment:

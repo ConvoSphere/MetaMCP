@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # Prometheus for metrics collection
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.53.1
     container_name: metamcp-prometheus
     ports:
       - "9090:9090"
@@ -23,7 +23,7 @@ services:
 
   # Grafana for visualization
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:10.4.5
     container_name: metamcp-grafana
     ports:
       - "3000:3000"
@@ -43,7 +43,7 @@ services:
 
   # Jaeger for distributed tracing
   jaeger:
-    image: jaegertracing/all-in-one:latest
+    image: jaegertracing/all-in-one:1.57
     container_name: metamcp-jaeger
     ports:
       - "16686:16686"  # Web UI
@@ -60,7 +60,7 @@ services:
 
   # OpenTelemetry Collector for data processing
   otel-collector:
-    image: otel/opentelemetry-collector:latest
+    image: otel/opentelemetry-collector:0.99.0
     container_name: metamcp-otel-collector
     ports:
       - "4317:4317"  # OTLP gRPC
@@ -78,7 +78,7 @@ services:
 
   # AlertManager for alerting
   alertmanager:
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:v0.27.0
     container_name: metamcp-alertmanager
     ports:
       - "9093:9093"
@@ -88,16 +88,13 @@ services:
     command:
       - '--config.file=/etc/alertmanager/alertmanager.yml'
       - '--storage.path=/alertmanager'
-      - '--web.console.libraries=/etc/alertmanager/console_libraries'
-      - '--web.console.templates=/etc/alertmanager/consoles'
-      - '--web.enable-lifecycle'
     restart: unless-stopped
     networks:
       - monitoring
 
   # Loki for log aggregation
   loki:
-    image: grafana/loki:latest
+    image: grafana/loki:3.1.0
     container_name: metamcp-loki
     ports:
       - "3100:3100"
@@ -111,7 +108,7 @@ services:
 
   # Promtail for log shipping
   promtail:
-    image: grafana/promtail:latest
+    image: grafana/promtail:3.1.0
     container_name: metamcp-promtail
     volumes:
       - ./monitoring/promtail-config.yml:/etc/promtail/config.yml
@@ -132,4 +129,4 @@ volumes:
 
 networks:
   monitoring:
-    driver: bridge 
+    driver: bridge

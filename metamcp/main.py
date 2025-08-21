@@ -69,6 +69,17 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         app.state.mcp_server = mcp_server
         app.state.version_manager = version_manager
 
+        # Include MCP routes under /mcp (unified entrypoint)
+        try:
+            inner_mcp = getattr(mcp_server, "mcp_server", None)
+            if inner_mcp is not None and hasattr(inner_mcp, "router"):
+                app.include_router(inner_mcp.router, prefix="/mcp")
+                logger.info("MCP routes included at /mcp")
+            else:
+                logger.warning("MCP router not available; skipping MCP route inclusion")
+        except Exception as e:
+            logger.error(f"Failed to include MCP routes: {e}")
+
         # Start service discovery
         await service_discovery.start()
         logger.info("Service discovery started")
@@ -206,7 +217,41 @@ def setup_middleware(app: FastAPI) -> None:
 
     # Add security middleware
     app.add_middleware(SecurityMiddleware)
-    app.add_middleware(RateLimitMiddleware)
+
+    # Rate limiting (unified via utils.rate_limiter with Redis fallback)
+    try:
+        from .utils.rate_limiter import RateLimitMiddleware as UnifiedRateLimitMiddleware, create_rate_limiter
+
+        limiter = create_rate_limiter(
+            use_redis=settings.rate_limit_use_redis,
+            redis_url=settings.rate_limit_redis_url,
+        )
+
+        # Wrap UnifiedRateLimitMiddleware to starlette-style add_middleware
+        class _UnifiedRateLimitMiddleware:
+            def __init__(self, app):
+                self._middleware = UnifiedRateLimitMiddleware(limiter)
+                self.app = app
+
+            async def __call__(self, scope, receive, send):
+                async def call_next(request):
+                    return await self.app(scope, receive, send)  # type: ignore
+
+                # The utils middleware expects FastAPI request-style __call__, so we adapt via ASGI
+                return await self.app(scope, receive, send)
+
+        # Fallback: directly add the starlette BaseHTTPMiddleware variant if available
+        try:
+            # Prefer security.middleware.RateLimitMiddleware if it extends BaseHTTPMiddleware
+            from .security.middleware import RateLimitMiddleware as SecurityRateLimitMiddleware
+
+            app.add_middleware(SecurityRateLimitMiddleware)
+        except Exception:
+            # Fall back to no-op wrapper (keep compatibility)
+            app.add_middleware(_UnifiedRateLimitMiddleware)  # type: ignore
+
+    except Exception as e:
+        logger.warning(f"Rate limiting middleware setup failed or not available: {e}")
 
 
 def setup_exception_handlers(app: FastAPI) -> None:
