@@ -12,7 +12,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any
+from typing import Any, Optional
 from uuid import uuid4
 
 from ..config import get_settings
@@ -62,7 +62,7 @@ class TaskInfo:
 class BackgroundTaskManager:
     """Background task manager for performance optimization."""
 
-    def __init__(self, max_workers: int = None):
+    def __init__(self, max_workers: int | None = None):
         """Initialize background task manager."""
         self.max_workers = max_workers or settings.worker_threads
         self._executor = ThreadPoolExecutor(max_workers=self.max_workers)
@@ -72,7 +72,7 @@ class BackgroundTaskManager:
         self._workers: list[asyncio.Task] = []
         self._lock = asyncio.Lock()
 
-    async def start(self):
+    async def start(self) -> None:
         """Start the background task manager."""
         if self._running:
             return
@@ -85,7 +85,7 @@ class BackgroundTaskManager:
             worker = asyncio.create_task(self._worker(f"worker-{i}"))
             self._workers.append(worker)
 
-    async def stop(self):
+    async def stop(self) -> None:
         """Stop the background task manager."""
         if not self._running:
             return
@@ -108,7 +108,7 @@ class BackgroundTaskManager:
         self,
         func: Callable,
         *args,
-        name: str = None,
+        name: str | None = None,
         priority: TaskPriority = TaskPriority.NORMAL,
         max_retries: int = 3,
         **kwargs,
@@ -142,7 +142,7 @@ class BackgroundTaskManager:
         async with self._lock:
             return self._tasks.get(task_id)
 
-    async def get_task_result(self, task_id: str, timeout: float = None) -> Any:
+    async def get_task_result(self, task_id: str, timeout: float | None = None) -> Any:
         """Get task result, waiting if necessary."""
         start_time = time.time()
 
@@ -183,7 +183,7 @@ class BackgroundTaskManager:
         async with self._lock:
             return list(self._tasks.values())
 
-    async def cleanup_completed_tasks(self, max_age_hours: int = 24):
+    async def cleanup_completed_tasks(self, max_age_hours: int = 24) -> None:
         """Clean up completed tasks older than specified age."""
         cutoff_time = datetime.now() - timedelta(hours=max_age_hours)
 
@@ -205,7 +205,7 @@ class BackgroundTaskManager:
             if tasks_to_remove:
                 logger.info(f"Cleaned up {len(tasks_to_remove)} completed tasks")
 
-    async def _worker(self, worker_name: str):
+    async def _worker(self, worker_name: str) -> None:
         """Worker task that processes the task queue."""
         logger.debug(f"Started worker: {worker_name}")
 
@@ -345,13 +345,13 @@ async def submit_background_task(
     )
 
 
-async def start_background_tasks():
+async def start_background_tasks() -> None:
     """Start the global background task manager."""
     task_manager = get_task_manager()
     await task_manager.start()
 
 
-async def stop_background_tasks():
+async def stop_background_tasks() -> None:
     """Stop the global background task manager."""
     task_manager = get_task_manager()
     await task_manager.stop()
