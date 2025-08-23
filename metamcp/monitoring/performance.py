@@ -67,7 +67,7 @@ class PerformanceMonitor:
     Provides system metrics, request tracking, and performance analysis.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize performance monitor."""
         self.metrics_history: deque = deque(maxlen=1000)  # Keep last 1000 metrics
         self.request_history: deque = deque(maxlen=10000)  # Keep last 10000 requests
@@ -438,7 +438,7 @@ class PerformanceMonitor:
             if req.timestamp.timestamp() > cutoff_time
         ]
 
-        return len(recent_requests) / 60.0
+        return float(len(recent_requests)) / 60.0
 
     def _calculate_average_response_time(self) -> float:
         """Calculate average response time."""

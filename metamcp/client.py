@@ -110,7 +110,7 @@ class MetaMCPClient:
 
         except Exception as e:
             logger.error(f"Failed to connect to MCP server: {e}")
-            raise MCPProtocolError(operation="connect", reason=str(e))
+            raise MCPProtocolError(message=f"connect failed: {e}")
 
     async def disconnect(self) -> None:
         """Disconnect from MCP Meta-Server."""
@@ -138,42 +138,32 @@ class MetaMCPClient:
         response = await self._receive_mcp_message()
 
         if "error" in response:
-            raise MCPProtocolError(
-                operation="initialize", reason=response["error"]["message"]
-            )
+            raise MCPProtocolError(message=f"initialize failed: {response['error']['message']}")
 
         self.mcp_session_id = response.get("result", {}).get("sessionId")
 
     async def _send_mcp_message(self, message: dict[str, Any]) -> None:
         """Send MCP message via WebSocket."""
         if not self.websocket:
-            raise MCPProtocolError(
-                operation="send_message", reason="Not connected to MCP server"
-            )
+            raise MCPProtocolError(message="send_message failed: Not connected to MCP server")
 
         try:
             await self.websocket.send(json.dumps(message))
         except ConnectionClosed:
             self._connected = False
-            raise MCPProtocolError(
-                operation="send_message", reason="Connection to MCP server lost"
-            )
+            raise MCPProtocolError(message="send_message failed: Connection to MCP server lost")
 
     async def _receive_mcp_message(self) -> dict[str, Any]:
         """Receive MCP message via WebSocket."""
         if not self.websocket:
-            raise MCPProtocolError(
-                operation="receive_message", reason="Not connected to MCP server"
-            )
+            raise MCPProtocolError(message="receive_message failed: Not connected to MCP server")
 
         try:
             message = await self.websocket.recv()
             return json.loads(message)
         except ConnectionClosed:
             self._connected = False
-            raise MCPProtocolError(
-                operation="receive_message", reason="Connection to MCP server lost"
-            )
+            raise MCPProtocolError(message="receive_message failed: Connection to MCP server lost")
 
     # =============================================================================
     # REST API Methods
@@ -395,9 +385,7 @@ class MetaMCPClient:
         response = await self._receive_mcp_message()
 
         if "error" in response:
-            raise MCPProtocolError(
-                operation="list_tools", reason=response["error"]["message"]
-            )
+            raise MCPProtocolError(message=f"list_tools failed: {response['error']['message']}")
 
         return response.get("result", {}).get("tools", [])
 
@@ -428,9 +416,7 @@ class MetaMCPClient:
         response = await self._receive_mcp_message()
 
         if "error" in response:
-            raise MCPProtocolError(
-                operation="call_tool", reason=response["error"]["message"]
-            )
+            raise MCPProtocolError(message=f"call_tool failed: {response['error']['message']}")
 
         return response.get("result", {})
 
